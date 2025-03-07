@@ -5,6 +5,8 @@ class User {
     private String pwd_hash;
     private Schedule schedule;
 
+    // change for testing
+
     public void setEmail(String email) {
         this.email = email;
     }
