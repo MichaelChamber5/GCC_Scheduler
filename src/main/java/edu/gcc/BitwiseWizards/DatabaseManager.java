@@ -225,10 +225,8 @@ public class DatabaseManager {
                     "2024_Spring", 2, 10);
         insertPersonalItem("Chapel");
         insertPersonalItem("Lunch");
-        System.out.println("Insert user_id 1: " + insertUser("proctorhm22@gcc.edu",
-                    "password"));
-        System.out.println("Insert user_id 2: " + insertUser("hannahmpro22@gmail.com",
-                    "password"));
+        insertUser("proctorhm22@gcc.edu", "password");
+        insertUser("hannahmpro22@gmail.com", "password");
     }
 
     // TODO: load course catalogue data
@@ -470,14 +468,14 @@ public class DatabaseManager {
         }
     }
 
-    // for testing
+    // testing...
     // TODO: delete method
     public static void main(String[] args) {
         DatabaseManager dm = new DatabaseManager();
         String email = "proctorhm22@gcc.edu";
         String password = "password";
         try {
-            System.out.println("Get user_id: " + dm.getUser(email, password));
+            System.out.println(dm.getUser(email, password));
 //            dm.getUser("invalid email", password);
 //            dm.getUser(email, "incorrect password");
 //            dm.getUser("bad", "bad");

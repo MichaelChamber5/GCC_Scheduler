@@ -2,14 +2,24 @@ package edu.gcc.BitwiseWizards;
 
 public class User {
 
+    private int user_id;
     private String email;
-    private String pwd_hash;
+    private String password_hash;
     private Schedule schedule;
 
-    public User(String email, String password) {
+    public User(int user_id, String email, String password) {
+        setId(user_id);
         setEmail(email);
-        setPwd(password);
+        setPassword(password);
         schedule = new Schedule();
+    }
+
+    public void setId(int user_id) { // TODO: delete?
+        this.user_id = user_id;
+    }
+
+    public int getId() {
+        return user_id;
     }
 
     public void setEmail(String email) {
@@ -21,18 +31,38 @@ public class User {
         return email;
     }
 
-    public void setPwd(String pwd) {
+    public void setPassword(String password) {
         // TODO: implement password hashing
-        this.pwd_hash = pwd;
+        this.password_hash = password;
     }
 
-    public void addScheduleItem() {
+    // TODO: getPassword()
 
+    public void setSchedule(Schedule schedule) {
+//        this.schedule = schedule;
     }
 
     public Schedule getSchedule() {
         return schedule;
     }
+
+    // TODO: can we delete these and just use curr_user.schedule in main?
+//
+//    public void addCourse(CourseItem item) {
+////        this.schedule.addScheduleItem(item);
+//    }
+//
+//    public void addPersonalItem(CourseItem item) {
+////        this.schedule.addScheduleItem(item);
+//    }
+//
+//    public void removeCourse(CourseItem item) {
+////        this.schedule.removeScheduleItem(item);
+//    }
+//
+//    public void removePersonalItem(CourseItem item) {
+////        this.schedule.removeScheduleItem(item);
+//    }
 
     public String toString() {
         String s = email + "\n";
