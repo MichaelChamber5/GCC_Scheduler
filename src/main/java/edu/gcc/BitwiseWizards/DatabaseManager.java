@@ -14,6 +14,7 @@ public class DatabaseManager {
     public DatabaseManager() {
         try {
             connection = DriverManager.getConnection(DB_URL);
+            System.out.println("\nSuccessfully connected to database.");
             initializeDatabase();
         } catch(SQLException e) {
             System.err.println("Failed to connect to database: " + e.getMessage());
@@ -22,20 +23,21 @@ public class DatabaseManager {
 
     /**
      * Creates tables and fills them with dummy data.
-     * TODO: only run dropTables() once before commenting it out
+     * TODO: ideally only run dropTables() once before commenting it out.. but its good for testing
      */
     private void initializeDatabase() {
         try {
             dropTables();
             createTables();
             populateTables();
+            System.out.println("Successfully initialized database.");
         } catch (SQLException e) {
             System.err.println("Error initializing database: " + e.getMessage());
         }
     }
 
     /**
-     * Drops all tables currently in the database (assuming you didn't make other ones).
+     * Drops all tables currently in the database (assuming you only create the tables below).
      * @throws SQLException if commands fail
      */
     public void dropTables() throws SQLException {
@@ -114,7 +116,6 @@ public class DatabaseManager {
          */
         try (Statement stmt = connection.createStatement()) {
             // departments table (dept_id, "COMP", "Computer Science")
-            // TODO: make dept_code primary key?
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS departments (
                     dept_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -133,7 +134,6 @@ public class DatabaseManager {
             """);
             // courses table (course_id, "SOFTWARE ENGINEERING", "COMP", 350, "B", "2024_Spring")
             // TODO: integrate time slots
-            // TODO: make unique tuple primary key?
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS courses (
                     course_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -171,7 +171,6 @@ public class DatabaseManager {
                 )
             """);
             // users table (user_id, "proctorhm22@gcc.edu", "password")
-            // TODO: make email primary key?
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -205,15 +204,20 @@ public class DatabaseManager {
 
     /**
      * Fills tables with course catalogue and dummy user data.
-     * TODO: fill tables properly
+     * TODO: fill tables properly.
      */
     private void populateTables() {
+
+        // loadCoursesFromJson();
+
         insertDepartment("COMP", "Computer Science");
         insertDepartment("COMP", "Computer Science");
         insertDepartment("MATH", "Mathematics");
+
         insertFaculty("Hutchins, Jonathan O.", 4.3, 2.5);
         insertFaculty("Hutchins, Jonathan O.", 4.3, 2.5);
         insertFaculty("Thompson, Gary L.", 4, 4.2);
+
         insertCourse(3, false, false, "STEM 326",
                     "SOFTWARE ENGINEERING", 350, 0, "A",
                     "2024_Spring", 1, 23);
@@ -223,25 +227,28 @@ public class DatabaseManager {
         insertCourse(3, false, true, "SHAL 109 Tablet Chairs w/multimedia",
                     "NUMBER THEORY", 422, 4, "A",
                     "2024_Spring", 2, 10);
+
         insertPersonalItem("Chapel");
         insertPersonalItem("Lunch");
+
         insertUser("proctorhm22@gcc.edu", "password");
         insertUser("hannahmpro22@gmail.com", "password");
+
     }
 
-    // TODO: load course catalogue data
+    // TODO: loadCoursesFromJSON()
 
-    // TODO: update values in tables (user email / password)
+    // TODO: update values in tables (user email / password... rate my professor api)
 
-    // TODO: remove values from tables (users table / corresponding entries in other tables)
+    // TODO: remove values from tables (delete user)
 
-    // TODO: modify insert methods to return identity of what is inserted
+    // TODO: modify insert methods to return id of what is inserted
 
     /**
-     * Insert values into departments table.
+     * Insert department into departments table.
      * Duplicate entries (entries with the same dept_code) are ignored.
-     * @param dept_code e.g. "COMP"
-     * @param dept_name e.g. "Computer Science"
+     * @param dept_code department code e.g. "COMP"
+     * @param dept_name department name e.g. "Computer Science"
      */
     private void insertDepartment(String dept_code, String dept_name) {
         String sql = "INSERT INTO departments (dept_code, dept_name) VALUES (?, ?) " +
@@ -256,13 +263,13 @@ public class DatabaseManager {
     }
 
     /**
-     * Insert values into faculty table.
+     * Insert faculty into faculty table.
      * Duplicate entries (entries with the same faculty_name) are ignored.
-     * TODO: as is, faculty_name must be unique
-     * TODO: get avg_rating / avg_difficulty from RateMyProfessor API
-     * @param faculty_name e.g. "Hutchins, Jonathan O."
-     * @param avg_rating e.g. 4.3 (default -1)
-     * @param avg_difficulty e.g. 2.5 (default -1)
+     * TODO: as is, faculty_name must be unique.
+     * TODO: get avg_rating / avg_difficulty from RateMyProfessor API.
+     * @param faculty_name faculty name e.g. "Hutchins, Jonathan O."
+     * @param avg_rating "Overall Quality" rating on RateMyProfessor (default -1)
+     * @param avg_difficulty "Level of Difficulty" rating on RateMyProfessor (default -1)
      */
     private void insertFaculty(String faculty_name, double avg_rating, double avg_difficulty) {
         String sql = "INSERT INTO faculty (faculty_name, avg_rating, avg_difficulty) VALUES (?, ?, ?) " +
@@ -276,33 +283,23 @@ public class DatabaseManager {
             System.err.println("Failed to insert faculty: " + e.getMessage());
         }
     }
-//    private void insertFaculty(String faculty_name) {
-//        String sql = "INSERT INTO faculty (faculty_name, avg_rating, avg_difficulty) VALUES (?, ?, ?) " +
-//                "ON CONFLICT(faculty_name) DO NOTHING";
-//        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-//            pstmt.setString(1, faculty_name);
-//            pstmt.setDouble(2, -1);
-//            pstmt.setDouble(3, -1);
-//            pstmt.executeUpdate();
-//        } catch (SQLException e) {
-//            System.err.println("Failed to insert faculty: " + e.getMessage());
-//        }
-//    }
 
     /**
-     * Insert values into courses table.
-     * TODO: link to time_slots table
-     * @param credits       e.g. 3
+     * Insert course into courses table.
+     * TODO: link to faculty table.
+     * TODO: link to departments table.
+     * TODO: link to time_slots table.
+     * @param credits       number of credit hours e.g. 3
      * @param is_lab        T if course is a lab; F otherwise
      * @param is_open       T if course is open (open_seats != 0); F otherwise
-     * @param location      e.g. "STEM 326"
-     * @param course_name   e.g. "SOFTWARE ENGINEERING"
-     * @param course_number e.g. 350
-     * @param open_seats    e.g. 9
-     * @param section_id    e.g. "A" or "B"
-     * @param semester      e.g. "2024_Spring"
-     * @param dept_id       FK references departments(dept_id)
-     * @param total_seats   e.g. 23
+     * @param location      course location e.g. "STEM 326"
+     * @param course_name   course name e.g. "SOFTWARE ENGINEERING"
+     * @param course_number number after dept_code e.g. 350
+     * @param open_seats    number of open seats e.g. 9
+     * @param section_id    section letter e.g. "A" or "B"
+     * @param semester      semester course is available e.g. "2024_Spring"
+     * @param dept_id       placeholder for dept_code / FK referencing departments(dept_id)
+     * @param total_seats   number of total seats e.g. 23
      */
     private void insertCourse(int credits, boolean is_lab, boolean is_open, String location,
                               String course_name, int course_number, int open_seats,
@@ -329,7 +326,8 @@ public class DatabaseManager {
     }
 
     /**
-     * Add new (course_id, faculty_id) pair to courses x faculty table.
+     * Insert (course_id, faculty_id) pair into course_faculty table.
+     * Group by course_id to get list of faculty members associated with the given course.
      * @param course_id FK references courses(course_id)
      * @param faculty_id FK references faculty(faculty_id)
      */
@@ -346,9 +344,9 @@ public class DatabaseManager {
     }
 
     /**
-     * Add new personal_item to personal_items table.
-     * TODO: link to time_slots table
-     * @param pitem_name personal item name (e.g. "Chapel"), NOT NULL
+     * Insert personal_item into personal_items table.
+     * TODO: link to time_slots table.
+     * @param pitem_name personal item name e.g. "Chapel"
      */
     protected void insertPersonalItem(String pitem_name) {
         String sql = "INSERT INTO personal_items (pitem_name) VALUES (?)";
@@ -361,10 +359,10 @@ public class DatabaseManager {
     }
 
     /**
-     * Add new user to users table.
-     * NOTE: password should be hashed before calling this method
-     * @param user_email user email (e.g. "proctorhm22@gcc.edu")
-     * @param user_password user password (e.g. "password")
+     * Insert user into users table.
+     * NOTE: password should be hashed before calling this method.
+     * @param user_email user email e.g. "proctorhm22@gcc.edu"
+     * @param user_password user password e.g. "password"
      * @return user_id of the inserted user or -1 if insertion fails
      */
     protected int insertUser(String user_email, String user_password) {
@@ -387,7 +385,7 @@ public class DatabaseManager {
     /**
      * Add course to user's schedule.
      * Group by user_id to get list of courses in user's schedule.
-     * TODO: add course_id to CourseItem class
+     * TODO: add course_id to CourseItem class.
      * @param user_id FK references users(user_id)
      * @param course_id FK references courses(course_id)
      */
@@ -405,7 +403,7 @@ public class DatabaseManager {
     /**
      * Add personal item to user's schedule.
      * Group by user_id to get list of personal items in user's schedule.
-     * TODO: add pitem_id to PersonalItem class
+     * TODO: add pitem_id to PersonalItem class.
      * @param user_id FK references users(user_id)
      * @param pitem_id FK references personal_items(pitem_id)
      */
@@ -422,13 +420,12 @@ public class DatabaseManager {
 
     /**
      * Returns user_id of the user corresponding to the given email and password.
-     * TODO: return -1 instead of throwing an exception if email not found or password is incorrect?
-     * @param user_email user email (e.g. "proctorhm22@gcc.edu)
-     * @param user_password user password (e.g. "password")
-     * @return user_id of the specified user
-     * @throws Exception if email not found or password is incorrect
+     * TODO: modify to return user object.
+     * @param user_email user email e.g. "proctorhm22@gcc.edu
+     * @param user_password user password e.g. "password"
+     * @return user_id of the specified user or -1 if email not found or password is incorrect
      */
-    public int getUser(String user_email, String user_password) throws Exception {
+    public int getUser(String user_email, String user_password) {
         String sql = """
             SELECT *
             FROM users
@@ -439,13 +436,15 @@ public class DatabaseManager {
             pstmt.setString(2, user_password);
             ResultSet rs = pstmt.executeQuery();
             if (!rs.next()) {
-                throw new Exception("Failed to get user: credentials invalid.");
+                // failed to get user: credentials invalid
+                return -1;
             }
             // else
             return rs.getInt("user_id");
             // TODO: use user_id to get user schedule (user_courses \cup user_pitems)
         } catch (SQLException e) {
-            throw new Exception("Failed to get user: " + e.getMessage());
+            System.err.println("failed to get user: " + e.getMessage());
+            return -1;
         }
     }
 
@@ -471,18 +470,19 @@ public class DatabaseManager {
     // testing...
     // TODO: delete method
     public static void main(String[] args) {
+
         DatabaseManager dm = new DatabaseManager();
-        String email = "proctorhm22@gcc.edu";
-        String password = "password";
-        try {
-            System.out.println(dm.getUser(email, password));
-//            dm.getUser("invalid email", password);
-//            dm.getUser(email, "incorrect password");
-//            dm.getUser("bad", "bad");
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-        }
+
+        System.out.println("\nget proctorhm22@gcc.edu (correct password): "
+                + dm.getUser("proctorhm22@gcc.edu", "password"));
+        System.out.println("get hannahmpro22@gmail.com (correct password): "
+                + dm.getUser("hannahmpro22@gmail.com", "password"));
+        System.out.println("get proctorhm22@gcc.edu (incorrect password): "
+                + dm.getUser("proctorhm22@gcc.edu", "bad password"));
+        System.out.println("invalid email: " + dm.getUser("bad email", "password"));
+
         dm.close();
+
     }
 
 }
