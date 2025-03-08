@@ -1,17 +1,47 @@
 package edu.gcc.BitwiseWizards;
 
-class User {
+public class User {
+
     private String email;
     private String pwd_hash;
     private Schedule schedule;
 
-    // change for testing
+    public User(String email, String password) {
+        setEmail(email);
+        setPwd(password);
+        schedule = new Schedule();
+    }
 
     public void setEmail(String email) {
+        // TODO: check if valid email
         this.email = email;
     }
 
-    public void setPwd(String pwd) {
-        this.pwd_hash = pwd; // Hash password properly in implementation
+    public String getEmail() {
+        return email;
     }
+
+    public void setPwd(String pwd) {
+        // TODO: implement password hashing
+        this.pwd_hash = pwd;
+    }
+
+    public void addScheduleItem() {
+
+    }
+
+    public Schedule getSchedule() {
+        return schedule;
+    }
+
+    public String toString() {
+        String s = email + "\n";
+        s = s + "[ ";
+        for (ScheduleItem item : schedule.getScheduleItems()) {
+            s = s + item + " ";
+        }
+        s = s + "]";
+        return s;
+    }
+
 }
