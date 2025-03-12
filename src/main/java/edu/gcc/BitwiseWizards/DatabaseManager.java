@@ -43,24 +43,25 @@ public class DatabaseManager {
     }
 
     /**
-     * Drops all tables currently in the database EXCEPT courses.
+     * Drops all tables currently in the database EXCEPT courses. If you want to drop courses,
+     * uncomment it below.
      * @throws SQLException if commands fail
      */
-    public void dropTables() throws SQLException {
+    private void dropTables() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             // there's probably a better way to do this...
-            stmt.execute("""
-                DROP TABLE IF EXISTS departments;
-            """);
-            stmt.execute("""
-                DROP TABLE IF EXISTS faculty;
-            """);
+//            stmt.execute("""
+//                DROP TABLE IF EXISTS departments;
+//            """);
+//            stmt.execute("""
+//                DROP TABLE IF EXISTS faculty;
+//            """);
 //            stmt.execute("""
 //                DROP TABLE IF EXISTS courses;
 //            """);
-            stmt.execute("""
-                DROP TABLE IF EXISTS course_faculty;
-            """);
+//            stmt.execute("""
+//                DROP TABLE IF EXISTS course_faculty;
+//            """);
             stmt.execute("""
                 DROP TABLE IF EXISTS personal_items;
             """);
@@ -90,7 +91,7 @@ public class DatabaseManager {
      *      time_slots      (...)
      * @throws SQLException if commands fail
      */
-    public void createTables() throws SQLException {
+    private void createTables() throws SQLException {
         // Example JSON entry:
         /*
             {   "credits":3,
@@ -212,7 +213,7 @@ public class DatabaseManager {
      * ...
      * @return the number of courses in the courses table or -1 if SQLException is thrown
      */
-    public int getCourseCount() {
+    protected int getCourseCount() {
         String sql = "SELECT COUNT(*) FROM courses";
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -228,7 +229,6 @@ public class DatabaseManager {
 
     /**
      * Fills tables with course catalogue and dummy user data.
-     * TODO: fill tables properly.
      */
     private void populateTables() {
 
@@ -236,13 +236,13 @@ public class DatabaseManager {
             loadCoursesFromJson();
         }
 
-//        insertDepartment("COMP", "Computer Science");
-//        insertDepartment("COMP", "Computer Science");
-//        insertDepartment("MATH", "Mathematics");
+        insertDepartment("COMP", "Computer Science");
+        insertDepartment("COMP", "Computer Science");
+        insertDepartment("MATH", "Mathematics");
 
-//        insertFaculty("Hutchins, Jonathan O.", 4.3, 2.5);
-//        insertFaculty("Hutchins, Jonathan O.", 4.3, 2.5);
-//        insertFaculty("Thompson, Gary L.", 4, 4.2);
+        insertFaculty("Hutchins, Jonathan O.", 4.3, 2.5);
+        insertFaculty("Hutchins, Jonathan O.", 4.3, 2.5);
+        insertFaculty("Thompson, Gary L.", 4, 4.2);
 
 //        insertCourse(3, false, false, "STEM 326",
 //                    "SOFTWARE ENGINEERING", 350, 0, "A",
@@ -325,7 +325,7 @@ public class DatabaseManager {
             if (facultyNode != null && facultyNode.isArray()) {
                 for (JsonNode faculty : facultyNode) {
                     if (faculty != null && !faculty.isNull()) {
-                        int facultyId = insertFaculty(faculty.asText(), -1, -1);
+                        int facultyId = insertFaculty(faculty.asText(), 0, 0);
                         insertCourseFaculty(courseId, facultyId);
                     }
                 }
@@ -370,6 +370,8 @@ public class DatabaseManager {
 
     // TODO: remove values from tables (delete user)
 
+    // TODO: edit get functions so it returns objects of the appropriate type
+
     /**
      * Insert department into departments table.
      * Duplicate entries (entries with the same dept_code) are ignored.
@@ -396,7 +398,7 @@ public class DatabaseManager {
      * @param dept_code
      * @return dept_id or -1 if entry does not exist or SQLException occurred
      */
-    private int getDept(String dept_code) {
+    protected int getDept(String dept_code) {
         String sql = "SELECT * from departments WHERE dept_code = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, dept_code);
@@ -440,7 +442,7 @@ public class DatabaseManager {
      * @param faculty_name
      * @return
      */
-    private int getFaculty(String faculty_name) {
+    protected int getFaculty(String faculty_name) {
         String sql = "SELECT * from faculty WHERE faculty_name = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, faculty_name);
@@ -498,7 +500,7 @@ public class DatabaseManager {
         return -1;
     }
 
-    private int getCourse(int dept_id, int course_number, String section, String semester) {
+    protected int getCourse(int dept_id, int course_number, String section, String semester) {
         String sql = "SELECT * " +
                 "FROM courses " +
                 "WHERE dept_id = ? AND course_number = ? AND section_id = ? AND semester = ?";
@@ -582,7 +584,7 @@ public class DatabaseManager {
      * @param user_password user password e.g. "password"
      * @return user_id of the specified user or -1 if email not found or password is incorrect
      */
-    public int getUser(String user_email, String user_password) {
+    protected int getUser(String user_email, String user_password) {
         String sql = """
             SELECT *
             FROM users
@@ -626,7 +628,7 @@ public class DatabaseManager {
      * @param user_id
      * @return
      */
-    public ArrayList<Integer> getUserCourses(int user_id) {
+    protected ArrayList<Integer> getUserCourses(int user_id) {
         ArrayList<Integer> courses = new ArrayList<>();
         String sql = """
             SELECT *
@@ -669,7 +671,7 @@ public class DatabaseManager {
      * @param user_id
      * @return
      */
-    public ArrayList<Integer> getUserPersonalItems(int user_id) {
+    protected ArrayList<Integer> getUserPersonalItems(int user_id) {
         ArrayList<Integer> courses = new ArrayList<>();
         String sql = """
             SELECT *
@@ -693,7 +695,7 @@ public class DatabaseManager {
      * @param user_id
      * @return
      */
-    public ArrayList<ScheduleItem> getUserSchedule(int user_id) {
+    protected ArrayList<ScheduleItem> getUserSchedule(int user_id) {
         ArrayList<ScheduleItem> schedule = new ArrayList<>();
 //        schedule.addAll(getUserCourses(user_id));
 //        schedule.addAll(getUserPersonalItems(user_id));
@@ -705,7 +707,7 @@ public class DatabaseManager {
     /**
      * Close database connection.
      */
-    public void close() {
+    protected void close() {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
