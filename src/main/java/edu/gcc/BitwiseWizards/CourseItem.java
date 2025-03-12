@@ -1,6 +1,9 @@
 package edu.gcc.BitwiseWizards;
 
-public class CourseItem {
+import java.util.Date;
+import java.util.List;
+
+public class CourseItem extends ScheduleItem {
     private String depCode;
     private int courseCode;
     private char section;
@@ -9,6 +12,21 @@ public class CourseItem {
     private Professor professor;
     private int credits;
     private boolean onSchedule = false;
+
+    public CourseItem(String name, List<Character> meetingDays, Date start, Date end, String depCode,
+                      int courseCode, char section, String location, String description,
+                      Professor professor, int credits, boolean onSchedule)
+    {
+        super(name, meetingDays, start, end);
+        this.depCode = depCode;
+        this.courseCode = courseCode;
+        this.section = section;
+        this.location = location;
+        this.description = description;
+        this.professor = professor;
+        this.credits = credits;
+        this.onSchedule = onSchedule;
+    }
 
     public String getDepCode() {
         return depCode;

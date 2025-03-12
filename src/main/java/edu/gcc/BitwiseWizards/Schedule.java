@@ -1,9 +1,16 @@
 package edu.gcc.BitwiseWizards;
 
 import java.util.*;
+
 public class Schedule {
-    private List<ScheduleItem> items = new ArrayList<>();
-    private int credit_count = 0;
+
+    private List<ScheduleItem> items;
+    private int credit_count;
+
+    public Schedule() {
+        items = new ArrayList<>();
+        credit_count = 0;
+    }
 
     public List<ScheduleItem> getScheduleItems() {
         return items;
@@ -19,9 +26,13 @@ public class Schedule {
 
     public void addScheduleItem(ScheduleItem item) {
         // Implementation here
+        //TODO: Increase credit count
+        items.add(item);
     }
 
     public void removeScheduleItem(ScheduleItem item) {
         // Implementation here
+        //TODO: Increase credit count
+        items.remove(item);
     }
 }

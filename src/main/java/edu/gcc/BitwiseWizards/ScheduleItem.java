@@ -5,11 +5,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.Date;
 
- abstract class  ScheduleItem {
+class ScheduleItem {
     private String name;
     private List<Character> days;
     private Date start;
     private Date end;
+
+    ScheduleItem(String name, List<Character> meetingDays, Date start, Date end)
+    {
+        this.name = name;
+        this.days = meetingDays;
+        this.start = start;
+        this.end = end;
+    }
 
     public void setName(String name) {
         this.name = name;
