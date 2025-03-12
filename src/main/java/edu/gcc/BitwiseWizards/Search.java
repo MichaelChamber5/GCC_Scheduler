@@ -11,6 +11,12 @@ public class Search {
     private Date end = null;
 
     public List<CourseItem> search(String keywordStr) {
+        String s = "abcdefghijclmnop";
+        if(s.contains(keywordStr));
+        //for all course items
+        //if course item contains keyword
+            //add it to list
+        //return final list
         return new ArrayList<>(); // Placeholder
     }
 
