@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.Date;
 
 public class PersonalItem {
+
     private String name;
     private List<Character> days;
     private Date start;
