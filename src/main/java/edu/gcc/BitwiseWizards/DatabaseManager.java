@@ -43,7 +43,7 @@ public class DatabaseManager {
     }
 
     /**
-     * Drops all tables currently in the database (assuming you only create the tables below).
+     * Drops all tables currently in the database EXCEPT courses.
      * @throws SQLException if commands fail
      */
     public void dropTables() throws SQLException {
@@ -55,9 +55,9 @@ public class DatabaseManager {
             stmt.execute("""
                 DROP TABLE IF EXISTS faculty;
             """);
-            stmt.execute("""
-                DROP TABLE IF EXISTS courses;
-            """);
+//            stmt.execute("""
+//                DROP TABLE IF EXISTS courses;
+//            """);
             stmt.execute("""
                 DROP TABLE IF EXISTS course_faculty;
             """);
@@ -232,7 +232,9 @@ public class DatabaseManager {
      */
     private void populateTables() {
 
-        loadCoursesFromJson();
+        if (getCourseCount() == 0) {
+            loadCoursesFromJson();
+        }
 
 //        insertDepartment("COMP", "Computer Science");
 //        insertDepartment("COMP", "Computer Science");
