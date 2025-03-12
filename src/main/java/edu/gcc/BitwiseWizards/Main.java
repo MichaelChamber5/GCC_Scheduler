@@ -64,7 +64,7 @@ class Main {
         // Implementation here
     }
 
-    public void addPersonalItem(PersonalItem item) {
+    public void addPersonalItem(ScheduleItem item) {
         // Implementation here
     }
 
@@ -72,7 +72,7 @@ class Main {
         // Implementation here
     }
 
-    public void removePersonalItem(PersonalItem item) {
+    public void removePersonalItem(ScheduleItem item) {
         // Implementation here
     }
 
