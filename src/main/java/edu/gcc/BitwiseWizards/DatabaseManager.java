@@ -1,6 +1,8 @@
 package edu.gcc.BitwiseWizards;
 
+import java.lang.reflect.Array;
 import java.sql.*;
+import java.util.ArrayList;
 
 public class DatabaseManager {
 
@@ -359,66 +361,6 @@ public class DatabaseManager {
     }
 
     /**
-     * Insert user into users table.
-     * NOTE: password should be hashed before calling this method.
-     * @param user_email user email e.g. "proctorhm22@gcc.edu"
-     * @param user_password user password e.g. "password"
-     * @return user_id of the inserted user or -1 if insertion fails
-     */
-    protected int insertUser(String user_email, String user_password) {
-        String sql = "INSERT INTO users (user_email, user_password) VALUES (?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, user_email);
-            pstmt.setString(2, user_password);
-            pstmt.executeUpdate();
-            try {
-                return getUser(user_email, user_password);
-            } catch (Exception e) {
-                System.err.println("Failed to get user_id: " + e.getMessage());
-            }
-        } catch (SQLException e) {
-            System.err.println("Failed to insert user: " + e.getMessage());
-        }
-        return -1;
-    }
-
-    /**
-     * Add course to user's schedule.
-     * Group by user_id to get list of courses in user's schedule.
-     * TODO: add course_id to CourseItem class.
-     * @param user_id FK references users(user_id)
-     * @param course_id FK references courses(course_id)
-     */
-    protected void insertUserCourse(int user_id, int course_id) {
-        String sql = "INSERT INTO user_courses (user_id, course_id) VALUES (?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
-            pstmt.setInt(2, course_id);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.err.println("Failed to insert user_course: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Add personal item to user's schedule.
-     * Group by user_id to get list of personal items in user's schedule.
-     * TODO: add pitem_id to PersonalItem class.
-     * @param user_id FK references users(user_id)
-     * @param pitem_id FK references personal_items(pitem_id)
-     */
-    protected void insertUserPersonalItem(int user_id, int pitem_id) {
-        String sql = "INSERT INTO user_pitems (user_id, pitem_id) VALUES (?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
-            pstmt.setInt(2, pitem_id);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.err.println("Failed to insert user_pitem: " + e.getMessage());
-        }
-    }
-
-    /**
      * Returns user_id of the user corresponding to the given email and password.
      * TODO: modify to return user object.
      * @param user_email user email e.g. "proctorhm22@gcc.edu
@@ -443,14 +385,118 @@ public class DatabaseManager {
             return rs.getInt("user_id");
             // TODO: use user_id to get user schedule (user_courses \cup user_pitems)
         } catch (SQLException e) {
-            System.err.println("failed to get user: " + e.getMessage());
+            System.out.println("ERROR: failed to get user from database: " + e.getMessage());
             return -1;
         }
     }
 
-    // TODO: getUserCourses(int user_id) from user_courses table
+    /**
+     * Insert user into users table.
+     * NOTE: password should be hashed before calling this method.
+     * @param user_email user email e.g. "proctorhm22@gcc.edu"
+     * @param user_password user password e.g. "password"
+     * @return user_id of the inserted user or -1 if insertion fails
+     */
+    protected int insertUser(String user_email, String user_password) {
+        String sql = "INSERT INTO users (user_email, user_password) VALUES (?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, user_email);
+            pstmt.setString(2, user_password);
+            pstmt.executeUpdate();
+            try {
+                return getUser(user_email, user_password);
+            } catch (Exception e) {
+                System.err.println("Failed to get user_id: " + e.getMessage());
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to insert user: " + e.getMessage());
+        }
+        return -1;
+    }
 
-    // TODO: getUserPersonalItems(int user_id) from user_pitems table
+    /**
+     * TODO: modify to return array list of CourseItem objects
+     * @param user_id
+     * @return
+     */
+    public ArrayList<Integer> getUserCourses(int user_id) {
+        ArrayList<Integer> courses = new ArrayList<>();
+        String sql = """
+            SELECT *
+            FROM user_courses
+            WHERE user_id = ?
+        """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, user_id);
+            ResultSet rs = pstmt.executeQuery();
+            while(rs.next()) {
+                courses.add(rs.getInt("course_id"));
+            }
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to get user courses: " + e.getMessage());
+        }
+        return courses;
+    }
+
+    /**
+     * Add course to user's schedule.
+     * Group by user_id to get list of courses in user's schedule.
+     * TODO: add course_id to CourseItem class.
+     * @param user_id FK references users(user_id)
+     * @param course_id FK references courses(course_id)
+     */
+    protected void insertUserCourse(int user_id, int course_id) {
+        String sql = "INSERT INTO user_courses (user_id, course_id) VALUES (?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, user_id);
+            pstmt.setInt(2, course_id);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to insert user_course: " + e.getMessage());
+        }
+    }
+
+    /**
+     * TODO: modify to return array list of PersonalItem objects
+     * @param user_id
+     * @return
+     */
+    public ArrayList<Integer> getUserPersonalItems(int user_id) {
+        ArrayList<Integer> courses = new ArrayList<>();
+        String sql = """
+            SELECT *
+            FROM user_pitems
+            WHERE user_id = ?
+        """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, user_id);
+            ResultSet rs = pstmt.executeQuery();
+            while(rs.next()) {
+                courses.add(rs.getInt("pitem_id"));
+            }
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to get user personal items: " + e.getMessage());
+        }
+        return courses;
+    }
+
+    /**
+     * Add personal item to user's schedule.
+     * Group by user_id to get list of personal items in user's schedule.
+     * TODO: add pitem_id to PersonalItem class.
+     * @param user_id FK references users(user_id)
+     * @param pitem_id FK references personal_items(pitem_id)
+     */
+    protected void insertUserPersonalItem(int user_id, int pitem_id) {
+        String sql = "INSERT INTO user_pitems (user_id, pitem_id) VALUES (?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, user_id);
+            pstmt.setInt(2, pitem_id);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to insert user_pitem: " + e.getMessage());
+        }
+    }
 
     // TODO: get methods for other tables
 
@@ -463,7 +509,7 @@ public class DatabaseManager {
                 connection.close();
             }
         } catch (SQLException e) {
-            System.err.println("Failed to close database connection: " + e.getMessage());
+            System.out.println("ERROR: Failed to close database connection: " + e.getMessage());
         }
     }
 
@@ -480,6 +526,28 @@ public class DatabaseManager {
         System.out.println("get proctorhm22@gcc.edu (incorrect password): "
                 + dm.getUser("proctorhm22@gcc.edu", "bad password"));
         System.out.println("invalid email: " + dm.getUser("bad email", "password"));
+
+        int user_id = dm.getUser("proctorhm22@gcc.edu", "password");
+
+        // add class to user course
+        dm.insertUserCourse(user_id, 1);
+        dm.insertUserCourse(user_id, 2);
+
+        // add personal item to user course
+        dm.insertUserPersonalItem(user_id, 1);
+
+        ArrayList<Integer> user_courses = dm.getUserCourses(user_id);
+        ArrayList<Integer> user_pitems = dm.getUserPersonalItems(user_id);
+
+        System.out.println("User courses: "+ user_courses);
+        System.out.println("User personal items: " + user_pitems);
+
+        // TODO: modify user courses / pitems so that...
+
+        ArrayList<Integer> user_schedule = new ArrayList<>(user_courses);
+        user_schedule.addAll(user_pitems);
+
+        System.out.println("User schedule: " + user_schedule);
 
         dm.close();
 
