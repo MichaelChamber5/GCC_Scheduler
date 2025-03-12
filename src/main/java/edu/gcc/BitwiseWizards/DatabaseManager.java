@@ -1,5 +1,9 @@
 package edu.gcc.BitwiseWizards;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.sql.*;
 import java.util.ArrayList;
@@ -205,30 +209,48 @@ public class DatabaseManager {
     }
 
     /**
+     * ...
+     * @return the number of courses in the courses table or -1 if SQLException is thrown
+     */
+    public int getCourseCount() {
+        String sql = "SELECT COUNT(*) FROM courses";
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            return 0;
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to get course count: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
      * Fills tables with course catalogue and dummy user data.
      * TODO: fill tables properly.
      */
     private void populateTables() {
 
-        // loadCoursesFromJson();
+        loadCoursesFromJson();
 
-        insertDepartment("COMP", "Computer Science");
-        insertDepartment("COMP", "Computer Science");
-        insertDepartment("MATH", "Mathematics");
+//        insertDepartment("COMP", "Computer Science");
+//        insertDepartment("COMP", "Computer Science");
+//        insertDepartment("MATH", "Mathematics");
 
-        insertFaculty("Hutchins, Jonathan O.", 4.3, 2.5);
-        insertFaculty("Hutchins, Jonathan O.", 4.3, 2.5);
-        insertFaculty("Thompson, Gary L.", 4, 4.2);
+//        insertFaculty("Hutchins, Jonathan O.", 4.3, 2.5);
+//        insertFaculty("Hutchins, Jonathan O.", 4.3, 2.5);
+//        insertFaculty("Thompson, Gary L.", 4, 4.2);
 
-        insertCourse(3, false, false, "STEM 326",
-                    "SOFTWARE ENGINEERING", 350, 0, "A",
-                    "2024_Spring", 1, 23);
-        insertCourse(3, false, true, "STEM 326",
-                    "SOFTWARE ENGINEERING", 350, 9, "B",
-                    "2024_Spring", 1, 23);
-        insertCourse(3, false, true, "SHAL 109 Tablet Chairs w/multimedia",
-                    "NUMBER THEORY", 422, 4, "A",
-                    "2024_Spring", 2, 10);
+//        insertCourse(3, false, false, "STEM 326",
+//                    "SOFTWARE ENGINEERING", 350, 0, "A",
+//                    "2024_Spring", 1, 23);
+//        insertCourse(3, false, true, "STEM 326",
+//                    "SOFTWARE ENGINEERING", 350, 9, "B",
+//                    "2024_Spring", 1, 23);
+//        insertCourse(3, false, true, "SHAL 109 Tablet Chairs w/multimedia",
+//                    "NUMBER THEORY", 422, 4, "A",
+//                    "2024_Spring", 2, 10);
 
         insertPersonalItem("Chapel");
         insertPersonalItem("Lunch");
@@ -238,30 +260,153 @@ public class DatabaseManager {
 
     }
 
-    // TODO: loadCoursesFromJSON()
+    /**
+     * ...
+     */
+    private void loadCoursesFromJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            InputStream inputStream = getClass().getResourceAsStream(JSON_FILE);
+            if (inputStream == null) {
+                throw new RuntimeException("Cannot find " + JSON_FILE);
+            }
+            JsonNode rootNode = mapper.readTree(inputStream);
+            JsonNode coursesNode = rootNode.get("classes");
+            System.out.println("loading courses from JSON...");
+            if (coursesNode != null && coursesNode.isArray()) {
+                for (JsonNode courseNode : coursesNode) {
+                    processCourseNode(courseNode);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading JSON data: " + e.getMessage());
+        }
+    }
+
+    /**
+     * ...
+     * @param courseNode
+     * @return
+     * @throws SQLException
+     */
+    private void processCourseNode(JsonNode courseNode) throws SQLException {
+
+        // extract basic course information
+        int credits = getIntValue(courseNode, "credits");
+        boolean isLab = getTextValue(courseNode, "is_lab").equals("true");
+        boolean isOpen = getTextValue(courseNode, "is_open").equals("true");
+        String location = getTextValue(courseNode, "location");
+        String courseName = getTextValue(courseNode, "name");
+        int courseNumber = getIntValue(courseNode, "number");
+        int openSeats = getIntValue(courseNode, "open_seats");
+        String section = getTextValue(courseNode, "section");
+        String semester = getTextValue(courseNode, "semester");
+        String subject = getTextValue(courseNode, "subject");
+        int total_seats = getIntValue(courseNode, "total_seats");
+
+        try {
+
+            // Insert department and get its ID
+            int deptId = insertDepartment(subject, "");
+
+            // Ensure section is not null or empty
+            if (section == null || section.isEmpty()) {
+                throw new SQLException("Section code is missing for course " + courseName);
+            }
+
+            // Insert course and get its ID
+            int courseId = insertCourse(credits, isLab, isOpen, location, courseName, courseNumber,
+                    openSeats, section, semester, deptId, total_seats);
+
+            // Process faculty
+            JsonNode facultyNode = courseNode.get("faculty");
+            if (facultyNode != null && facultyNode.isArray()) {
+                for (JsonNode faculty : facultyNode) {
+                    if (faculty != null && !faculty.isNull()) {
+                        int facultyId = insertFaculty(faculty.asText(), -1, -1);
+                        insertCourseFaculty(courseId, facultyId);
+                    }
+                }
+            }
+
+            // Process time slots
+//            JsonNode timesNode = courseNode.get("times");
+//            if (timesNode != null && timesNode.isArray()) {
+//                for (JsonNode timeNode : timesNode) {
+//                    if (timeNode != null && !timeNode.isNull()) {
+//                        String day = getTextValue(timeNode, "day");
+//                        String startTime = getTextValue(timeNode, "start");
+//                        String endTime = getTextValue(timeNode, "end");
+//
+//                        if (day != null && startTime != null && endTime != null) {
+//                            insertTimeSlot(sectionId, day, startTime, endTime);
+//                        }
+//                    }
+//                }
+//            }
+
+        } catch (SQLException e) {
+            System.err.println("Error processing course: " + courseName);
+            System.err.println("Error details: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    // helper methods for safely getting values from JsonNode
+
+    private String getTextValue(JsonNode node, String fieldName) {
+        JsonNode field = node.get(fieldName);
+        return (field != null && !field.isNull()) ? field.asText() : null;
+    }
+
+    private int getIntValue(JsonNode node, String fieldName) {
+        JsonNode field = node.get(fieldName);
+        return (field != null && !field.isNull()) ? field.asInt() : 0;
+    }
 
     // TODO: update values in tables (user email / password... rate my professor api)
 
     // TODO: remove values from tables (delete user)
-
-    // TODO: modify insert methods to return id of what is inserted
 
     /**
      * Insert department into departments table.
      * Duplicate entries (entries with the same dept_code) are ignored.
      * @param dept_code department code e.g. "COMP"
      * @param dept_name department name e.g. "Computer Science"
+     * @return id of inserted department
      */
-    private void insertDepartment(String dept_code, String dept_name) {
-        String sql = "INSERT INTO departments (dept_code, dept_name) VALUES (?, ?) " +
+    private int insertDepartment(String dept_code, String dept_name) {
+        String sql = "INSERT INTO departments (dept_code, dept_name) VALUES (?, ?)" +
                 "ON CONFLICT(dept_code) DO NOTHING";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, dept_code);
             pstmt.setString(2, dept_name);
             pstmt.executeUpdate();
+            return getDept(dept_code);
         } catch (SQLException e) {
             System.err.println("Failed to insert department: " + e.getMessage());
+            return -1;
         }
+    }
+
+    /**
+     * return id of department entry where dept_code = dept_code
+     * @param dept_code
+     * @return dept_id or -1 if entry does not exist or SQLException occurred
+     */
+    private int getDept(String dept_code) {
+        String sql = "SELECT * from departments WHERE dept_code = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, dept_code);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("dept_id");
+            }
+            System.err.println("Failed to get department id: dept_code not found");
+        } catch (SQLException e) {
+            System.err.println("Failed to get department id: " + e.getMessage());
+        }
+        return -1;
     }
 
     /**
@@ -273,7 +418,7 @@ public class DatabaseManager {
      * @param avg_rating "Overall Quality" rating on RateMyProfessor (default -1)
      * @param avg_difficulty "Level of Difficulty" rating on RateMyProfessor (default -1)
      */
-    private void insertFaculty(String faculty_name, double avg_rating, double avg_difficulty) {
+    private int insertFaculty(String faculty_name, double avg_rating, double avg_difficulty) {
         String sql = "INSERT INTO faculty (faculty_name, avg_rating, avg_difficulty) VALUES (?, ?, ?) " +
                 "ON CONFLICT(faculty_name) DO NOTHING";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
@@ -281,9 +426,31 @@ public class DatabaseManager {
             pstmt.setDouble(2, avg_rating);
             pstmt.setDouble(3, avg_difficulty);
             pstmt.executeUpdate();
+            return getFaculty(faculty_name);
         } catch (SQLException e) {
             System.err.println("Failed to insert faculty: " + e.getMessage());
         }
+        return -1;
+    }
+
+    /**
+     * ...
+     * @param faculty_name
+     * @return
+     */
+    private int getFaculty(String faculty_name) {
+        String sql = "SELECT * from faculty WHERE faculty_name = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, faculty_name);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("faculty_id");
+            }
+            System.err.println("Failed to get faculty id: faculty_name not found");
+        } catch (SQLException e) {
+            System.err.println("Failed to get faculty id: " + e.getMessage());
+        }
+        return -1;
     }
 
     /**
@@ -303,7 +470,7 @@ public class DatabaseManager {
      * @param dept_id       placeholder for dept_code / FK referencing departments(dept_id)
      * @param total_seats   number of total seats e.g. 23
      */
-    private void insertCourse(int credits, boolean is_lab, boolean is_open, String location,
+    private int insertCourse(int credits, boolean is_lab, boolean is_open, String location,
                               String course_name, int course_number, int open_seats,
                               String section_id, String semester, int dept_id, int total_seats) {
         String sql = "INSERT INTO courses (credits, is_lab, is_open, location, course_name, " +
@@ -322,9 +489,31 @@ public class DatabaseManager {
             pstmt.setInt(10, dept_id);
             pstmt.setInt(11, total_seats);
             pstmt.executeUpdate();
+            return getCourse(dept_id, course_number, section_id, semester);
         } catch (SQLException e) {
             System.err.println("Failed to insert course: " + e.getMessage());
         }
+        return -1;
+    }
+
+    private int getCourse(int dept_id, int course_number, String section, String semester) {
+        String sql = "SELECT * " +
+                "FROM courses " +
+                "WHERE dept_id = ? AND course_number = ? AND section_id = ? AND semester = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, dept_id);
+            pstmt.setInt(2, course_number);
+            pstmt.setString(3, section);
+            pstmt.setString(4, semester);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("course_id");
+            }
+            System.err.println("Failed to get course id: course not found");
+        } catch (SQLException e) {
+            System.err.println("Failed to get course id: " + e.getMessage());
+        }
+        return -1;
     }
 
     /**
@@ -334,7 +523,7 @@ public class DatabaseManager {
      * @param faculty_id FK references faculty(faculty_id)
      */
     private void insertCourseFaculty(int course_id, int faculty_id) {
-        // TODO: check if course_id / faculty_id are valid ids?
+        // TODO: check that course_id / faculty_id are valid ids
         String sql = "INSERT INTO course_faculty (course_id, faculty_id) VALUES (?, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, course_id);
@@ -357,36 +546,6 @@ public class DatabaseManager {
             pstmt.executeUpdate();
         } catch (SQLException e) {
             System.err.println("Failed to insert personal item: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Returns user_id of the user corresponding to the given email and password.
-     * TODO: modify to return user object.
-     * @param user_email user email e.g. "proctorhm22@gcc.edu
-     * @param user_password user password e.g. "password"
-     * @return user_id of the specified user or -1 if email not found or password is incorrect
-     */
-    public int getUser(String user_email, String user_password) {
-        String sql = """
-            SELECT *
-            FROM users
-            WHERE user_email = ? AND user_password = ?
-        """;
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, user_email);
-            pstmt.setString(2, user_password);
-            ResultSet rs = pstmt.executeQuery();
-            if (!rs.next()) {
-                // failed to get user: credentials invalid
-                return -1;
-            }
-            // else
-            return rs.getInt("user_id");
-            // TODO: use user_id to get user schedule (user_courses \cup user_pitems)
-        } catch (SQLException e) {
-            System.out.println("ERROR: failed to get user from database: " + e.getMessage());
-            return -1;
         }
     }
 
@@ -415,6 +574,52 @@ public class DatabaseManager {
     }
 
     /**
+     * Returns user_id of the user corresponding to the given email and password.
+     * TODO: modify to return user object.
+     * @param user_email user email e.g. "proctorhm22@gcc.edu
+     * @param user_password user password e.g. "password"
+     * @return user_id of the specified user or -1 if email not found or password is incorrect
+     */
+    public int getUser(String user_email, String user_password) {
+        String sql = """
+            SELECT *
+            FROM users
+            WHERE user_email = ? AND user_password = ?
+        """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, user_email);
+            pstmt.setString(2, user_password);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("user_id");
+            }
+            // TODO: use user_id to get user schedule (user_courses \cup user_pitems)
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to get user from database: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    /**
+     * Add course to user's schedule.
+     * TODO: add course_id to CourseItem class.
+     * @param user_id FK references users(user_id)
+     * @param course_id FK references courses(course_id)
+     */
+    protected void insertUserCourse(int user_id, int course_id) {
+        // TODO: check that course_id is valid id
+        String sql = "INSERT INTO user_courses (user_id, course_id) VALUES (?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, user_id);
+            pstmt.setInt(2, course_id);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to insert user_course: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Returns an ArrayList of the courses associated with the given user.
      * TODO: modify to return array list of CourseItem objects
      * @param user_id
      * @return
@@ -439,24 +644,25 @@ public class DatabaseManager {
     }
 
     /**
-     * Add course to user's schedule.
-     * Group by user_id to get list of courses in user's schedule.
-     * TODO: add course_id to CourseItem class.
+     * Add personal item to user's schedule.
+     * TODO: add pitem_id to PersonalItem class.
      * @param user_id FK references users(user_id)
-     * @param course_id FK references courses(course_id)
+     * @param pitem_id FK references personal_items(pitem_id)
      */
-    protected void insertUserCourse(int user_id, int course_id) {
-        String sql = "INSERT INTO user_courses (user_id, course_id) VALUES (?, ?)";
+    protected void insertUserPersonalItem(int user_id, int pitem_id) {
+        // TODO: check that pitem_id is valid id
+        String sql = "INSERT INTO user_pitems (user_id, pitem_id) VALUES (?, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, user_id);
-            pstmt.setInt(2, course_id);
+            pstmt.setInt(2, pitem_id);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("ERROR: failed to insert user_course: " + e.getMessage());
+            System.out.println("ERROR: failed to insert user_pitem: " + e.getMessage());
         }
     }
 
     /**
+     * Returns an ArrayList of the personal items associated with the given user.
      * TODO: modify to return array list of PersonalItem objects
      * @param user_id
      * @return
@@ -481,21 +687,15 @@ public class DatabaseManager {
     }
 
     /**
-     * Add personal item to user's schedule.
-     * Group by user_id to get list of personal items in user's schedule.
-     * TODO: add pitem_id to PersonalItem class.
-     * @param user_id FK references users(user_id)
-     * @param pitem_id FK references personal_items(pitem_id)
+     * Returns an array list of courses / personal items associated with the given user.
+     * @param user_id
+     * @return
      */
-    protected void insertUserPersonalItem(int user_id, int pitem_id) {
-        String sql = "INSERT INTO user_pitems (user_id, pitem_id) VALUES (?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
-            pstmt.setInt(2, pitem_id);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.out.println("ERROR: failed to insert user_pitem: " + e.getMessage());
-        }
+    public ArrayList<ScheduleItem> getUserSchedule(int user_id) {
+        ArrayList<ScheduleItem> schedule = new ArrayList<>();
+//        schedule.addAll(getUserCourses(user_id));
+//        schedule.addAll(getUserPersonalItems(user_id));
+        return schedule;
     }
 
     // TODO: get methods for other tables
@@ -519,6 +719,8 @@ public class DatabaseManager {
 
         DatabaseManager dm = new DatabaseManager();
 
+        System.out.println("\n" + dm.getCourseCount() + " courses loaded from JSON");
+
         System.out.println("\nget proctorhm22@gcc.edu (correct password): "
                 + dm.getUser("proctorhm22@gcc.edu", "password"));
         System.out.println("get hannahmpro22@gmail.com (correct password): "
@@ -531,7 +733,7 @@ public class DatabaseManager {
 
         // add class to user course
         dm.insertUserCourse(user_id, 1);
-        dm.insertUserCourse(user_id, 2);
+        dm.insertUserCourse(user_id, 27);
 
         // add personal item to user course
         dm.insertUserPersonalItem(user_id, 1);
@@ -539,7 +741,7 @@ public class DatabaseManager {
         ArrayList<Integer> user_courses = dm.getUserCourses(user_id);
         ArrayList<Integer> user_pitems = dm.getUserPersonalItems(user_id);
 
-        System.out.println("User courses: "+ user_courses);
+        System.out.println("\nUser courses: "+ user_courses);
         System.out.println("User personal items: " + user_pitems);
 
         // TODO: modify user courses / pitems so that...
