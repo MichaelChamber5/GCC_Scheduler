@@ -26,9 +26,13 @@ public class Schedule {
 
     public void addScheduleItem(ScheduleItem item) {
         // Implementation here
+        //TODO: Increase credit count
+        items.add(item);
     }
 
     public void removeScheduleItem(ScheduleItem item) {
         // Implementation here
+        //TODO: Increase credit count
+        items.remove(item);
     }
 }
