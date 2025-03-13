@@ -27,5 +27,10 @@ public class server {
             Map<String, Object> model = new HashMap<>();
             return new ModelAndView(model, "login.ftl");
         }, freeMarkerEngine);
+
+        get("/calendar", (req, res) ->{
+            Map<String, Object> model = new HashMap<>();
+            return new ModelAndView(model, "calendar.ftl");
+        }, freeMarkerEngine);
     }
 }
