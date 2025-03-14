@@ -25,14 +25,20 @@ public class Schedule {
     }
 
     public void addScheduleItem(ScheduleItem item) {
-        // Implementation here
-        //TODO: Increase credit count
+        //if the item is a course item, add to credit count
+        if(item instanceof CourseItem)
+        {
+            credit_count += ((CourseItem) item).getCredits();
+        }
         items.add(item);
     }
 
     public void removeScheduleItem(ScheduleItem item) {
-        // Implementation here
-        //TODO: Increase credit count
+        //if the item is a course item, reduce to credit count
+        if(item instanceof CourseItem)
+        {
+            credit_count -= ((CourseItem) item).getCredits();
+        }
         items.remove(item);
     }
 }

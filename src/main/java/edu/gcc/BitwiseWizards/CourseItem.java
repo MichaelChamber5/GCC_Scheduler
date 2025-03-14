@@ -11,11 +11,12 @@ public class CourseItem extends ScheduleItem {
     private String description;
     private Professor professor;
     private int credits;
+    private boolean isLab;
     private boolean onSchedule = false;
 
     public CourseItem(String name, List<Character> meetingDays, Date start, Date end, String depCode,
                       int courseCode, char section, String location, String description,
-                      Professor professor, int credits, boolean onSchedule)
+                      Professor professor, int credits, boolean onSchedule, boolean isLab)
     {
         super(name, meetingDays, start, end);
         this.depCode = depCode;
@@ -26,6 +27,7 @@ public class CourseItem extends ScheduleItem {
         this.professor = professor;
         this.credits = credits;
         this.onSchedule = onSchedule;
+        this.isLab = isLab;
     }
 
     public String getDepCode() {

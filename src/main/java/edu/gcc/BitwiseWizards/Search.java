@@ -10,14 +10,14 @@ public class Search {
     private Date start = null;
     private Date end = null;
 
-    public List<CourseItem> search(String keywordStr) {
-        String s = "abcdefghijclmnop";
-        if(s.contains(keywordStr));
+    public List<CourseItem> search(String keywordStr, User currUser) {
         //for all course items
         //if course item contains keyword
             //add it to list
         //return final list
-        return new ArrayList<>(); // Placeholder
+        DatabaseManager dbm = new DatabaseManager();
+        ArrayList<Integer> courseIDs = dbm.searchCoursesByKeyword(keywordStr);
+
     }
 
     public List<CourseItem> filter(String deptCode, List<Character> days, Date start, Date end) {
