@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseManager {
 
@@ -701,6 +702,106 @@ public class DatabaseManager {
 //        schedule.addAll(getUserPersonalItems(user_id));
         return schedule;
     }
+
+    /**
+     * returns a list of course IDs for all courses that contain the keyword
+     * @param keyword
+     * @return a list of course IDs
+     */
+    protected ArrayList<Integer> searchCoursesByKeyword(String keyword) {
+        ArrayList<Integer> courses = new ArrayList<>();
+        String sql = """
+        SELECT course_id 
+        FROM courses
+        WHERE course_name LIKE ? 
+           OR location LIKE ? 
+           OR course_number LIKE ?
+    """;
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            String searchPattern = "%" + keyword + "%"; // Wildcard search
+            pstmt.setString(1, searchPattern);
+            pstmt.setString(2, searchPattern);
+            pstmt.setString(3, searchPattern);
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                courses.add(rs.getInt("course_id"));
+            }
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to search courses: " + e.getMessage());
+        }
+        return courses;
+    }
+
+    /**
+     * returns a CourseItem object when given a course id
+     * @param courseId
+     * @return CourseItem
+     */
+    protected CourseItem getCourseById(int courseId, int userId) {
+        String sql = """
+        SELECT c.course_id, c.credits, c.is_lab, c.is_open, c.location, c.course_name, c.course_number, c.open_seats, c.section_id, c.semester, c.dept_id, c.total_seats,
+               p.faculty_id, p.faculty_name, p.avg_rating, p.avg_difficulty,
+               d.dept_code,
+               IFNULL((SELECT 1 FROM user_courses uc WHERE uc.course_id = c.course_id AND uc.user_id = ?), 0) AS is_enrolled
+        FROM courses c
+        JOIN course_faculty cp ON c.course_id = cp.course_id
+        JOIN faculty p ON cp.faculty_id = p.faculty_id
+        JOIN departments d ON c.dept_id = d.dept_id
+        WHERE c.course_id = ?
+    """;
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, userId);
+            pstmt.setInt(2, courseId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                //get professor
+                Professor prof = new Professor(
+                        rs.getString("faculty_name"),
+                        rs.getDouble("avg_rating"),
+                        rs.getDouble("avg_difficulty")
+                );
+
+                //is user enrolled?
+                boolean isEnrolled = rs.getBoolean("is_enrolled");
+
+                //get course
+                //TODO: course db items currently do not contain meeting days!
+                ArrayList<Character> fillerMeetingDays = new ArrayList<>();
+                fillerMeetingDays.add('M');
+
+                //TODO: course db items currently do not contain start and end times. These shouldn't be stored as days!
+                Date start = new Date(1);
+                Date end = new Date(2);
+
+                //TODO: course db items currently do not contain descriptions!
+                String desc = "This class stinks :(";
+
+                return new CourseItem(
+                        rs.getString("course_name"),
+                        fillerMeetingDays,
+                        start,
+                        end,
+                        rs.getString("dept_code"),
+                        rs.getInt("course_number"),
+                        rs.getString("section_id").charAt(0),
+                        rs.getString("location"),
+                        desc,
+                        prof,
+                        rs.getInt("credits"),
+                        isEnrolled,
+                        rs.getBoolean("is_lab")
+                );
+            }
+        } catch (SQLException e) {
+            System.out.println("ERROR: Failed to get course: " + e.getMessage());
+        }
+        return null; // Return null if the course is not found
+    }
+
 
     // TODO: get methods for other tables
 

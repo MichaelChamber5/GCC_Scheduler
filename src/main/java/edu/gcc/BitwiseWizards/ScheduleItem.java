@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Date;
 
-class ScheduleItem {
+public class ScheduleItem {
     private String name;
     private List<Character> days;
     private Date start;

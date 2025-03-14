@@ -54,26 +54,12 @@ class Main {
         curr_user = null;
     }
 
-//    public void addScheduleItem(ScheduleItem item) {
-//    }
-
-//    public void removeScheduleItem(ScheduleItem item) {
-//    }
-
-    public void addCourse(CourseItem item) {
-        // Implementation here
+    public void addScheduleItem(ScheduleItem item) {
+        curr_user.getSchedule().addScheduleItem(item);
     }
 
-    public void addPersonalItem(ScheduleItem item) {
-        // Implementation here
-    }
-
-    public void removeCourse(CourseItem item) {
-        // Implementation here
-    }
-
-    public void removePersonalItem(ScheduleItem item) {
-        // Implementation here
+    public void removeScheduleItem(ScheduleItem item) {
+        curr_user.getSchedule().removeScheduleItem(item);
     }
 
     // testing...
@@ -89,9 +75,12 @@ class Main {
         createUser(email, password);
         System.out.println("Created user: " + curr_user);
 
-        // add course
-
-        // add personal item
+        String keyword = "Accounting";
+        Search mySearch = new Search();
+        //mySearch.search(keyword, curr_user);
+        ArrayList<CourseItem> courses = mySearch.search(keyword, curr_user);
+        System.out.println("RESULTS:");
+        System.out.println(courses);
 
         logout();
         System.out.println("\nLogged out: " + curr_user);
