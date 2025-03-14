@@ -10,14 +10,29 @@ public class Search {
     private Date start = null;
     private Date end = null;
 
-    public List<CourseItem> search(String keywordStr, User currUser) {
+    public Search()
+    {
+        searchedCourses = new ArrayList<>();
+        filteredCourses = new ArrayList<>();
+    }
+
+    public ArrayList<CourseItem> search(String keywordStr, User currUser) {
         //for all course items
         //if course item contains keyword
             //add it to list
         //return final list
         DatabaseManager dbm = new DatabaseManager();
         ArrayList<Integer> courseIDs = dbm.searchCoursesByKeyword(keywordStr);
+        ArrayList<CourseItem> courses = new ArrayList<>();
+        for(int courseID: courseIDs)
+        {
+            courses.add(dbm.getCourseById(courseID, currUser.getId()));
+        }
+        for(CourseItem course : courses)
+        {
 
+        }
+        return courses;
     }
 
     public List<CourseItem> filter(String deptCode, List<Character> days, Date start, Date end) {

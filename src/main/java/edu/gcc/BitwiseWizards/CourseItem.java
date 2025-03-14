@@ -89,4 +89,9 @@ public class CourseItem extends ScheduleItem {
     public boolean equals(CourseItem item) {
         return this.courseCode == item.courseCode && this.section == item.section;
     }
+
+    public String toString()
+    {
+        return "Name: " + getName();
+    }
 }

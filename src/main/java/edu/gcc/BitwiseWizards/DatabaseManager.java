@@ -743,13 +743,12 @@ public class DatabaseManager {
         String sql = """
         SELECT c.course_id, c.credits, c.is_lab, c.is_open, c.location, c.course_name, c.course_number, c.open_seats, c.section_id, c.semester, c.dept_id, c.total_seats,
                p.faculty_id, p.faculty_name, p.avg_rating, p.avg_difficulty,
-               d.dept_code
-               CASE WHEN uc.user_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_enrolled
+               d.dept_code,
+               IFNULL((SELECT 1 FROM user_courses uc WHERE uc.course_id = c.course_id AND uc.user_id = ?), 0) AS is_enrolled
         FROM courses c
         JOIN course_faculty cp ON c.course_id = cp.course_id
         JOIN faculty p ON cp.faculty_id = p.faculty_id
-        JOIN departments d ON c.department_id = d.department_id
-        LEFT JOIN user_courses uc ON c.course_id = uc.course_id AND uc.user_id = ?
+        JOIN departments d ON c.dept_id = d.dept_id
         WHERE c.course_id = ?
     """;
 
