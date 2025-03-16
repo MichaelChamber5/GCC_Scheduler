@@ -1,7 +1,9 @@
 package edu.gcc.BitwiseWizards;
 
 import java.util.*;
+
 public class Search {
+
     private List<CourseItem> searchedCourses;
     private List<CourseItem> filteredCourses;
     private String keywordStr = "";
@@ -10,10 +12,13 @@ public class Search {
     private Date start = null;
     private Date end = null;
 
-    public Search()
+    private DatabaseManager dbm;
+
+    public Search(DatabaseManager dbm)
     {
         searchedCourses = new ArrayList<>();
         filteredCourses = new ArrayList<>();
+        this.dbm = new DatabaseManager(dbm);
     }
 
     public ArrayList<CourseItem> search(String keywordStr, User currUser) {
@@ -21,12 +26,13 @@ public class Search {
         //if course item contains keyword
             //add it to list
         //return final list
-        DatabaseManager dbm = new DatabaseManager();
+//        DatabaseManager dbm = new DatabaseManager();
         ArrayList<Integer> courseIDs = dbm.searchCoursesByKeyword(keywordStr);
         ArrayList<CourseItem> courses = new ArrayList<>();
         for(int courseID: courseIDs)
         {
-            courses.add(dbm.getCourseById(courseID, currUser.getId()));
+            courses.add(dbm.getCourseByID(courseID)); // TODO: still works?
+//            courses.add(dbm.getCourseById(courseID, currUser.getId()));
         }
         for(CourseItem course : courses)
         {

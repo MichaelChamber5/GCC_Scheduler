@@ -1,22 +1,22 @@
 package edu.gcc.BitwiseWizards;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.Date;
+import java.util.*;
 
 public class ScheduleItem {
-    private String name;
-    private List<Character> days;
-    private Date start;
-    private Date end;
 
-    ScheduleItem(String name, List<Character> meetingDays, Date start, Date end)
-    {
+    private int id;
+    private String name;
+    private Map<Character, List<Integer>> meetingTimes; // {"M" : [1100, 1150], "R" : [1400, 1515]}
+    // TODO: add user_id?
+
+    public ScheduleItem(int id, String name, Map<Character, List<Integer>> meetingTimes) {
+        this.id = id;
         this.name = name;
-        this.days = meetingDays;
-        this.start = start;
-        this.end = end;
+        this.meetingTimes = meetingTimes;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public void setName(String name) {
@@ -27,40 +27,32 @@ public class ScheduleItem {
         return name;
     }
 
-    public void addDays(Set<Character> days) {
-        this.days.addAll(days);
+    public void setMeetingTimes(Map<Character, List<Integer>> meetingTimes) {
+        this.meetingTimes = meetingTimes;
     }
 
-    public void removeDays(Set<Character> days) {
-        this.days.removeAll(days);
+    public Map<Character, List<Integer>> getMeetingTimes() {
+        return meetingTimes;
     }
 
-    public Set<Character> getDays() {
-        return new HashSet<>(days);
+    public Set<Character> getMeetingDays() { // useful for filtering by day?
+        return meetingTimes.keySet();
     }
 
-    public void setStart(Date start) {
-        this.start = start;
+    public boolean conflicts(ScheduleItem item) {
+        // logic to determine time conflicts between schedule items
+        return false;
     }
 
-    public Date getStart() {
-        return start;
-    }
-
-    public void setEnd(Date end) {
-        this.end = end;
-    }
-
-    public Date getEnd() {
-        return end;
-    }
-
+    // do we need this?
     public boolean equals(ScheduleItem item) {
         return this.name.equals(item.getName());
     }
 
-    public boolean conflicts(ScheduleItem item) {
-        // Logic to determine conflicts between schedule items
-        return false;
+    @Override
+    public String toString() {
+        // e.g. "Chapel" / "Software Engineering"
+        return getName();
     }
+
 }
