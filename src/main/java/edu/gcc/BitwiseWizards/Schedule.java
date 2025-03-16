@@ -12,12 +12,34 @@ public class Schedule {
         credit_count = 0;
     }
 
+    public void setScheduleItems(List<ScheduleItem> items) {
+        this.items = items;
+        this.credit_count = 0;
+        for (ScheduleItem item : items) {
+            if (item instanceof CourseItem) {
+                credit_count += ((CourseItem) item).getCredits();
+            }
+        }
+    }
+
+    /**
+     * @return list of all items currently on the user's schedule
+     */
     public List<ScheduleItem> getScheduleItems() {
         return items;
     }
 
+    /**
+     * @return list of all courses currently on the user's schedule
+     */
     public List<CourseItem> getCourses() {
-        return new ArrayList<>(); // Placeholder
+        ArrayList<CourseItem> courses = new ArrayList<>();
+        for (ScheduleItem item : items) {
+            if (item instanceof CourseItem) {
+                courses.add((CourseItem) item);
+            }
+        }
+        return courses;
     }
 
     public int getCreditCount() {
@@ -39,6 +61,12 @@ public class Schedule {
         {
             credit_count -= ((CourseItem) item).getCredits();
         }
-        items.remove(item);
+        items.remove(item);;
+    }
+
+    @Override
+    public String toString() {
+        // [Software Engineering, Chapel, ...]
+        return "" + items;
     }
 }

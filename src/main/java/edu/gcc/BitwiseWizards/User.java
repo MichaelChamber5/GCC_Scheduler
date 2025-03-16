@@ -1,25 +1,23 @@
 package edu.gcc.BitwiseWizards;
 
+import java.util.List;
+
 public class User {
 
-    private int user_id;
+    private int id;
     private String email;
     private String password_hash;
     private Schedule schedule;
 
     public User(int user_id, String email, String password) {
-        setId(user_id);
+        id = user_id;
         setEmail(email);
         setPassword(password);
         schedule = new Schedule();
     }
 
-    public void setId(int user_id) { // TODO: delete?
-        this.user_id = user_id;
-    }
-
     public int getId() {
-        return user_id;
+        return id;
     }
 
     public void setEmail(String email) {
@@ -32,46 +30,23 @@ public class User {
     }
 
     public void setPassword(String password) {
-        // TODO: implement password hashing
+        // TODO: implement password hashing / check if valid password
         this.password_hash = password;
     }
 
-    // TODO: getPassword()
-
-    public void setSchedule(Schedule schedule) {
-//        this.schedule = schedule;
+    public void setSchedule(List<ScheduleItem> items) {
+        Schedule new_schedule = new Schedule();
+        new_schedule.setScheduleItems(items);
+        this.schedule = new_schedule;
     }
 
     public Schedule getSchedule() {
         return schedule;
     }
 
-    // TODO: can we delete these and just use curr_user.schedule in main?
-//
-//    public void addCourse(CourseItem item) {
-////        this.schedule.addScheduleItem(item);
-//    }
-//
-//    public void addPersonalItem(CourseItem item) {
-////        this.schedule.addScheduleItem(item);
-//    }
-//
-//    public void removeCourse(CourseItem item) {
-////        this.schedule.removeScheduleItem(item);
-//    }
-//
-//    public void removePersonalItem(CourseItem item) {
-////        this.schedule.removeScheduleItem(item);
-//    }
-
+    @Override
     public String toString() {
-        String s = email + "\n";
-        s = s + "[ ";
-        for (ScheduleItem item : schedule.getScheduleItems()) {
-            s = s + item + " ";
-        }
-        s = s + "]";
-        return s;
+        return email + "\n";
     }
 
 }
