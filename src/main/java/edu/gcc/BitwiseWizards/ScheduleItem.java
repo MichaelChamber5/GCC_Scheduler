@@ -15,6 +15,11 @@ public class ScheduleItem {
         this.meetingTimes = meetingTimes;
     }
 
+    public ScheduleItem(String name, Map<Character, List<Integer>> meetingTimes) {
+        this.name = name;
+        this.meetingTimes = meetingTimes;
+    }
+
     public int getId() {
         return id;
     }

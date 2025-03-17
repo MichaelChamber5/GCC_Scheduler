@@ -109,7 +109,7 @@ class Main {
         // create new schedule item
         Map<Character, List<Integer>> meetingTimes = new HashMap<>();
         meetingTimes.put('W', new ArrayList<>(Arrays.asList(1100, 1145)));
-        ScheduleItem item = new ScheduleItem(-1, "Chapel", meetingTimes);
+        ScheduleItem item = new ScheduleItem("Chapel", meetingTimes);
 
         // add it to user schedule
         addScheduleItem(item);
