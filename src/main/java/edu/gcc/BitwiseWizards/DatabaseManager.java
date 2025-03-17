@@ -1123,6 +1123,38 @@ public class DatabaseManager {
         }
         return courses;
     }
+    protected ArrayList<Integer> searchCoursesFuzzy(String keyword) {
+        ArrayList<Integer> courses = new ArrayList<>();
+        String sql = """
+        SELECT course_id 
+        FROM courses
+        WHERE course_name LIKE ? 
+           OR location LIKE ? 
+           OR course_number LIKE ?
+        ORDER BY LENGTH(course_name) - LENGTH(REPLACE(LOWER(course_name), LOWER(?), '')) ASC
+        LIMIT 5
+    """;
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            String searchPattern = "%" + keyword + "%"; // Wildcard search
+            pstmt.setString(1, searchPattern);
+            pstmt.setString(2, searchPattern);
+            pstmt.setString(3, searchPattern);
+            pstmt.setString(4, keyword.toLowerCase());
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                courses.add(rs.getInt("course_id"));
+            }
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to search courses: " + e.getMessage());
+        }
+        return courses;
+    }
+    public void addCourse(CourseItem course) {
+        // Add the course to your database or in-memory storage
+    }
+
 
     /**
      * Close database connection.
