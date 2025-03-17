@@ -10,25 +10,23 @@ repositories {
 }
 
 dependencies {
+    // JUnit dependencies
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
-    // Your existing dependencies remain...
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+
+    // Mockito dependencies
+    testImplementation 'org.mockito:mockito-core:5.5.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:4.5.1'
+
+    // Other dependencies
     implementation 'com.google.code.gson:gson:2.10.1'
-    // Add these lines for testing
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
-    implementation 'org.xerial:sqlite-jdbc:3.41.2.2'  // SQLite
+    implementation 'org.xerial:sqlite-jdbc:3.41.2.2'
     implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
     implementation 'com.fasterxml.jackson.core:jackson-annotations:2.15.2'
-    implementation 'org.xerial:sqlite-jdbc:3.41.2.2'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
     implementation 'org.apache.commons:commons-text:1.10.0'
-
-
-
-
 }
 
 test {

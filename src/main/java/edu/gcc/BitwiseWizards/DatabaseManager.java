@@ -654,37 +654,28 @@ public class DatabaseManager {
      */
     protected int insertPersonalItem(int user_id, String pitem_name, Map<Character, List<Integer>> meetingTimes) {
         String sql = "INSERT INTO personal_items (user_id, pitem_name) VALUES (?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, user_id);
             pstmt.setString(2, pitem_name);
-
-            int rowsAffected = pstmt.executeUpdate();
-            if (rowsAffected > 0) {
-                ResultSet rs = pstmt.getGeneratedKeys();
-                if (rs.next()) {
-                    int pitem_id = rs.getInt(1);
-                    System.out.println("Inserted personal item: " + pitem_name + " with ID: " + pitem_id);
-
-                    // Link personal item to its time slots
-                    for (Map.Entry<Character, List<Integer>> entry : meetingTimes.entrySet()) {
-                        String day = "" + entry.getKey();
-                        int start = entry.getValue().get(0);
-                        int end = entry.getValue().get(1);
-                        int time_id = getTimeSlotID(day, start, end);
-                        if (time_id == -1) {
-                            time_id = insertTimeSlot(day, start, end);
-                        }
-                        insertPersonalItemTimeSlot(time_id, pitem_id);
-                    }
-                    return pitem_id;
+            pstmt.executeUpdate();
+            int pitem_id = getPersonalItemID(user_id, pitem_name);
+            // link to time-slots table
+            for (Map.Entry<Character, List<Integer>> entry : meetingTimes.entrySet()) {
+                String day = "" + entry.getKey();
+                int start = entry.getValue().get(0);
+                int end = entry.getValue().get(1);
+                int time_id = getTimeSlotID(day, start, end);
+                if (time_id == -1) {
+                    time_id = insertTimeSlot(day, start, end);
                 }
+                insertPersonalItemTimeSlot(time_id, pitem_id);
             }
+            return pitem_id;
         } catch (SQLException e) {
             System.err.println("Failed to insert personal item: " + e.getMessage());
         }
-        return -1; // Return -1 on failure
+        return -1;
     }
-
 
     /**
      * Returns id of the personal item associated with the given user / pitem_name.
@@ -693,24 +684,24 @@ public class DatabaseManager {
      * @return
      */
     protected int getPersonalItemID(int user_id, String pitem_name) {
-        String sql = "SELECT pitem_id FROM personal_items WHERE user_id = ? AND pitem_name = ?";
+        String sql = """
+            SELECT *
+            FROM personal_items
+            WHERE user_id = ? AND pitem_name = ?
+        """;
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, user_id);
             pstmt.setString(2, pitem_name);
             ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
+            if(rs.next()) {
                 return rs.getInt("pitem_id");
-            } else {
-                System.err.println("Warning: Personal item '" + pitem_name + "' not found for user_id: " + user_id);
             }
+            System.out.println("ERROR: failed to get pitem id: pitem not found");
         } catch (SQLException e) {
-            System.err.println("ERROR: failed to get pitem id: " + e.getMessage());
+            System.out.println("ERROR: failed to get pitem id: " + e.getMessage());
         }
-        return -1; // Item not found
+        return -1;
     }
-
-
 
     /**
      * Returns ScheduleItem object of the personal item associated with the given id.
@@ -1145,6 +1136,10 @@ public class DatabaseManager {
         }
         return courses;
     }
+    public void addCourse(CourseItem course) {
+        // Add the course to your database or in-memory storage
+    }
+
 
     /**
      * Close database connection.
