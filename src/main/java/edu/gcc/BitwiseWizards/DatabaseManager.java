@@ -558,70 +558,46 @@ public class DatabaseManager {
 
     /**
      * returns a CourseItem object when given a course id
-     * @param courseId
+     * @param course_id
      * @return CourseItem object
      */
-    protected CourseItem getCourseById(int courseId, int userId) {
+    protected CourseItem getCourseByID(int course_id) {
         String sql = """
-        SELECT c.course_id, c.credits, c.is_lab, c.is_open, c.location, c.course_name, c.course_number, c.open_seats, c.section_id, c.semester, c.dept_id, c.total_seats,
-               p.faculty_id, p.faculty_name, p.avg_rating, p.avg_difficulty,
-               d.dept_code,
-               IFNULL((SELECT 1 FROM user_courses uc WHERE uc.course_id = c.course_id AND uc.user_id = ?), 0) AS is_enrolled
-        FROM courses c
-        JOIN course_faculty cp ON c.course_id = cp.course_id
-        JOIN faculty p ON cp.faculty_id = p.faculty_id
-        JOIN departments d ON c.dept_id = d.dept_id
-        WHERE c.course_id = ?
-    """;
-
+            SELECT *
+            FROM courses
+            WHERE course_id = ?
+        """;
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, userId);
-            pstmt.setInt(2, courseId);
+            pstmt.setInt(1, course_id);
             ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                //get professor
-                Professor prof = new Professor(
-                        rs.getString("faculty_name"),
-                        rs.getDouble("avg_rating"),
-                        rs.getDouble("avg_difficulty")
-                );
-
-                //is user enrolled?
-                boolean isEnrolled = rs.getBoolean("is_enrolled");
-
-                //get course
-                //TODO: course db items currently do not contain meeting days!
-                ArrayList<Character> fillerMeetingDays = new ArrayList<>();
-                fillerMeetingDays.add('M');
-
-                //TODO: course db items currently do not contain start and end times. These shouldn't be stored as days!
-                Date start = new Date(1);
-                Date end = new Date(2);
-
+            while(rs.next()) {
+                // get dept_code
+                String dept_code = getDeptCode(rs.getInt("dept_id"));
+                // get professor list
+                ArrayList<Professor> professors = getCourseFaculty(course_id);
+                // get meeting times
+                Map<Character, List<Integer>> meetingTimes = getCourseMeetingTimes(course_id);
                 //TODO: course db items currently do not contain descriptions!
                 String desc = "This class stinks :(";
-
-                return new CourseItem(
-                        rs.getString("course_name"),
-                        fillerMeetingDays,
-                        start,
-                        end,
-                        rs.getString("dept_code"),
-                        rs.getInt("course_number"),
-                        rs.getString("section_id").charAt(0),
-                        rs.getString("location"),
-                        desc,
-                        prof,
-                        rs.getInt("credits"),
-                        isEnrolled,
-                        rs.getBoolean("is_lab")
+                /*
+                int id, int credits, boolean isLab, String location, String courseName, int courseNumber,
+                      char section, String semester, String depCode, String description,
+                      ArrayList<Professor> professors, Map<Character, List<Integer>> meetingTimes,
+                      boolean onSchedule
+                 */
+                CourseItem course = new CourseItem(
+                        course_id, rs.getInt("credits"), rs.getBoolean("is_lab"),
+                        rs.getString("location"), rs.getString("course_name"),
+                        rs.getInt("course_number"), rs.getString("section_id").charAt(0),
+                        rs.getString("semester"), dept_code, desc, professors,
+                        meetingTimes, true
                 );
+                return course;
             }
         } catch (SQLException e) {
-            System.out.println("ERROR: Failed to get course: " + e.getMessage());
+            System.out.println("ERROR: failed to get user courses: " + e.getMessage());
         }
-        return null; // Return null if the course is not found
+        return null;
     }
 
     // COURSE_FACULTY TABLE INSERT / GET methods
@@ -679,28 +655,40 @@ public class DatabaseManager {
      */
     protected int insertPersonalItem(int user_id, String pitem_name, Map<Character, List<Integer>> meetingTimes) {
         String sql = "INSERT INTO personal_items (user_id, pitem_name) VALUES (?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setInt(1, user_id);
             pstmt.setString(2, pitem_name);
-            pstmt.executeUpdate();
-            int pitem_id = getPersonalItemID(user_id, pitem_name);
-            // link to time-slots table
-            for (Map.Entry<Character, List<Integer>> entry : meetingTimes.entrySet()) {
-                String day = "" + entry.getKey();
-                int start = entry.getValue().get(0);
-                int end = entry.getValue().get(1);
-                int time_id = getTimeSlotID(day, start, end);
-                if (time_id == -1) {
-                    time_id = insertTimeSlot(day, start, end);
+            int rowsAffected = pstmt.executeUpdate();
+
+            if (rowsAffected > 0) {
+                ResultSet rs = pstmt.getGeneratedKeys();
+                if (rs.next()) {
+                    int pitem_id = rs.getInt(1);
+                    System.out.println("Inserted personal item: " + pitem_name + " with ID: " + pitem_id);
+
+                    // Link to time slots
+                    for (Map.Entry<Character, List<Integer>> entry : meetingTimes.entrySet()) {
+                        String day = "" + entry.getKey();
+                        int start = entry.getValue().get(0);
+                        int end = entry.getValue().get(1);
+                        int time_id = getTimeSlotID(day, start, end);
+                        if (time_id == -1) {
+                            time_id = insertTimeSlot(day, start, end);
+                        }
+                        insertPersonalItemTimeSlot(time_id, pitem_id);
+                    }
+                    return pitem_id;
                 }
-                insertPersonalItemTimeSlot(time_id, pitem_id);
+            } else {
+                System.err.println("ERROR: Failed to insert personal item: " + pitem_name);
             }
-            return pitem_id;
         } catch (SQLException e) {
             System.err.println("Failed to insert personal item: " + e.getMessage());
         }
         return -1;
     }
+
+
 
     /**
      * Returns id of the personal item associated with the given user / pitem_name.
@@ -710,23 +698,27 @@ public class DatabaseManager {
      */
     protected int getPersonalItemID(int user_id, String pitem_name) {
         String sql = """
-            SELECT *
-            FROM personal_items
-            WHERE user_id = ? AND pitem_name = ?
-        """;
+        SELECT pitem_id
+        FROM personal_items
+        WHERE user_id = ? AND pitem_name = ?
+    """;
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, user_id);
             pstmt.setString(2, pitem_name);
             ResultSet rs = pstmt.executeQuery();
-            if(rs.next()) {
-                return rs.getInt("pitem_id");
+            if (rs.next()) {
+                int pitem_id = rs.getInt("pitem_id");
+                System.out.println("Found personal item: " + pitem_name + " with ID: " + pitem_id);
+                return pitem_id;
+            } else {
+                System.err.println("ERROR: failed to get pitem id - Item not found for user_id: " + user_id + ", pitem_name: " + pitem_name);
             }
-            System.out.println("ERROR: failed to get pitem id: pitem not found");
         } catch (SQLException e) {
             System.out.println("ERROR: failed to get pitem id: " + e.getMessage());
         }
         return -1;
     }
+
 
     /**
      * Returns ScheduleItem object of the personal item associated with the given id.

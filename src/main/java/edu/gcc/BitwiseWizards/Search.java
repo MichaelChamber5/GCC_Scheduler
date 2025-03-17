@@ -28,7 +28,8 @@ public class Search {
 
         // Get exact matches
         for (int courseID : courseIDs) {
-            courses.add(dbm.getCourseById(courseID, currUser.getId()));
+            courses.add(dbm.getCourseByID(courseID));
+
         }
 
         // If no exact matches or not enough results, perform fuzzy search
@@ -44,7 +45,8 @@ public class Search {
         List<CourseItem> bestMatches = new ArrayList<>();
 
         for (int courseID : allCourseIDs) {
-            bestMatches.add(dbm.getCourseById(courseID, currUser.getId()));
+            bestMatches.add(dbm.getCourseByID(courseID));
+
         }
 
         return bestMatches;
