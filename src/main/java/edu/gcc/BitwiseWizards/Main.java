@@ -76,6 +76,10 @@ class Main {
     // testing...
     // TODO: actually implement main
     public static void main(String[] args) {
+
+
+
+
         // launch();
 
         // create / initialize database
@@ -93,7 +97,7 @@ class Main {
         String keyword = "Accounting";
         Search mySearch = new Search(dm);
         // mySearch.search(keyword, curr_user);
-        ArrayList<CourseItem> courses = mySearch.search(keyword, curr_user);
+        ArrayList<CourseItem> courses = mySearch.search(keyword, curr_user,dm );
         System.out.println("RESULTS:");
         System.out.println(courses);
 
