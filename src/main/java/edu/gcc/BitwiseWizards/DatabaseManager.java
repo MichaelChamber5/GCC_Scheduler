@@ -34,7 +34,6 @@ public class DatabaseManager {
     public DatabaseManager(DatabaseManager dbm) {
         try {
             connection = DriverManager.getConnection(DB_URL);
-            System.out.println("\nSuccessfully connected to database.");
         } catch(SQLException e) {
             System.err.println("Failed to connect to database: " + e.getMessage());
         }
