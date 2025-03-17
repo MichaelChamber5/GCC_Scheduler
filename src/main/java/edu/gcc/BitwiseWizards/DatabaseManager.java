@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
+import java.util.Date;
 
 public class DatabaseManager {
 
@@ -557,46 +558,70 @@ public class DatabaseManager {
 
     /**
      * returns a CourseItem object when given a course id
-     * @param course_id
+     * @param courseId
      * @return CourseItem object
      */
-    protected CourseItem getCourseByID(int course_id) {
+    protected CourseItem getCourseById(int courseId, int userId) {
         String sql = """
-            SELECT *
-            FROM courses
-            WHERE course_id = ?
-        """;
+        SELECT c.course_id, c.credits, c.is_lab, c.is_open, c.location, c.course_name, c.course_number, c.open_seats, c.section_id, c.semester, c.dept_id, c.total_seats,
+               p.faculty_id, p.faculty_name, p.avg_rating, p.avg_difficulty,
+               d.dept_code,
+               IFNULL((SELECT 1 FROM user_courses uc WHERE uc.course_id = c.course_id AND uc.user_id = ?), 0) AS is_enrolled
+        FROM courses c
+        JOIN course_faculty cp ON c.course_id = cp.course_id
+        JOIN faculty p ON cp.faculty_id = p.faculty_id
+        JOIN departments d ON c.dept_id = d.dept_id
+        WHERE c.course_id = ?
+    """;
+
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, course_id);
+            pstmt.setInt(1, userId);
+            pstmt.setInt(2, courseId);
             ResultSet rs = pstmt.executeQuery();
-            while(rs.next()) {
-                // get dept_code
-                String dept_code = getDeptCode(rs.getInt("dept_id"));
-                // get professor list
-                ArrayList<Professor> professors = getCourseFaculty(course_id);
-                // get meeting times
-                Map<Character, List<Integer>> meetingTimes = getCourseMeetingTimes(course_id);
+
+            if (rs.next()) {
+                //get professor
+                Professor prof = new Professor(
+                        rs.getString("faculty_name"),
+                        rs.getDouble("avg_rating"),
+                        rs.getDouble("avg_difficulty")
+                );
+
+                //is user enrolled?
+                boolean isEnrolled = rs.getBoolean("is_enrolled");
+
+                //get course
+                //TODO: course db items currently do not contain meeting days!
+                ArrayList<Character> fillerMeetingDays = new ArrayList<>();
+                fillerMeetingDays.add('M');
+
+                //TODO: course db items currently do not contain start and end times. These shouldn't be stored as days!
+                Date start = new Date(1);
+                Date end = new Date(2);
+
                 //TODO: course db items currently do not contain descriptions!
                 String desc = "This class stinks :(";
-                /*
-                int id, int credits, boolean isLab, String location, String courseName, int courseNumber,
-                      char section, String semester, String depCode, String description,
-                      ArrayList<Professor> professors, Map<Character, List<Integer>> meetingTimes,
-                      boolean onSchedule
-                 */
-                CourseItem course = new CourseItem(
-                        course_id, rs.getInt("credits"), rs.getBoolean("is_lab"),
-                        rs.getString("location"), rs.getString("course_name"),
-                        rs.getInt("course_number"), rs.getString("section_id").charAt(0),
-                        rs.getString("semester"), dept_code, desc, professors,
-                        meetingTimes, true
+
+                return new CourseItem(
+                        rs.getString("course_name"),
+                        fillerMeetingDays,
+                        start,
+                        end,
+                        rs.getString("dept_code"),
+                        rs.getInt("course_number"),
+                        rs.getString("section_id").charAt(0),
+                        rs.getString("location"),
+                        desc,
+                        prof,
+                        rs.getInt("credits"),
+                        isEnrolled,
+                        rs.getBoolean("is_lab")
                 );
-                return course;
             }
         } catch (SQLException e) {
-            System.out.println("ERROR: failed to get user courses: " + e.getMessage());
+            System.out.println("ERROR: Failed to get course: " + e.getMessage());
         }
-        return null;
+        return null; // Return null if the course is not found
     }
 
     // COURSE_FACULTY TABLE INSERT / GET methods
@@ -1108,6 +1133,35 @@ public class DatabaseManager {
         }
         return courses;
     }
+    protected ArrayList<Integer> searchCoursesFuzzy(String keyword) {
+        ArrayList<Integer> courses = new ArrayList<>();
+        String sql = """
+        SELECT course_id 
+        FROM courses
+        WHERE course_name LIKE ? 
+           OR location LIKE ? 
+           OR course_number LIKE ?
+        ORDER BY LENGTH(course_name) - LENGTH(REPLACE(LOWER(course_name), LOWER(?), '')) ASC
+        LIMIT 5
+    """;
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            String searchPattern = "%" + keyword + "%"; // Wildcard search
+            pstmt.setString(1, searchPattern);
+            pstmt.setString(2, searchPattern);
+            pstmt.setString(3, searchPattern);
+            pstmt.setString(4, keyword.toLowerCase());
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                courses.add(rs.getInt("course_id"));
+            }
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to search courses: " + e.getMessage());
+        }
+        return courses;
+    }
+
 
     /**
      * Close database connection.
