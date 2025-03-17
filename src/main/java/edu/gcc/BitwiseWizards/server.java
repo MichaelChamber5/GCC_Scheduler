@@ -4,6 +4,8 @@ import spark.ModelAndView;
 import spark.template.freemarker.FreeMarkerEngine;
 import freemarker.template.Configuration;
 import freemarker.template.Version;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 import java.sql.*;
 import java.util.HashMap;
@@ -93,5 +95,20 @@ public class server {
             }
             return new ModelAndView(model, "calendar.ftl");
         }, freeMarkerEngine);
+
+        get("/api/schedule", (req, res) -> {
+            // Assume user is stored in session
+            User user = req.session().attribute("user");
+            if (user == null) {
+                res.status(401);
+                return "Unauthorized";
+            }
+            List<ScheduleItem> items = dbm.getUserSchedule(user.getId());
+            // Use Jackson or similar library to convert the list to JSON
+            ObjectMapper mapper = new ObjectMapper();
+            res.type("application/json");
+            return mapper.writeValueAsString(items);
+        });
+
     }
 }
