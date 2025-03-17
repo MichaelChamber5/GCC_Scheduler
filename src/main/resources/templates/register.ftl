@@ -16,19 +16,15 @@
     <script type="text/babel">
         function RegisterForm(){
             return (
-                <form action="/register" method="post">
-                    <div>
-                        <label htmlFor="username">Username: </label>
-                        <input type="text" id="username" name = "username" required />
-                    </div>
-                    <div>
-                        <label htmlFor="confirmedPassword">Confirm Password: </label>
-                        <input type="password" id="confirmedPassword" name = "confirmPassword" required />
-                    </div>
-                    <div>
-                        <input type="submit" value="Register" />
-                    </div>
-                </form>
+            <form action="/register" method="post">
+<label>Username:</label>
+<input type="text" name="username" />
+
+<label>Password:</label>
+<input type="password" name="confirmPassword" />
+
+<button type="submit">Register</button>
+</form>
                 );
             }
 

@@ -1,5 +1,7 @@
 package edu.gcc.BitwiseWizards;
 import static spark.Spark.*;
+
+import com.google.gson.Gson;
 import spark.ModelAndView;
 import spark.template.freemarker.FreeMarkerEngine;
 import freemarker.template.Configuration;
@@ -59,7 +61,6 @@ public class server {
 
 
         post("/login", (req, res) -> {
-
             String username = req.queryParams("username");
             String password = req.queryParams("confirmPassword");
 
@@ -69,32 +70,35 @@ public class server {
                 return null;
             }
 
-
             int userId = dbm.getUserID(username, password);
 
             if (userId != -1) {
+                // Build the User object fully
                 User user = new User(userId, username, password);
                 List<ScheduleItem> items = dbm.getUserSchedule(userId);
                 user.setSchedule(items);
-                req.session().attribute("userId", userId);
+
+                // Store the entire User object in the session
+                req.session().attribute("user", user);
+
+                // Redirect to the calendar page
                 res.redirect("/calendar");
             } else {
-
                 res.redirect("/login?error=Invalid+username+or+password");
             }
             return null;
         });
 
-        get("/calendar", (req, res) -> {
-            Map<String, Object> model = new HashMap<>();
-
-            User user = req.session().attribute("user");
-            if (user != null) {
-
-                model.put("scheduleItems", user.getSchedule().getScheduleItems());
-            }
-            return new ModelAndView(model, "calendar.ftl");
-        }, freeMarkerEngine);
+//        get("/calendar", (req, res) -> {
+//            Map<String, Object> model = new HashMap<>();
+//
+//            User user = req.session().attribute("user");
+//            if (user != null) {
+//
+//                model.put("scheduleItems", user.getSchedule().getScheduleItems());
+//            }
+//            return new ModelAndView(model, "calendar.ftl");
+//        }, freeMarkerEngine);
 
         get("/api/schedule", (req, res) -> {
             // Assume user is stored in session
@@ -109,6 +113,100 @@ public class server {
             res.type("application/json");
             return mapper.writeValueAsString(items);
         });
+
+        get("/api/courses", (req, res) -> {
+            List<CourseItem> courses = dbm.getAllCourses();
+
+
+
+            for (Object obj : courses) {
+                System.out.println("Object class: " + obj.getClass().getName());
+            }
+            String json = new Gson().toJson(courses);
+            System.out.println("JSON output: " + json);
+            res.type("application/json");
+            return json;
+        });
+
+        get("/calendar", (req, res) -> {
+            // Renders the main layout (includes placeholders)
+            return new ModelAndView(null, "calendar.ftl");
+        }, freeMarkerEngine);
+
+        get("/sidebar-courses", (req, res) -> {
+            // Return partial snippet of courses
+            List<CourseItem> courses = dbm.getAllCourses();
+            Map<String, Object> model = new HashMap<>();
+            model.put("courses", courses);
+            return new ModelAndView(model, "sidebar-courses.ftl");
+        }, freeMarkerEngine);
+
+        get("/calendar-snippet", (req, res) -> {
+            // Return partial snippet of user schedule
+            User user = req.session().attribute("user");
+            if (user == null) {
+                halt(401, "Not logged in");
+            }
+            List<ScheduleItem> schedule = dbm.getUserSchedule(user.getId());
+            Map<String, Object> model = new HashMap<>();
+            model.put("schedule", schedule);
+            return new ModelAndView(model, "calendar-snippet.ftl");
+        }, freeMarkerEngine);
+
+        post("/add-course", (req, res) -> {
+            // 1) Add the course to the DB
+            String courseIdStr = req.queryParams("courseId");
+            User user = req.session().attribute("user");
+            if (user == null) {
+                halt(401, "Not logged in");
+            }
+            dbm.insertUserCourse(user.getId(), Integer.parseInt(courseIdStr));
+
+            // 2) Re-render sidebar & calendar partials
+            List<CourseItem> updatedCourses = dbm.getAllCourses();
+            Map<String, Object> model = new HashMap<>();
+            model.put("courses", updatedCourses);
+            String sidebarHtml = freeMarkerEngine.render(
+                    new ModelAndView(model, "sidebar-courses.ftl"));
+
+            List<ScheduleItem> updatedSchedule = dbm.getUserSchedule(user.getId());
+            model.put("schedule", updatedSchedule);
+            String calendarHtml = freeMarkerEngine.render(
+                    new ModelAndView(model, "calendar-snippet.ftl"));
+
+            // 3) Combine them so the client can parse them
+            String combined =
+                    "<div id='sidebar-snippet'>" + sidebarHtml + "</div>" +
+                            "<div id='calendar-snippet'>" + calendarHtml + "</div>";
+            res.type("text/html");
+            return combined;
+        });
+
+        post("/remove-course", (req, res) -> {
+            // 1) Retrieve the scheduleItemId from the request
+            String itemIdStr = req.queryParams("scheduleItemId");
+            if (itemIdStr == null) {
+                halt(400, "Missing scheduleItemId");
+            }
+
+            // 2) Get the user from session
+            User user = req.session().attribute("user");
+            if (user == null) {
+                halt(401, "Not logged in");
+            }
+            int itemId = Integer.parseInt(itemIdStr);
+
+            // 3) Remove the course from user's schedule in the DB
+            //    (If it's a course item, you might do something like:)
+            dbm.deleteUserCourse(user.getId(), itemId);
+
+            // Or if you store personal items the same way, adjust as needed
+
+            // 4) Return something simple (could be JSON or plain text)
+            return "Removed";
+        });
+
+
 
     }
 }

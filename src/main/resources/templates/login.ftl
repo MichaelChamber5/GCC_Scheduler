@@ -15,19 +15,15 @@
     <script type="text/babel">
         function LoginForm() {
             return (
-                <form action="/login" method="post">
-                    <div>
-                        <label htmlFor="username">Username: </label>
-                        <input type="text" id="username" name = "username" required />
-                    </div>
-                    <div>
-                        <label htmlFor="confirmedPassword">Confirm Password: </label>
-                        <input type="password" id="confirmedPassword" name = "confirmPassword" required />
-                    </div>
-                    <div>
-                    <input type="submit" value="Login" />
-                    </div>
-                </form>
+            <form action="/login" method="post">
+<label>Username:</label>
+<input type="text" name="username" />
+
+<label>Password:</label>
+<input type="password" name="confirmPassword" />
+
+<button type="submit">Login</button>
+</form>
             );
         }
 
