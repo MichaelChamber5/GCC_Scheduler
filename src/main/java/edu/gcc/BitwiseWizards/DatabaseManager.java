@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
-import java.util.Date;
 
 public class DatabaseManager {
 
@@ -658,15 +657,15 @@ public class DatabaseManager {
         try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setInt(1, user_id);
             pstmt.setString(2, pitem_name);
-            int rowsAffected = pstmt.executeUpdate();
 
+            int rowsAffected = pstmt.executeUpdate();
             if (rowsAffected > 0) {
                 ResultSet rs = pstmt.getGeneratedKeys();
                 if (rs.next()) {
                     int pitem_id = rs.getInt(1);
                     System.out.println("Inserted personal item: " + pitem_name + " with ID: " + pitem_id);
 
-                    // Link to time slots
+                    // Link personal item to its time slots
                     for (Map.Entry<Character, List<Integer>> entry : meetingTimes.entrySet()) {
                         String day = "" + entry.getKey();
                         int start = entry.getValue().get(0);
@@ -679,15 +678,12 @@ public class DatabaseManager {
                     }
                     return pitem_id;
                 }
-            } else {
-                System.err.println("ERROR: Failed to insert personal item: " + pitem_name);
             }
         } catch (SQLException e) {
             System.err.println("Failed to insert personal item: " + e.getMessage());
         }
-        return -1;
+        return -1; // Return -1 on failure
     }
-
 
 
     /**
@@ -697,27 +693,23 @@ public class DatabaseManager {
      * @return
      */
     protected int getPersonalItemID(int user_id, String pitem_name) {
-        String sql = """
-        SELECT pitem_id
-        FROM personal_items
-        WHERE user_id = ? AND pitem_name = ?
-    """;
+        String sql = "SELECT pitem_id FROM personal_items WHERE user_id = ? AND pitem_name = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, user_id);
             pstmt.setString(2, pitem_name);
             ResultSet rs = pstmt.executeQuery();
+
             if (rs.next()) {
-                int pitem_id = rs.getInt("pitem_id");
-                System.out.println("Found personal item: " + pitem_name + " with ID: " + pitem_id);
-                return pitem_id;
+                return rs.getInt("pitem_id");
             } else {
-                System.err.println("ERROR: failed to get pitem id - Item not found for user_id: " + user_id + ", pitem_name: " + pitem_name);
+                System.err.println("Warning: Personal item '" + pitem_name + "' not found for user_id: " + user_id);
             }
         } catch (SQLException e) {
-            System.out.println("ERROR: failed to get pitem id: " + e.getMessage());
+            System.err.println("ERROR: failed to get pitem id: " + e.getMessage());
         }
-        return -1;
+        return -1; // Item not found
     }
+
 
 
     /**
@@ -1153,7 +1145,6 @@ public class DatabaseManager {
         }
         return courses;
     }
-
 
     /**
      * Close database connection.
