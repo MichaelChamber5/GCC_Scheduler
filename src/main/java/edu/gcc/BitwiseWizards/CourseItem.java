@@ -1,37 +1,53 @@
 package edu.gcc.BitwiseWizards;
 
-public class CourseItem {
-    private String depCode;
-    private int courseCode;
-    private char section;
-    private String location;
-    private String description;
-    private Professor professor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+public class CourseItem extends ScheduleItem {
+
+    private int id;
     private int credits;
-    private boolean onSchedule = false;
+    private boolean isLab;
+    // is_open
+    private String location;
+    private int courseNumber;
+    // open_seats
+    private char section;
+    private String semester;
+    private String depCode;
+    // total_seats
+    private String description;
+    private ArrayList<Professor> professors;
+    private boolean onSchedule;
 
-    public String getDepCode() {
-        return depCode;
-    }
-
-    public void setDepCode(String depCode) {
-        this.depCode = depCode;
-    }
-
-    public int getCourseCode() {
-        return courseCode;
-    }
-
-    public void setCourseCode(int courseCode) {
-        this.courseCode = courseCode;
-    }
-
-    public char getSection() {
-        return section;
-    }
-
-    public void setSection(char section) {
+    public CourseItem(int id, int credits, boolean isLab, String location, String courseName, int courseNumber,
+                      char section, String semester, String depCode, String description,
+                      ArrayList<Professor> professors, Map<Character, List<Integer>> meetingTimes,
+                      boolean onSchedule) {
+        super(id, courseName, meetingTimes);
+        this.credits = credits;
+        this.isLab = isLab;
+        this.location = location;
+        this.courseNumber = courseNumber;
         this.section = section;
+        this.semester = semester;
+        this.depCode = depCode;
+        this.description = description;
+        this.professors = professors;
+        this.onSchedule = onSchedule;
+    }
+
+    public int getCredits() {
+        return credits;
+    }
+
+//    public void setCredits(int credits) {
+//        this.credits = credits;
+//    }
+
+    public boolean getIsLab() {
+        return isLab;
     }
 
     public String getLocation() {
@@ -42,6 +58,34 @@ public class CourseItem {
         this.location = location;
     }
 
+    public int getCourseNumber() {
+        return courseNumber;
+    }
+
+    public void setCourseNumber(int courseNumber) {
+        this.courseNumber = courseNumber;
+    }
+
+    public char getSection() {
+        return section;
+    }
+
+    public void setSection(char section) {
+        this.section = section;
+    }
+
+    public String getSemester() {
+        return semester;
+    }
+
+    public String getDepCode() {
+        return depCode;
+    }
+
+    public void setDepCode(String depCode) {
+        this.depCode = depCode;
+    }
+
     public String getDescription() {
         return description;
     }
@@ -50,23 +94,31 @@ public class CourseItem {
         this.description = description;
     }
 
-    public Professor getProfessor() {
-        return professor;
+    public ArrayList<Professor> getProfessors() {
+        return professors;
     }
 
-    public void setProfessor(Professor professor) {
-        this.professor = professor;
+    public void setProfessors(ArrayList<Professor> professors) {
+        this.professors = professors;
     }
 
-    public int getCredits() {
-        return credits;
+    public boolean getOnSchedule() {
+        return onSchedule;
     }
 
-    public void setCredits(int credits) {
-        this.credits = credits;
+    public void setOnSchedule(boolean onSchedule) {
+        this.onSchedule = onSchedule;
     }
 
     public boolean equals(CourseItem item) {
-        return this.courseCode == item.courseCode && this.section == item.section;
+        return this.depCode == item.depCode && this.courseNumber == item.courseNumber
+                && this.section == item.section && this.semester == item.semester;
     }
+
+    @Override
+    public String toString() {
+        // e.g. "Software Engineering"
+        return getName() + " " + section + " (" + semester.charAt(5) + ")";
+    }
+
 }

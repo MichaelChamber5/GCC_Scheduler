@@ -1,16 +1,45 @@
 package edu.gcc.BitwiseWizards;
 
 import java.util.*;
-public class Schedule {
-    private List<ScheduleItem> items = new ArrayList<>();
-    private int credit_count = 0;
 
+public class Schedule {
+
+    private List<ScheduleItem> items;
+    private int credit_count;
+
+    public Schedule() {
+        items = new ArrayList<>();
+        credit_count = 0;
+    }
+
+    public void setScheduleItems(List<ScheduleItem> items) {
+        this.items = items;
+        this.credit_count = 0;
+        for (ScheduleItem item : items) {
+            if (item instanceof CourseItem) {
+                credit_count += ((CourseItem) item).getCredits();
+            }
+        }
+    }
+
+    /**
+     * @return list of all items currently on the user's schedule
+     */
     public List<ScheduleItem> getScheduleItems() {
         return items;
     }
 
+    /**
+     * @return list of all courses currently on the user's schedule
+     */
     public List<CourseItem> getCourses() {
-        return new ArrayList<>(); // Placeholder
+        ArrayList<CourseItem> courses = new ArrayList<>();
+        for (ScheduleItem item : items) {
+            if (item instanceof CourseItem) {
+                courses.add((CourseItem) item);
+            }
+        }
+        return courses;
     }
 
     public int getCreditCount() {
@@ -18,10 +47,26 @@ public class Schedule {
     }
 
     public void addScheduleItem(ScheduleItem item) {
-        // Implementation here
+        //if the item is a course item, add to credit count
+        if(item instanceof CourseItem)
+        {
+            credit_count += ((CourseItem) item).getCredits();
+        }
+        items.add(item);
     }
 
     public void removeScheduleItem(ScheduleItem item) {
-        // Implementation here
+        //if the item is a course item, reduce to credit count
+        if(item instanceof CourseItem)
+        {
+            credit_count -= ((CourseItem) item).getCredits();
+        }
+        items.remove(item);;
+    }
+
+    @Override
+    public String toString() {
+        // [Software Engineering, Chapel, ...]
+        return "" + items;
     }
 }
