@@ -41,6 +41,16 @@ public class ScheduleItem {
 
     public boolean conflicts(ScheduleItem item) {
         // logic to determine time conflicts between schedule items
+        for(Character day : meetingTimes.keySet()) {
+            if(item.getMeetingDays().contains(day)) {
+                int itemStart = item.getMeetingTimes().get(day).get(0);
+                int itemEnd = item.getMeetingTimes().get(day).get(1);
+                int currStart = meetingTimes.get(day).get(0);
+                int currEnd = meetingTimes.get(day).get(1);
+                if(itemStart <= currEnd && currStart <= itemEnd)
+                    return true;
+            }
+        }
         return false;
     }
 
