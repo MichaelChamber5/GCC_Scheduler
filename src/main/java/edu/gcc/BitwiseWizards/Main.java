@@ -97,7 +97,7 @@ class Main {
         String keyword = "Accounting";
         Search mySearch = new Search(dm);
         // mySearch.search(keyword, curr_user);
-        ArrayList<CourseItem> courses = mySearch.search(keyword, curr_user,dm );
+        ArrayList<CourseItem> courses = mySearch.search(keyword, "additionalString", curr_user, dm);
         System.out.println("RESULTS:");
         System.out.println(courses);
 

@@ -6,8 +6,10 @@ public class Search {
     private List<CourseItem> searchedCourses;
     private List<CourseItem> filteredCourses;
     private String keywordStr = "";
+    private String semester = "";
     private String deptCode = "";
     private List<Character> days = new ArrayList<>();
+    private Date semesterStart = null;
     private Date start = null;
     private Date end = null;
     private DatabaseManager dbm;
@@ -18,29 +20,39 @@ public class Search {
         filteredCourses = new ArrayList<>();
     }
 
-    public ArrayList<CourseItem> search(String keywordStr, User currUser, DatabaseManager dm) {
+    public ArrayList<CourseItem> search(String keywordStr, String semester, User currUser, DatabaseManager dm) {
         DatabaseManager dbm = new DatabaseManager(dm);
+        this.semester = semester;  // Store the selected semester
+
         ArrayList<Integer> courseIDs = dbm.searchCoursesByKeyword(keywordStr);
         ArrayList<CourseItem> courses = new ArrayList<>();
 
+        // Retrieve courses that match the keyword and semester
         for (int courseID : courseIDs) {
-            courses.add(dbm.getCourseByID(courseID));
+            CourseItem course = dbm.getCourseByID(courseID);
+            if (course != null && course.getSemester().equalsIgnoreCase(semester)) {
+                courses.add(course);
+            }
         }
 
+        // If no exact matches or not enough results, perform fuzzy search
         if (courses.isEmpty() || courses.size() < 3) {
-            courses.addAll(performFuzzySearch(keywordStr, currUser, dbm));
+            courses.addAll(performFuzzySearch(keywordStr, semester, currUser, dbm));
         }
 
         this.searchedCourses = courses; // Store the searched courses for filtering
         return courses;
     }
 
-    private List<CourseItem> performFuzzySearch(String keywordStr, User currUser, DatabaseManager dbm) {
+    private List<CourseItem> performFuzzySearch(String keywordStr, String semester, User currUser, DatabaseManager dbm) {
         ArrayList<Integer> allCourseIDs = dbm.searchCoursesFuzzy(keywordStr);
         List<CourseItem> bestMatches = new ArrayList<>();
 
         for (int courseID : allCourseIDs) {
-            bestMatches.add(dbm.getCourseByID(courseID));
+            CourseItem course = dbm.getCourseByID(courseID);
+            if (course != null && course.getSemester().equalsIgnoreCase(semester)) {
+                bestMatches.add(course);
+            }
         }
 
         return bestMatches;
@@ -58,6 +70,9 @@ public class Search {
 
         // Start filtering using only searchedCourses data
         filteredCourses = new ArrayList<>(searchedCourses);
+
+        // Filter by semester (only courses from the searched semester)
+        filteredCourses.removeIf(course -> !course.getSemester().equalsIgnoreCase(semester));
 
         // Filter by department code
         if (deptCode != null && !deptCode.isEmpty()) {
@@ -108,6 +123,4 @@ public class Search {
         int minute = calendar.get(Calendar.MINUTE);
         return hour * 100 + minute;
     }
-
 }
-
