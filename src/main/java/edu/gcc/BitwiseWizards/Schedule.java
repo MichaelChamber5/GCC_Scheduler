@@ -47,12 +47,20 @@ public class Schedule {
     }
 
     public void addScheduleItem(ScheduleItem item) {
-        //if the item is a course item, add to credit count
-        if(item instanceof CourseItem)
+        if(safeToAdd(item))
         {
-            credit_count += ((CourseItem) item).getCredits();
+            //if the item is a course item, add to credit count
+            if(item instanceof CourseItem)
+            {
+                credit_count += ((CourseItem) item).getCredits();
+            }
+            items.add(item);
         }
-        items.add(item);
+        else
+        {
+            //TODO: Add pop-up to warn user!
+            System.out.println("ERROR: overlapping schedule items");
+        }
     }
 
     public void removeScheduleItem(ScheduleItem item) {
@@ -69,4 +77,25 @@ public class Schedule {
         // [Software Engineering, Chapel, ...]
         return "" + items;
     }
+
+    public boolean safeToAdd(ScheduleItem otherItem)
+    {
+        for(ScheduleItem item : items)
+        {
+            if(otherItem.conflicts(item))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private int convertDateToTime(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        int minute = calendar.get(Calendar.MINUTE);
+        return hour * 100 + minute;
+    }
+
 }
