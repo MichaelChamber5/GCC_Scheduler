@@ -68,7 +68,7 @@ public class Schedule {
         {
             credit_count -= ((CourseItem) item).getCredits();
         }
-        items.remove(item);;
+        items.remove(item);
     }
 
     @Override
