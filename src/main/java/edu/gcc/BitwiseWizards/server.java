@@ -18,6 +18,9 @@ public class server {
 
 
     public static void main(String[] args) {
+
+        staticFiles.externalLocation("public");
+
         dbm = new DatabaseManager();
 
         port(4567);
@@ -103,11 +106,32 @@ public class server {
                 res.status(401);
                 return "Unauthorized";
             }
+
             List<ScheduleItem> items = dbm.getUserSchedule(user.getId());
             // Use Jackson or similar library to convert the list to JSON
             ObjectMapper mapper = new ObjectMapper();
             res.type("application/json");
             return mapper.writeValueAsString(items);
+        });
+
+        get("/userCourses", (req, res) -> {
+
+            // Assume user is stored in session
+            User user = req.session().attribute("user");
+            if (user == null) {
+                res.status(401);
+                return "Unauthorized";
+            }
+            res.type("application/json");
+
+            // Get courses from the user's schedule
+            List<CourseItem> courses = dbm.getUserCourses(user.getId());  // This could be a method to get all courses from Schedule
+
+            // Use Jackson's ObjectMapper to convert the list to JSON
+            ObjectMapper mapper = new ObjectMapper();
+
+            res.type("application/json");
+            return mapper.writeValueAsString(courses);
         });
 
     }

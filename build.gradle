@@ -1,5 +1,16 @@
 plugins {
+    id 'org.gradle.node' version '5.0.0'
     id 'java'
+}
+
+node {
+    version = '16.14.0' // Choose a version that fits your needs
+    npmVersion = '8.5.0'
+    download = true
+}
+
+task customNpmInstall(type: NpmTask) {
+    args = ['install'] // This is the command to run npm install
 }
 
 group = 'org.example'
