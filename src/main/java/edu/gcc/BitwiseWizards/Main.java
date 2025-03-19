@@ -51,14 +51,22 @@ class Main {
     }
 
     public static void addScheduleItem(ScheduleItem item) {
-        if (item instanceof CourseItem) {
-            dm.insertUserCourse(curr_user.getId(), item.getId());
+        boolean added = curr_user.getSchedule().addScheduleItem(item);
+
+        if(added)
+        {
+            if (item instanceof CourseItem) {
+                dm.insertUserCourse(curr_user.getId(), item.getId());
+            }
+            else {
+                // TODO: fix pitem id issues
+                dm.insertPersonalItem(curr_user.getId(), item.getName(), item.getMeetingTimes());
+            }
         }
-        else {
-            // TODO: fix pitem id issues
-            dm.insertPersonalItem(curr_user.getId(), item.getName(), item.getMeetingTimes());
+        else
+        {
+            System.out.println("ERROR: item not added to DB");
         }
-        curr_user.getSchedule().addScheduleItem(item);
     }
 
     public static void removeScheduleItem(ScheduleItem item) {
