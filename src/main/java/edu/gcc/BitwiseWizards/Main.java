@@ -69,16 +69,11 @@ class Main {
             dm.deleteUserPersonalItem(curr_user.getId(), dm.getPersonalItemID(curr_user.getId(), item.getName()));
         }
         curr_user.setSchedule(dm.getUserSchedule(curr_user.getId()));
-        // TODO: fix remove schedule item issue
-//        curr_user.getSchedule().removeScheduleItem(item);
     }
 
     // testing...
     // TODO: actually implement main
     public static void main(String[] args) {
-
-
-
 
         // launch();
 
