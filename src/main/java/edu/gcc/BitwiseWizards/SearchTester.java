@@ -10,30 +10,43 @@ public class SearchTester {
     public SearchTester() {
         dbm = new DatabaseManager();
         search = new Search(dbm);
-        // Create test user with ID 1, username "testUser", and password "test123"
         testUser = new User(1, "testUser", "test123");
     }
 
     public void runTests() {
-        System.out.println("=== Starting Search Tests ===\n");
+        System.out.println("=== Starting Search and Filter Tests ===\n");
 
-        // Test 1: Basic Search
+        // Run search tests
         testBasicSearch();
-
-        // Test 2: Fuzzy Search
+        testCaseInsensitiveSearch();
         testFuzzySearch();
+        testSpecialCharacterSearch();
+        testNoMatchSearch();
+        testEmptySearch();
 
-        // Test 3: Filter Tests
-        testFilters();
+        // Run filter tests
+        testFilterByDepartment();
+        testFilterByMultipleDepartments();
+        testFilterByDays();
+        //testFilterByMultipleDays();
+        testFilterByStartTime();
+        testFilterByTimeRange();
+
+        // New tests: Semester-based search and filtering
+        testSearchBySemester();
+        //testFilterBySemester();
+        // testSearchWithMismatchedSemester();
 
         System.out.println("\n=== All Tests Completed ===");
     }
 
+    // ===================== SEARCH TESTS =====================
+
     private void testBasicSearch() {
-        System.out.println("Test 1: Basic Search");
+        System.out.println("Test 1: Basic Search (Exact Match)");
         try {
-            ArrayList<CourseItem> results = search.search("Computer", testUser, dbm);
-            System.out.println("Basic search results count: " + results.size());
+            ArrayList<CourseItem> results = search.search("Computer", "2025_Spring", testUser, dbm);
+            System.out.println("Expected 2+ results, Got: " + results.size());
             printResults(results);
         } catch (Exception e) {
             System.out.println("Error in basic search: " + e.getMessage());
@@ -41,12 +54,23 @@ public class SearchTester {
         System.out.println();
     }
 
-    private void testFuzzySearch() {
-        System.out.println("Test 2: Fuzzy Search");
+    private void testCaseInsensitiveSearch() {
+        System.out.println("Test 2: Case-Insensitive Search");
         try {
-            // Using a misspelled or partial word to trigger fuzzy search
-            ArrayList<CourseItem> results = search.search("Comput", testUser, dbm);
-            System.out.println("Fuzzy search results count: " + results.size());
+            ArrayList<CourseItem> results = search.search("cOmPuTeR", "2025_Spring", testUser, dbm);
+            System.out.println("Expected 2+ results (same as 'Computer'), Got: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in case-insensitive search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testFuzzySearch() {
+        System.out.println("Test 3: Fuzzy Search (Partial Match)");
+        try {
+            ArrayList<CourseItem> results = search.search("Comput", "2025_Spring", testUser, dbm);
+            System.out.println("Expected at least 1 result, Got: " + results.size());
             printResults(results);
         } catch (Exception e) {
             System.out.println("Error in fuzzy search: " + e.getMessage());
@@ -54,70 +78,136 @@ public class SearchTester {
         System.out.println();
     }
 
-    private void testFilters() {
-        System.out.println("Test 3: Filter Tests");
+    private void testSpecialCharacterSearch() {
+        System.out.println("Test 4: Special Character Search (e.g., Symbols or Numbers)");
         try {
-            // First perform a search to populate searchedCourses
-            search.search("", testUser, dbm);
+            ArrayList<CourseItem> results = search.search("CS-101", "2025_Spring", testUser, dbm);
+            System.out.println("Expected at least 1 result if course names contain symbols, Got: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in special character search: " + e.getMessage());
+        }
+        System.out.println();
+    }
 
-            // Test department filter
-            System.out.println("\nTesting COMP department filter:");
-            List<CourseItem> deptResults = search.filter("COMP", null, null, null);
-            System.out.println("Department filter results count: " + deptResults.size());
-            printResults(deptResults);
+    private void testNoMatchSearch() {
+        System.out.println("Test 5: No Matching Courses");
+        try {
+            ArrayList<CourseItem> results = search.search("Quantum Mechanics", "2025_Spring", testUser, dbm);
+            System.out.println("Expected 0 results, Got: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in no match search: " + e.getMessage());
+        }
+        System.out.println();
+    }
 
-            // Test days filter
-            System.out.println("\nTesting MWF days filter:");
-            List<Character> mwfDays = Arrays.asList('M', 'W', 'F');
-            List<CourseItem> daysResults = search.filter(null, mwfDays, null, null);
-            System.out.println("Days filter results count: " + daysResults.size());
-            printResults(daysResults);
+    private void testEmptySearch() {
+        System.out.println("Test 6: Empty Search Query (Returns All Courses for Semester)");
+        try {
+            ArrayList<CourseItem> results = search.search("", "2025_Spring", testUser, dbm);
+            System.out.println("Expected all courses for Spring 2025, Got: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in empty search: " + e.getMessage());
+        }
+        System.out.println();
+    }
 
-            // Test time filter
-            System.out.println("\nTesting time filter (8 AM - 2 PM):");
+    // ===================== FILTER TESTS =====================
+
+    private void testFilterByDepartment() {
+        System.out.println("Test 7: Filter by Department (COMP)");
+        try {
+            search.search("", "2025_Spring", testUser, dbm);
+            List<CourseItem> results = search.filter("COMP", null, null, null);
+            System.out.println("Expected only COMP courses, Got: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in department filter: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testFilterByMultipleDepartments() {
+        System.out.println("Test 8: Filter by Multiple Departments (COMP, MATH)");
+        try {
+            search.search("", "2025_Spring", testUser, dbm);
+            List<CourseItem> results = search.filter("COMP,MATH", null, null, null);
+            System.out.println("Expected COMP and MATH courses, Got: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in multiple department filter: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testFilterByDays() {
+        System.out.println("Test 9: Filter by Days (MWF)");
+        try {
+            search.search("", "2025_Spring", testUser, dbm);
+            List<Character> days = Arrays.asList('M', 'W', 'F');
+            List<CourseItem> results = search.filter(null, days, null, null);
+            System.out.println("Expected courses meeting on MWF, Got: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in day filter: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testFilterByStartTime() {
+        System.out.println("Test 10: Filter by Start Time (After 10 AM)");
+        try {
+            Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.HOUR_OF_DAY, 10);
+            Date startTime = cal.getTime();
+            search.search("", "2025_Spring", testUser, dbm);
+            List<CourseItem> results = search.filter(null, null, startTime, null);
+            System.out.println("Expected courses starting after 10 AM, Got: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in start time filter: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testFilterByTimeRange() {
+        System.out.println("Test 11: Filter by Time Range (8 AM - 2 PM)");
+        try {
             Calendar cal = Calendar.getInstance();
             cal.set(Calendar.HOUR_OF_DAY, 8);
             Date startTime = cal.getTime();
             cal.set(Calendar.HOUR_OF_DAY, 14);
             Date endTime = cal.getTime();
-
-            List<CourseItem> timeResults = search.filter(null, null, startTime, endTime);
-            System.out.println("Time filter results count: " + timeResults.size());
-            printResults(timeResults);
-
+            search.search("", "2025_Spring", testUser, dbm);
+            List<CourseItem> results = search.filter(null, null, startTime, endTime);
+            System.out.println("Expected courses between 8 AM - 2 PM, Got: " + results.size());
+            printResults(results);
         } catch (Exception e) {
-            System.out.println("Error in filter tests: " + e.getMessage());
+            System.out.println("Error in time range filter: " + e.getMessage());
         }
+        System.out.println();
+    }
+
+    private void testSearchBySemester() {
+        System.out.println("Test 12: Search by Semester (Fall 2024)");
+        try {
+            ArrayList<CourseItem> results = search.search("Math", "2024_Fall", testUser, dbm);
+            System.out.println("Expected Math courses in Fall 2024, Got: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in semester-based search: " + e.getMessage());
+        }
+        System.out.println();
     }
 
     private void printResults(List<CourseItem> courses) {
-        if (courses == null || courses.isEmpty()) {
-            System.out.println("No courses found");
-            return;
-        }
-
-        for (CourseItem course : courses) {
-            try {
-                System.out.println(String.format("Course: %s, Days: %s, Time: %d - %d",
-                        course.getDepCode(),
-                        course.getDays() != null ? course.getDays().toString() : "N/A",
-                        course.getStartTime(),
-                        course.getEndTime()));
-            } catch (Exception e) {
-                System.out.println("Error printing course: " + e.getMessage());
-            }
-        }
+        System.out.println("Result Count: " + courses.size());
     }
 
-
-
     public static void main(String[] args) {
-        try {
-            SearchTester tester = new SearchTester();
-            tester.runTests();
-        } catch (Exception e) {
-            System.out.println("Error running tests: " + e.getMessage());
-            e.printStackTrace();
-        }
+        SearchTester tester = new SearchTester();
+        tester.runTests();
     }
 }
