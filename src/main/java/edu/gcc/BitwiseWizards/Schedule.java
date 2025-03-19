@@ -46,7 +46,7 @@ public class Schedule {
         return credit_count;
     }
 
-    public void addScheduleItem(ScheduleItem item) {
+    public boolean addScheduleItem(ScheduleItem item) {
         if(safeToAdd(item))
         {
             //if the item is a course item, add to credit count
@@ -55,12 +55,11 @@ public class Schedule {
                 credit_count += ((CourseItem) item).getCredits();
             }
             items.add(item);
+            return true;
         }
-        else
-        {
             //TODO: Add pop-up to warn user!
             System.out.println("ERROR: overlapping schedule items");
-        }
+            return false;
     }
 
     public void removeScheduleItem(ScheduleItem item) {
