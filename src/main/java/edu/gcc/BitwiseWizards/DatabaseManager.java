@@ -2,6 +2,7 @@ package edu.gcc.BitwiseWizards;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import java.io.InputStream;
 import java.sql.*;
@@ -1086,59 +1087,118 @@ public class DatabaseManager {
     protected ArrayList<Integer> searchCoursesByKeyword(String keyword) {
         ArrayList<Integer> courses = new ArrayList<>();
         String sql = """
-        SELECT course_id 
-        FROM courses
-        WHERE course_name LIKE ? 
-           OR location LIKE ? 
-           OR course_number LIKE ?
+    SELECT course_id 
+    FROM courses
+    WHERE LOWER(course_name) = LOWER(?) 
+       OR LOWER(course_number) = LOWER(?) 
+       OR LOWER(location) = LOWER(?)
     """;
 
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            String searchPattern = "%" + keyword + "%"; // Wildcard search
-            pstmt.setString(1, searchPattern);
-            pstmt.setString(2, searchPattern);
-            pstmt.setString(3, searchPattern);
+            pstmt.setString(1, keyword);
+            pstmt.setString(2, keyword);
+            pstmt.setString(3, keyword);
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 courses.add(rs.getInt("course_id"));
             }
         } catch (SQLException e) {
-            System.out.println("ERROR: failed to search courses: " + e.getMessage());
+            System.out.println("ERROR: failed to search courses by exact keyword: " + e.getMessage());
         }
         return courses;
     }
+
     protected ArrayList<Integer> searchCoursesFuzzy(String keyword) {
-        ArrayList<Integer> courses = new ArrayList<>();
-        String sql = """
-        SELECT course_id 
-        FROM courses
-        WHERE course_name LIKE ? 
-           OR location LIKE ? 
-           OR course_number LIKE ?
-        ORDER BY LENGTH(course_name) - LENGTH(REPLACE(LOWER(course_name), LOWER(?), '')) ASC
-        LIMIT 5
-    """;
+        ArrayList<Integer> matchedCourses = new ArrayList<>();
+        TreeMap<Integer, List<Integer>> sortedMatches = new TreeMap<>(); // Stores (totalDistance, List<course_id>)
+        LevenshteinDistance levenshtein = new LevenshteinDistance();
+
+        String sql = "SELECT course_id, course_name FROM courses"; // Get all course names
 
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            String searchPattern = "%" + keyword + "%"; // Wildcard search
-            pstmt.setString(1, searchPattern);
-            pstmt.setString(2, searchPattern);
-            pstmt.setString(3, searchPattern);
-            pstmt.setString(4, keyword.toLowerCase());
-
             ResultSet rs = pstmt.executeQuery();
+
             while (rs.next()) {
-                courses.add(rs.getInt("course_id"));
+                int courseId = rs.getInt("course_id");
+                String courseName = rs.getString("course_name").toLowerCase();
+                String keywordLower = keyword.toLowerCase();
+
+                // 🔹 Split course name & keyword into words
+                String[] courseWords = courseName.split("\\s+");  // Course name split into words
+                String[] keywordWords = keywordLower.split("\\s+"); // Search input split into words
+
+                int totalDistance = 0;
+                int wordMatches = 0;
+
+                for (String kw : keywordWords) {
+                    int bestWordDistance = Integer.MAX_VALUE;  // Track best match per keyword word
+
+                    for (String cw : courseWords) {
+                        int dist = levenshtein.apply(kw, cw);  // Compute Levenshtein distance
+
+                        if (dist < bestWordDistance) {
+                            bestWordDistance = dist;  // Keep best match per word
+                        }
+                    }
+
+                    // If a word in the search query is close to a word in the course name, count it
+                    if (bestWordDistance < 3) {  // Allow up to 2 mistakes per word
+                        wordMatches++;
+                    }
+                    totalDistance += bestWordDistance; // Sum up distances
+                }
+
+                //  Adjust threshold dynamically:
+                // - Require at least half of keyword words to match
+                // - Keep total distance relative to course name length
+                boolean isMatch = (wordMatches >= keywordWords.length / 2) &&
+                        (totalDistance <= courseName.length() / 3);
+
+                if (isMatch) {
+                    sortedMatches.putIfAbsent(totalDistance, new ArrayList<>());
+                    sortedMatches.get(totalDistance).add(courseId);
+                }
             }
+
         } catch (SQLException e) {
             System.out.println("ERROR: failed to search courses: " + e.getMessage());
         }
-        return courses;
+
+        // Add sorted matches to final list (sorted by closest match first)
+        for (List<Integer> courses : sortedMatches.values()) {
+            matchedCourses.addAll(courses);
+        }
+
+        System.out.println("🔎 Fuzzy Search Results: " + matchedCourses.size() + " matches found.");
+        return matchedCourses;
     }
+
+
+
+
+
     public void addCourse(CourseItem course) {
         // Add the course to your database or in-memory storage
     }
+    protected ArrayList<Integer> searchAllCourses() {
+        ArrayList<Integer> courses = new ArrayList<>();
+        String sql = "SELECT course_id FROM courses";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                int id = rs.getInt("course_id");
+
+                courses.add(id);
+            }
+        } catch (SQLException e) {
+            System.out.println(" ERROR: failed to fetch all courses: " + e.getMessage());
+        }
+        return courses;
+    }
+
+
 
 
 

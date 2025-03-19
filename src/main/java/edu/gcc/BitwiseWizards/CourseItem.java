@@ -108,18 +108,14 @@ public class CourseItem extends ScheduleItem {
                 && this.section == item.section && this.semester.equals(item.semester);
     }
 
-    /**
-     * Returns a list of days the course meets.
-     * @return List of characters representing days (e.g., ['M', 'W', 'F'])
-     */
+    public String getCourseName() {
+        return getName();
+    }
+
     public List<Character> getDays() {
         return new ArrayList<>(getMeetingTimes().keySet());
     }
 
-    /**
-     * Returns the earliest start time for this course.
-     * @return Start time in military format (e.g., 930 for 9:30 AM)
-     */
     public Integer getStartTime() {
         int earliest = Integer.MAX_VALUE;
         for (List<Integer> times : getMeetingTimes().values()) {
@@ -130,10 +126,6 @@ public class CourseItem extends ScheduleItem {
         return earliest == Integer.MAX_VALUE ? null : earliest;
     }
 
-    /**
-     * Returns the latest end time for this course.
-     * @return End time in military format (e.g., 1500 for 3:00 PM)
-     */
     public Integer getEndTime() {
         int latest = Integer.MIN_VALUE;
         for (List<Integer> times : getMeetingTimes().values()) {
