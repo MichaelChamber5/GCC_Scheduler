@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Custom Work Week Calendar</title>
+    <link rel="stylesheet" href="../public/styles/calendar.css">
     <style>
         /* Overall container styling */
         .calendar-container {
@@ -46,7 +47,6 @@
           padding: 4px;
           font-size: 12px;
           position: relative;
-          /* For illustration, give a fixed height */
           height: 40px;
         }
         /* The time label within the slot */
@@ -61,7 +61,7 @@
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(135, 206, 250, 0.5); /* light blue semi-transparent */
+          background: rgba(135, 206, 250, 0.5);
           z-index: 1;
           display: flex;
           align-items: center;
@@ -71,171 +71,25 @@
           pointer-events: none;
         }
     </style>
-    <!-- Include React, ReactDOM, Babel, and Moment.js -->
-    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/moment/min/moment.min.js"></script>
 </head>
 <body>
 <div class="calendar-container">
     <h1>Your Work Week Calendar</h1>
     <div id="calendar-container"></div>
 </div>
-
 <script type="text/babel">
-    // Helper: Given a day letter ("M", "T", "W", "R", "F"), return its index (0 = Monday, 1 = Tuesday, etc.)
-    const dayLetterToIndex = {
-      "M": 0,
-      "T": 1,
-      "W": 2,
-      "R": 3,
-      "F": 4
-    };
-
-    // Helper: Get the Monday of the current week
+    const dayLetterToIndex = {"M": 0, "T": 1, "W": 2, "R": 3, "F": 4};
     function getCurrentMonday() {
       return moment().startOf('week').add(1, 'days');
     }
-
-    // Converts a schedule item (from API) into event objects for each meeting day.
-    function mapScheduleItemToEvents(item) {
-      const events = [];
-      // Iterate over meetingTimes keys (e.g. "M", "T", etc.)
-      Object.entries(item.meetingTimes).forEach(([dayLetter, times]) => {
-        // Compute the date for this day in the current week:
-        const monday = getCurrentMonday();
-        const dayIndex = dayLetterToIndex[dayLetter];
-        // Clone Monday and add the day index
-        const eventDate = monday.clone().add(dayIndex, 'days');
-
-        // Convert numeric time to hours/minutes
-        const startNum = times[0];
-        const endNum = times[1];
-        const startHour = Math.floor(startNum / 100);
-        const startMinute = startNum % 100;
-        const endHour = Math.floor(endNum / 100);
-        const endMinute = endNum % 100;
-
-        // Create moment objects for start and end
-        const start = eventDate.clone().hour(startHour).minute(startMinute);
-        const end = eventDate.clone().hour(endHour).minute(endMinute);
-
-        events.push({
-          title: item.name,
-          start: start.toDate(),
-          end: end.toDate()
-        });
-      });
-      return events;
-    }
-
-    // Main Calendar component
-    function Calendar() {
-      const [events, setEvents] = React.useState([]);
-
-      // Fetch schedule data from API on mount
-      React.useEffect(() => {
-        fetch('/api/schedule')
-          .then(response => {
-            if (!response.ok) throw new Error("Failed to fetch schedule");
-            return response.json();
-          })
-          .then(data => {
-            // Data is an array of ScheduleItem objects.
-            // Convert each item into one or more events.
-            const allEvents = data.flatMap(mapScheduleItemToEvents);
-            setEvents(allEvents);
-          })
-          .catch(error => {
-            console.error("Error fetching schedule:", error);
-          });
-      }, []);
-
-      // Compute days for the work week (Monday through Friday)
-      const monday = getCurrentMonday();
-      const days = [];
-      for (let i = 0; i < 5; i++) {
-        days.push(monday.clone().add(i, 'days').toDate());
-      }
-
-      // Determine stepMinutes for each day:
-      const getStepMinutes = (day) => {
-        const dayAbbrev = moment(day).format('ddd'); // e.g., "Mon", "Tue", etc.
+    function getStepMinutes(day) {
+        const dayAbbrev = moment(day).format('ddd');
         if (dayAbbrev === 'Tue' || dayAbbrev === 'Thu') {
-          return 75;
+            return 90;
         }
         return 60;
-      };
-
-      return (
-        <div className="calendar-grid">
-          {days.map((day, index) => {
-            // Filter events that occur on this day
-            const dayEvents = events.filter(event =>
-              moment(event.start).isSame(day, 'day')
-            );
-            return (
-              <DayColumn
-                key={index}
-                day={day}
-                startHour={8}
-                endHour={18}
-                stepMinutes={getStepMinutes(day)}
-                events={dayEvents}
-              />
-            );
-          })}
-        </div>
-      );
     }
-
-    // DayColumn component: Renders a single day's column with time slots and event overlays.
-    function DayColumn({ day, startHour, endHour, stepMinutes, events }) {
-      const dayLabel = moment(day).format('dddd, MMM Do');
-      const slots = [];
-      let current = moment(day).hour(startHour).minute(0);
-      const end = moment(day).hour(endHour).minute(0);
-
-      // Generate time slots based on the provided step
-      while (current.isBefore(end)) {
-        slots.push(current.clone());
-        current.add(stepMinutes, 'minutes');
-      }
-
-      // Helper: Check if an event overlaps a given time slot.
-      const eventOverlapsSlot = (event, slotStart, slotEnd) => {
-        return moment(event.start).isBefore(slotEnd) && moment(event.end).isAfter(slotStart);
-      };
-
-      return (
-        <div className="day-column">
-          <div className="day-header">{dayLabel}</div>
-          <div className="time-slots">
-            {slots.map((slot, index) => {
-              const slotEnd = slot.clone().add(stepMinutes, 'minutes');
-              // Find events that overlap with this slot
-              const overlappingEvents = events.filter(event =>
-                eventOverlapsSlot(event, slot, slotEnd)
-              );
-              return (
-                <div key={index} className="time-slot">
-                  <div className="slot-label">{slot.format('h:mm A')}</div>
-                  {overlappingEvents.map((event, idx) => (
-                    <div key={idx} className="event-overlay">
-                      {event.title}
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    // Render the Calendar component into the container div.
-    ReactDOM.render(<Calendar />, document.getElementById('calendar-container'));
+    ReactDOM.render(<div>Placeholder Calendar</div>, document.getElementById('calendar-container'));
 </script>
 </body>
 </html>

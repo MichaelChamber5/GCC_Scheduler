@@ -1,240 +1,362 @@
+<#-- File: calendar.ftl -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Scheduler Layout</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-            background-color: white;
-        }
+    <title>Scheduler Layout (React Calendar with Remove Button)</title>
+    <link rel="stylesheet" href="/styles/calendar.css">
 
-        .top-bar {
-            height: 8vh;
-            background-color: #b30000; /* red color */
-            color: white;
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            box-sizing: border-box;
-        }
 
-        .main-container {
-            display: flex;
-            height: 90vh;
-        }
 
-        /* Sidebar (Search Area) */
-        .sidebar {
-            width: 20%;
-            background-color: #f5f5f5; /* Light grey */
-            padding: 20px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            box-sizing: border-box;
-            font-size: 14px;
-            border: 1px solid #ccc;
-        }
-
-        .advanced-search-btn {
-            width: 100%;
-            padding: 8px;
-            background-color: #b30000;
-            color: white;
-            border: none;
-            font-size: 14px;
-            cursor: pointer;
-            margin-bottom: 15px;
-        }
-
-        .advanced-search-btn:hover {
-            background-color: #990000;
-        }
-
-        .course-list-container {
-            flex-grow: 1;
-            background-color: white;
-            border: 1px solid #ccc;
-            padding: 10px;
-            box-sizing: border-box;
-            overflow-y: auto;
-            max-height: calc(90vh - 150px); /* Adjust to avoid overflow of sidebar */
-        }
-
-        /* Course Element */
-        .course-element {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            margin: 10px 0;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-
-        .course-info {
-            flex-grow: 1;
-            font-size: 14px;
-        }
-
-        .course-buttons {
-            display: flex;
-            align-items: center;
-        }
-
-        .course-buttons button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            margin-left: 10px;
-            color: #b30000; /* Red color */
-        }
-
-        .course-buttons button:hover {
-            color: #990000;
-        }
-
-        /* Content Area */
-        .content-area {
-            width: 80%;
-            display: flex;
-            flex-direction: column;
-            padding: 0;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
-        /* Calendar View */
-        .calendar-view {
-            flex: 3;
-            background-color: #ffecec; /* Soft red-pink tint */
-            padding: 10px;
-            box-sizing: border-box;
-        }
-
-        /* Table Area */
-        .calendar-table-wrapper {
-            flex: 1;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            justify-content: stretch;
-        }
-
-        .calendar-table {
-            width: 100%;
-            height: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }
-
-        .calendar-table tr {
-            height: calc(100% / 7);
-        }
-
-        .calendar-table td {
-            border: 1px solid #ccc;
-            padding: 4px;
-            font-size: 12px;
-            text-align: center;
-            background-color: white;
-        }
-
-        /* Headings */
-        h4 {
-            margin: 0 0 10px 0;
-        }
-    </style>
+<!-- React, ReactDOM, Babel, and Moment.js -->
+<script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script crossorigin src="https://unpkg.com/moment/min/moment.min.js"></script>
 </head>
 <body>
-
     <div class="top-bar">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <h3 style="margin-right: 20px;">GCC Scheduler</h3>
-            <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;" title="Undo">⤺</button>
-            <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;" title="Redo">⤻</button>
-        </div>
-        <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
-            <button style="padding: 6px 12px; background-color: white; color: #b30000; border: none; border-radius: 4px; cursor: pointer;">Add Item</button>
-            <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;" title="Settings">⚙</button>
-        </div>
+        <#include "navbar.ftl">
     </div>
-
 
     <div class="main-container">
+        <!-- Sidebar -->
         <div class="sidebar">
-            <h4>Find Courses</h4>
-            <input type="text" placeholder="🔍 Search" class="search-input"/>
+            <h4>Search Area</h4>
+            <!-- Search Input -->
+            <input type="text" placeholder="Search for classes..." class="search-input"/>
+            <!-- Advanced Search Button -->
             <button class="advanced-search-btn" onclick="openModal()">Advanced Search</button>
-            <div class="course-list-container">
-                <!-- Example Course Elements -->
-                <div class="course-element">
-                    <div class="course-info">
-                        <strong>Course Name 1</strong><br>
-                        <span>Course Description or Details here...</span>
-                    </div>
-                    <div class="course-buttons">
-                        <button onclick="toggleDetails()" title="Show Details"><i class="fas fa-chevron-down"></i></button>
-                        <button onclick="addCourseToSchedule()" title="Add to Schedule"><i class="fas fa-plus"></i></button>
-                    </div>
-                </div>
 
-                <!-- More course elements can go here -->
+            <!-- This div will be dynamically populated with search results -->
+            <div id="sidebar-container">
+                Loading courses...
             </div>
         </div>
+<script>
+  // Search input: on Enter, perform AJAX call to /search and render results.
+  document.querySelector('.search-input').addEventListener('keypress', function(e) {
+if (e.key === "Enter") {
+const query = e.target.value;
+fetch("/search?q=" + encodeURIComponent(query))
+.then(response => {
+if (!response.ok) {
+throw new Error("Search failed");
+}
+          return response.json();
+        })
+.then(results => {
+let html = "";
+results.forEach(course => {
+html += "<div class='sidebar-course-item'>";
+html += "<span>" + course.name + " (" + course.courseNumber + ")</span>";
+// Always render "Add" button initially.
+html += "<button class='add-course-btn' data-course-id='" + course.id + "'>Add</button>";
+html += "</div><hr/>";
+});
+          document.getElementById("sidebar-container").innerHTML = html;
+          // Attach event listeners for the new buttons
+          wireAddButtons();
+        })
+.catch(err => console.error("Error during search:", err));
+    }
+  });
+</script>
 
+        <!-- Content Area (Calendar, etc.) -->
         <div class="content-area">
             <div class="calendar-view">
-                <h4>Calendar View</h4>
-            </div>
-            <div class="calendar-table-wrapper">
-                <!-- Renamed the div and integrated the React CourseTable component -->
-                <div id="course-table"></div> <!-- Placeholder for CourseTable.jsx -->
+                <!-- The dynamic React-based calendar goes here -->
+                <div class="calendar-container" id="react-calendar-container">
+                    <!-- React will fill this with the custom work week calendar -->
+                </div>
+
+                <!-- Include the dynamic courses table rendered with React -->
+                <div class="calendar-table-wrapper">
+                    <#include "table.ftl">
+                </div>
+
             </div>
         </div>
     </div>
 
-    <!-- modal -->
+    <!-- Advanced Search Modal -->
     <div id="advancedSearchModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
-            <h2>Advanced Search</h2>
-            <p>Additional search filters go here.</p>
+            <h3>Advanced Search Options</h3>
+            <!-- Put advanced filter inputs here -->
         </div>
     </div>
 
-    <!-- Script to load React component -->
-    <script type="text/javascript">
-        // Make sure React is loaded and your JSX file is compiled
-        // The following code assumes that you have integrated React into your .ftl file
-
-        // Replace this with the actual import of your compiled JS file
-        // <script src="/path/to/compiled/courseTable.js"></script>
-
-        // Once the page has loaded, React will render the CourseTable component
-        window.onload = () => {
-            // Render the CourseTable component into the 'course-table' div
-            ReactDOM.render(<CourseTable />, document.getElementById('course-table'));
-        };
+    <script>
+        function openModal() {
+document.getElementById("advancedSearchModal").style.display = "block";
+}
+        function closeModal() {
+document.getElementById("advancedSearchModal").style.display = "none";
+}
+        window.onclick = function(event) {
+const modal = document.getElementById("advancedSearchModal");
+if (event.target === modal) {
+modal.style.display = "none";
+}
+        }
     </script>
+    <!-- Sidebar and Calendar snippet logic -->
+        <script>
+          // On page load, fetch the sidebar snippet (which now could be empty or preset)
+          document.addEventListener("DOMContentLoaded", function() {
+    fetch("/sidebar-courses")
+    .then(response => response.text())
+    .then(html => {
+    document.getElementById("sidebar-container").innerHTML = html;
+    wireAddButtons();  // attach click listeners to buttons
+    })
+    .catch(err => console.error("Failed to load sidebar:", err));
+          });
 
-<script src="/js/calendar.js"></script>
+          // Attach click listeners for Add and Remove buttons
+          function wireAddButtons() {
+    const btns = document.querySelectorAll(".add-course-btn, .remove-course-btn");
+    btns.forEach(btn => {
+    if (btn.classList.contains("add-course-btn")) {
+    btn.onclick = function() {
+    const courseId = btn.getAttribute("data-course-id");
+    addCourse(courseId, btn);
+    };
+              } else if (btn.classList.contains("remove-course-btn")) {
+    btn.onclick = function() {
+    const courseId = btn.getAttribute("data-course-id");
+    removeCourseFromSidebar(courseId, btn);
+    };
+              }
+            });
+          }
 
-</body>
-</html>
+          // Function to add a course. Instead of reloading the entire sidebar, update the clicked button.
+          function addCourse(courseId, btn) {
+    const params = new URLSearchParams();
+    params.append("courseId", courseId);
+
+    fetch("/add-course", {
+    method: "POST",
+    body: params
+    })
+    .then(response => response.text())
+    .then(result => {
+    // On success, update the button to "Remove"
+    btn.textContent = "Remove";
+    btn.classList.remove("add-course-btn");
+    btn.classList.add("remove-course-btn");
+    btn.onclick = function() {
+    removeCourseFromSidebar(courseId, btn);
+    };
+              // Refresh the React calendar
+              if (window.refreshCalendar) {
+    window.refreshCalendar();
+    }
+            })
+    .catch(err => console.error("Error adding course:", err));
+          }
+
+          // Function to remove a course from the sidebar.
+          function removeCourseFromSidebar(courseId, btn) {
+    const params = new URLSearchParams();
+    params.append("scheduleItemId", courseId);
+
+    fetch("/remove-course", {
+    method: "POST",
+    body: params
+    })
+    .then(response => response.text())
+    .then(result => {
+    // On success, update the button back to "Add"
+    btn.textContent = "Add";
+    btn.classList.remove("remove-course-btn");
+    btn.classList.add("add-course-btn");
+    btn.onclick = function() {
+    addCourse(courseId, btn);
+    };
+              // Refresh the React calendar
+              if (window.refreshCalendar) {
+    window.refreshCalendar();
+    }
+            })
+    .catch(err => console.error("Error removing course:", err));
+          }
+
+          // Global function to remove a course from the calendar (used by calendar remove button)
+          function removeCourseGlobal(scheduleItemId) {
+    const params = new URLSearchParams();
+    params.append("scheduleItemId", scheduleItemId);
+
+    fetch("/remove-course", {
+    method: "POST",
+    body: params
+    })
+    .then(response => response.text())
+    .then(result => {
+    if (window.refreshCalendar) {
+    window.refreshCalendar();
+    }
+            })
+    .catch(err => console.error("Error removing course:", err));
+          }
+        </script>
+
+        <!-- React-based Custom Work Week Calendar -->
+        <script type="text/babel">
+          window.refreshCalendar = null;
+
+          // Helper: day letter to index
+          const dayLetterToIndex = { "M": 0, "T": 1, "W": 2, "R": 3, "F": 4 };
+
+          // Get Monday of the current week
+          function getCurrentMonday() {
+    return moment().startOf('week').add(1, 'days');
+    }
+
+          // Convert a schedule item into event objects
+          function mapScheduleItemToEvents(item) {
+    const events = [];
+    Object.entries(item.meetingTimes).forEach(([dayLetter, times]) => {
+    const monday = getCurrentMonday();
+    const dayIndex = dayLetterToIndex[dayLetter];
+    const eventDate = monday.clone().add(dayIndex, 'days');
+
+    const startNum = times[0];
+    const endNum = times[1];
+    const startHour = Math.floor(startNum / 100);
+    const startMinute = startNum % 100;
+    const endHour = Math.floor(endNum / 100);
+    const endMinute = endNum % 100;
+
+    const start = eventDate.clone().hour(startHour).minute(startMinute);
+    const end = eventDate.clone().hour(endHour).minute(endMinute);
+    events.push({
+    title: item.name,
+    start: start.toDate(),
+    end: end.toDate(),
+    scheduleItemId: item.id
+    });
+            });
+            return events;
+          }
+
+          function Calendar() {
+    const [events, setEvents] = React.useState([]);
+
+    const fetchSchedule = () => {
+    fetch('/api/schedule')
+    .then(response => {
+    if (!response.ok) throw new Error("Failed to fetch schedule");
+    return response.json();
+    })
+    .then(data => {
+    const allEvents = data.flatMap(mapScheduleItemToEvents);
+    setEvents(allEvents);
+    })
+    .catch(error => {
+    console.error("Error fetching schedule:", error);
+    });
+            };
+
+            React.useEffect(() => {
+    fetchSchedule();
+    }, []);
+
+            React.useEffect(() => {
+    window.refreshCalendar = fetchSchedule;
+    return () => { window.refreshCalendar = null; };
+            }, []);
+
+            const monday = getCurrentMonday();
+            const days = [];
+            for (let i = 0; i < 5; i++) {
+    days.push(monday.clone().add(i, 'days').toDate());
+    }
+
+            const getStepMinutes = (day) => {
+    const dayAbbrev = moment(day).format('ddd');
+    return (dayAbbrev === 'Tue' || dayAbbrev === 'Thu') ? 90 : 60;
+    };
+
+            return (
+              <div className="calendar-grid">
+                {days.map((day, index) => {
+    const dayEvents = events.filter(event =>
+    moment(event.start).isSame(day, 'day')
+    );
+    return (
+    <DayColumn
+    key={index}
+                      day={day}
+                      startHour={8}
+                      endHour={18}
+                      stepMinutes={getStepMinutes(day)}
+                      events={dayEvents}
+                    />
+                  );
+                })}
+              </div>
+            );
+          }
+
+          function DayColumn({ day, startHour, endHour, stepMinutes, events }) {
+    const dayLabel = moment(day).format('dddd, MMM Do');
+    const slots = [];
+    let current = moment(day).hour(startHour).minute(0);
+    const end = moment(day).hour(endHour).minute(0);
+
+    while (current.isBefore(end)) {
+    slots.push(current.clone());
+    current.add(stepMinutes, 'minutes');
+    }
+
+            const eventOverlapsSlot = (event, slotStart, slotEnd) => {
+    return moment(event.start).isBefore(slotEnd) && moment(event.end).isAfter(slotStart);
+    };
+
+            return (
+              <div className="day-column">
+                <div className="day-header">{dayLabel}</div>
+                <div className="time-slots">
+                  {slots.map((slot, index) => {
+    const slotEnd = slot.clone().add(stepMinutes, 'minutes');
+    const overlappingEvents = events.filter(event =>
+    eventOverlapsSlot(event, slot, slotEnd)
+    );
+    return (
+    <div key={index} className="time-slot">
+                        <div className="slot-label">{slot.format('h:mm A')}</div>
+                        {overlappingEvents.map((event, idx) => (
+    <div key={idx} className="event-overlay">
+                            {event.title}
+                            <button
+                              className="remove-button"
+                              onClick={(e) => {
+    e.stopPropagation();
+    removeCourse(event.scheduleItemId);
+    }}
+                            >
+                              x
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
+
+          function removeCourse(scheduleItemId) {
+    window.removeCourseGlobal(scheduleItemId);
+    }
+
+          ReactDOM.render(<Calendar />, document.getElementById('react-calendar-container'));
+        </script>
+    </body>
+    </html>

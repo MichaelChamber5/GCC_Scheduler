@@ -4,6 +4,7 @@
     <title>
         Login
     </title>
+    <link rel="stylesheet" href="/styles/loginRegister.css">
     <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
