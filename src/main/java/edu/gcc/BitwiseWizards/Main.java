@@ -51,14 +51,22 @@ class Main {
     }
 
     public static void addScheduleItem(ScheduleItem item) {
-        if (item instanceof CourseItem) {
-            dm.insertUserCourse(curr_user.getId(), item.getId());
+        boolean added = curr_user.getSchedule().addScheduleItem(item);
+
+        if(added)
+        {
+            if (item instanceof CourseItem) {
+                dm.insertUserCourse(curr_user.getId(), item.getId());
+            }
+            else {
+                // TODO: fix pitem id issues
+                dm.insertPersonalItem(curr_user.getId(), item.getName(), item.getMeetingTimes());
+            }
         }
-        else {
-            // TODO: fix pitem id issues
-            dm.insertPersonalItem(curr_user.getId(), item.getName(), item.getMeetingTimes());
+        else
+        {
+            System.out.println("ERROR: item not added to DB");
         }
-        curr_user.getSchedule().addScheduleItem(item);
     }
 
     public static void removeScheduleItem(ScheduleItem item) {
@@ -69,13 +77,12 @@ class Main {
             dm.deleteUserPersonalItem(curr_user.getId(), dm.getPersonalItemID(curr_user.getId(), item.getName()));
         }
         curr_user.setSchedule(dm.getUserSchedule(curr_user.getId()));
-        // TODO: fix remove schedule item issue
-//        curr_user.getSchedule().removeScheduleItem(item);
     }
 
     // testing...
     // TODO: actually implement main
     public static void main(String[] args) {
+
         // launch();
 
         // create / initialize database
@@ -93,7 +100,7 @@ class Main {
         String keyword = "Accounting";
         Search mySearch = new Search(dm);
         // mySearch.search(keyword, curr_user);
-        ArrayList<CourseItem> courses = mySearch.search(keyword, curr_user);
+        ArrayList<CourseItem> courses = mySearch.search(keyword, curr_user,dm );
         System.out.println("RESULTS:");
         System.out.println(courses);
 
@@ -109,7 +116,7 @@ class Main {
         // create new schedule item
         Map<Character, List<Integer>> meetingTimes = new HashMap<>();
         meetingTimes.put('W', new ArrayList<>(Arrays.asList(1100, 1145)));
-        ScheduleItem item = new ScheduleItem(-1, "Chapel", meetingTimes);
+        ScheduleItem item = new ScheduleItem("Chapel", meetingTimes);
 
         // add it to user schedule
         addScheduleItem(item);

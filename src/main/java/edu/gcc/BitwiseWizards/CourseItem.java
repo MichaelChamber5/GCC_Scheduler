@@ -6,17 +6,13 @@ import java.util.Map;
 
 public class CourseItem extends ScheduleItem {
 
-    private int id;
     private int credits;
     private boolean isLab;
-    // is_open
     private String location;
     private int courseNumber;
-    // open_seats
     private char section;
     private String semester;
     private String depCode;
-    // total_seats
     private String description;
     private ArrayList<Professor> professors;
     private boolean onSchedule;
@@ -41,10 +37,6 @@ public class CourseItem extends ScheduleItem {
     public int getCredits() {
         return credits;
     }
-
-//    public void setCredits(int credits) {
-//        this.credits = credits;
-//    }
 
     public boolean getIsLab() {
         return isLab;
@@ -111,14 +103,48 @@ public class CourseItem extends ScheduleItem {
     }
 
     public boolean equals(CourseItem item) {
-        return this.depCode == item.depCode && this.courseNumber == item.courseNumber
-                && this.section == item.section && this.semester == item.semester;
+        return this.depCode.equals(item.depCode) && this.courseNumber == item.courseNumber
+                && this.section == item.section && this.semester.equals(item.semester);
+    }
+
+    /**
+     * Returns a list of days the course meets.
+     * @return List of characters representing days (e.g., ['M', 'W', 'F'])
+     */
+    public List<Character> getDays() {
+        return new ArrayList<>(getMeetingTimes().keySet());
+    }
+
+    /**
+     * Returns the earliest start time for this course.
+     * @return Start time in military format (e.g., 930 for 9:30 AM)
+     */
+    public Integer getStartTime() {
+        int earliest = Integer.MAX_VALUE;
+        for (List<Integer> times : getMeetingTimes().values()) {
+            if (!times.isEmpty() && times.get(0) < earliest) {
+                earliest = times.get(0);
+            }
+        }
+        return earliest == Integer.MAX_VALUE ? null : earliest;
+    }
+
+    /**
+     * Returns the latest end time for this course.
+     * @return End time in military format (e.g., 1500 for 3:00 PM)
+     */
+    public Integer getEndTime() {
+        int latest = Integer.MIN_VALUE;
+        for (List<Integer> times : getMeetingTimes().values()) {
+            if (times.size() > 1 && times.get(1) > latest) {
+                latest = times.get(1);
+            }
+        }
+        return latest == Integer.MIN_VALUE ? null : latest;
     }
 
     @Override
     public String toString() {
-        // e.g. "Software Engineering"
         return getName() + " " + section + " (" + semester.charAt(5) + ")";
     }
-
 }
