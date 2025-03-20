@@ -77,16 +77,11 @@ class Main {
             dm.deleteUserPersonalItem(curr_user.getId(), dm.getPersonalItemID(curr_user.getId(), item.getName()));
         }
         curr_user.setSchedule(dm.getUserSchedule(curr_user.getId()));
-        // TODO: fix remove schedule item issue
-//        curr_user.getSchedule().removeScheduleItem(item);
     }
 
     // testing...
     // TODO: actually implement main
     public static void main(String[] args) {
-
-
-
 
         // launch();
 
@@ -121,7 +116,7 @@ class Main {
         // create new schedule item
         Map<Character, List<Integer>> meetingTimes = new HashMap<>();
         meetingTimes.put('W', new ArrayList<>(Arrays.asList(1100, 1145)));
-        ScheduleItem item = new ScheduleItem(-1, "Chapel", meetingTimes);
+        ScheduleItem item = new ScheduleItem("Chapel", meetingTimes);
 
         // add it to user schedule
         addScheduleItem(item);

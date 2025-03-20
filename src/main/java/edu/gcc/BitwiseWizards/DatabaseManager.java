@@ -45,7 +45,7 @@ public class DatabaseManager {
      */
     private void initializeDatabase() {
         try {
-            //dropTables();
+            dropTables();
             createTables();
             populateTables();
             System.out.println("Successfully initialized database.");
@@ -1168,59 +1168,6 @@ public class DatabaseManager {
             System.out.println("ERROR: Failed to close database connection: " + e.getMessage());
         }
     }
-    /**
-     * Retrieves all courses from the database.
-     * @return a list of all CourseItem objects
-     */
-    public List<CourseItem> getAllCourses() {
-        List<CourseItem> courses = new ArrayList<>();
-        String sql = "SELECT courses.*, departments.dept_code " +
-                "FROM courses JOIN departments ON courses.dept_id = departments.dept_id";
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                int id = rs.getInt("course_id");
-                int credits = rs.getInt("credits");
-                boolean isLab = rs.getBoolean("is_lab");
-
-                // Safely retrieve string values, defaulting to an empty string if null
-                String location = rs.getString("location");
-                location = (location != null) ? location : "";
-
-                String courseName = rs.getString("course_name");
-                courseName = (courseName != null) ? courseName : "";
-
-                int courseNumber = rs.getInt("course_number");
-
-                // Safely retrieve section (default to a space if null/empty)
-                String sectionStr = rs.getString("section_id");
-                char section = (sectionStr != null && !sectionStr.isEmpty()) ? sectionStr.charAt(0) : ' ';
-
-                String semester = rs.getString("semester");
-                semester = (semester != null) ? semester : "";
-
-                String depCode = rs.getString("dept_code");  // from join
-                depCode = (depCode != null) ? depCode : "";
-
-                // Since there's no 'description' column in the DB, default to an empty string
-                String description = "";
-
-                ArrayList<Professor> professors = new ArrayList<>();
-                Map<Character, List<Integer>> meetingTimes = new HashMap<>();
-                boolean onSchedule = false;
-
-                CourseItem course = new CourseItem(id, credits, isLab, location, courseName, courseNumber,
-                        section, semester, depCode, description,
-                        professors, meetingTimes, onSchedule);
-                courses.add(course);
-            }
-            System.out.println("Number of courses retrieved: " + courses.size());
-        } catch (SQLException e) {
-            System.err.println("Error retrieving courses: " + e.getMessage());
-        }
-
-        return courses;
-    }
 
     // testing...
     // TODO: delete method
@@ -1332,6 +1279,5 @@ public class DatabaseManager {
         dm.close();
 
     }
-
 
 }
