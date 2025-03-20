@@ -216,6 +216,16 @@ font-weight: bold;
 cursor: pointer;
 pointer-events: auto;
 }
+/* Style for the new Info button */
+.course-info-btn {
+margin-left: 8px;
+padding: 4px 8px;
+background-color: #2196F3;
+color: white;
+border: none;
+font-size: 12px;
+cursor: pointer;
+}
 </style>
 
 <!-- React, ReactDOM, Babel, and Moment.js -->
@@ -304,6 +314,14 @@ pointer-events: auto;
     </div>
   </div>
 
+  <!-- Course Info Modal -->
+  <div id="courseInfoModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeCourseInfoModal()">&times;</span>
+      <div id="courseInfoModalContent"></div>
+    </div>
+  </div>
+
   <script>
     document.addEventListener("DOMContentLoaded", function() {
 console.log("DOM fully loaded. Attaching event listeners.");
@@ -377,11 +395,14 @@ var dataAdded  = course.onSchedule ? "true" : "false";
 html += "<div class='sidebar-course-item'>";
 html += "<span>" + course.name + " (" + course.courseNumber + ")</span>";
 html += "<button class='course-action-btn' data-course-id='" + course.id + "' data-added='" + dataAdded + "'>" + buttonText + "</button>";
+// Add the Info button. We store the course object (as a URI-encoded JSON string) in a data attribute.
+html += "<button class='course-info-btn' data-course-info='" + encodeURIComponent(JSON.stringify(course)) + "'>Info</button>";
 html += "</div><hr/>";
 });
             }
             document.getElementById("sidebar-container").innerHTML = html;
             attachCourseActionButtons();
+            attachCourseInfoButtons();
           })
 .catch(function(err) {
 console.error("Error during search:", err);
@@ -405,6 +426,29 @@ removeCourse(courseId, btn);
 } else {
 addCourse(courseId, btn);
 }
+          };
+        });
+      }
+
+      function attachCourseInfoButtons() {
+document.querySelectorAll(".course-info-btn").forEach(function(btn) {
+btn.onclick = function() {
+var courseInfoStr = btn.dataset.courseInfo;
+var course = JSON.parse(decodeURIComponent(courseInfoStr));
+// Build the info HTML with additional details
+var infoHtml = "<h3>" + course.name + " (" + course.courseNumber + ")</h3>";
+infoHtml += "<p><strong>Credits:</strong> " + course.credits + "</p>";
+infoHtml += "<p><strong>Location:</strong> " + course.location + "</p>";
+infoHtml += "<p><strong>Section:</strong> " + course.section + "</p>";
+infoHtml += "<p><strong>Description:</strong> " + (course.description ? course.description : "No description available") + "</p>";
+if (course.professors && course.professors.length > 0) {
+// Assuming each professor object has a 'name' property
+infoHtml += "<p><strong>Professor(s):</strong> " + course.professors.map(function(prof) { return prof.name; }).join(", ") + "</p>";
+            } else {
+infoHtml += "<p><strong>Professor(s):</strong> None</p>";
+}
+            document.getElementById("courseInfoModalContent").innerHTML = infoHtml;
+            document.getElementById("courseInfoModal").style.display = "block";
           };
         });
       }
@@ -499,6 +543,11 @@ document.getElementById("errorModal").style.display = "block";
 document.getElementById("errorModal").style.display = "none";
 }
       window.closeErrorModal = closeErrorModal;
+
+      // Course Info Modal close helper
+      window.closeCourseInfoModal = function() {
+document.getElementById("courseInfoModal").style.display = "none";
+};
 
       window.onclick = function(e) {
 var modal = document.getElementById("advancedSearchModal");
