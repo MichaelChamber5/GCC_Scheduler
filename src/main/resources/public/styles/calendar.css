@@ -4,8 +4,8 @@
 html, body {
     margin: 0;
     padding: 0;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;  /* Use minimum height instead of fixed height */
+    /* Removed overflow: hidden so the page can scroll */
     font-family: Arial, sans-serif;
     background-color: #fff; /* white background */
 }
@@ -14,23 +14,25 @@ html, body {
 .top-bar {
     background-color: #d32f2f; /* red */
     color: #fff;
-    padding: 5px;  /* smaller padding */
-    text-align: left;  /* left-aligned */
+    padding: 5px;
+    text-align: left;
 }
 
 /* Main Container Layout */
 .main-container {
     display: flex;
-    height: calc(100vh - 50px); /* adjust as needed */
+    /* Removed fixed height to let the container expand naturally */
+    /* height: calc(100vh - 50px); */
 }
 
 /* Sidebar (Search Area) */
 .sidebar {
-    width: 200px;  /* reduced width */
-    background-color: #f0f0f0;  /* light gray */
-    padding: 10px;  /* reduced padding */
+    width: 200px;
+    background-color: #f0f0f0;
+    padding: 10px;
     box-sizing: border-box;
-    overflow-y: auto;
+    /* Removed overflow-y so it won’t have its own scroll bar */
+    /* overflow-y: auto; */
 }
 
 .search-input {
@@ -67,13 +69,13 @@ html, body {
     border-radius: 10px;
     padding: 15px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    height: 100%;
+    /* Removed height: 100%; to allow it to grow with its content */
 }
 
 /* Courses Table Wrapper */
 .calendar-table-wrapper {
     margin-top: 5px; /* reduced space between calendar grid and table */
-    overflow: auto;
+    /* Removed overflow: auto; */
 }
 
 /* Courses Table */
@@ -129,8 +131,9 @@ html, body {
     max-width: 1200px;
     margin: 0 auto;
     border: 1px solid #999;
-    height: 57vh;
-    overflow-y: auto;
+    /* Removed fixed height and overflow-y to let the container adjust naturally */
+    /* height: 57vh; */
+    /* overflow-y: auto; */
     background-color: #fff;
 }
 
@@ -212,5 +215,6 @@ html, body {
     border: 1px solid #ccc;
     padding: 10px;
     box-sizing: border-box;
-    overflow-y: auto;
+    /* Removed overflow-y so it will not have its own scroll bar */
+    /* overflow-y: auto; */
 }

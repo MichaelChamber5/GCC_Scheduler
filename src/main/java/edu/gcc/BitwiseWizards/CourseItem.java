@@ -6,7 +6,6 @@ import java.util.Map;
 
 public class CourseItem extends ScheduleItem {
 
-    private int id;
     private int credits;
     private boolean isLab;
     private String location;

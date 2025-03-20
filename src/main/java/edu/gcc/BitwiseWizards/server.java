@@ -120,17 +120,27 @@ public class server {
             for (Object obj : courses) {
                 System.out.println("Object class: " + obj.getClass().getName());
             }
-            String json = new Gson().toJson(courses);
-            System.out.println("JSON output: " + json);
             res.type("application/json");
-            return json;
+            try {
+                String json = new Gson().toJson(courses);
+                System.out.println("JSON output: " + json);
+                return json;
+            } catch (Exception e) {
+                e.printStackTrace();
+                res.status(500);
+                return "Error during JSON serialization: " + e.getMessage();
+            }
         });
+
 
         get("/calendar", (req, res) -> {
             Map<String, Object> model = new HashMap<>();
             User user = req.session().attribute("user");
             if (user != null) {
                 model.put("user", user);
+            }
+            else{
+                res.redirect("/login");
             }
             return new ModelAndView(model, "calendar.ftl");
         }, freeMarkerEngine);
@@ -212,6 +222,18 @@ public class server {
             req.session().invalidate(); // Clear the session
             res.redirect("/login");      // Redirect to the login page
             return null;
+        });
+
+        get("/api/usercourses", (req, res) -> {
+            User user = req.session().attribute("user");
+            if (user == null) {
+                halt(401, "Not logged in");
+            }
+            // Assume you have a method in your DatabaseManager that returns the courses for a user.
+            // It could be something like dbm.getUserCourses(user.getId())
+            List<CourseItem> userCourses = dbm.getUserCourses(user.getId());
+            res.type("application/json");
+            return new Gson().toJson(userCourses);
         });
 
 

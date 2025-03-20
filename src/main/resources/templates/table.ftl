@@ -1,5 +1,5 @@
 <#-- File: table.ftl -->
-    <link rel="stylesheet" href="styles/calendar.css">
+<link rel="stylesheet" href="/styles/calendar.css">
 <div class="course-table-container" style="max-width:100%; margin:20px auto; font-family: Arial, sans-serif;">
     <div id="course-table"></div>
 </div>
@@ -8,11 +8,12 @@
   function CourseTable() {
     const [courses, setCourses] = React.useState([]);
 
-    React.useEffect(() => {
-      fetch('/api/courses')
+    // Fetch the user's courses from the API
+    const fetchCourses = () => {
+      fetch('/api/usercourses')
         .then(response => {
           if (!response.ok) {
-            throw new Error("Failed to fetch courses");
+            throw new Error("Failed to fetch user courses");
           }
           return response.json();
         })
@@ -22,6 +23,17 @@
         .catch(error => {
           console.error("Error fetching courses:", error);
         });
+    };
+
+    // Initial fetch when the component mounts
+    React.useEffect(() => {
+      fetchCourses();
+    }, []);
+
+    // Expose a refresh function globally for external triggers
+    React.useEffect(() => {
+      window.refreshUserCourses = fetchCourses;
+      return () => { window.refreshUserCourses = null; };
     }, []);
 
     return (
