@@ -57,9 +57,9 @@ public class Schedule {
             items.add(item);
             return true;
         }
-        //TODO: Add pop-up to warn user!
-        System.out.println("ERROR: overlapping schedule items");
-        return false;
+            //TODO: Add pop-up to warn user!
+            System.out.println("ERROR: overlapping schedule items");
+            return false;
     }
 
     public void removeScheduleItem(ScheduleItem item) {

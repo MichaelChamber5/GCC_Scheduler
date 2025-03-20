@@ -7,10 +7,14 @@ public class ScheduleItem {
     private int id;
     private String name;
     private Map<Character, List<Integer>> meetingTimes; // {"M" : [1100, 1150], "R" : [1400, 1515]}
-    // TODO: add user_id?
 
     public ScheduleItem(int id, String name, Map<Character, List<Integer>> meetingTimes) {
         this.id = id;
+        this.name = name;
+        this.meetingTimes = meetingTimes;
+    }
+
+    public ScheduleItem(String name, Map<Character, List<Integer>> meetingTimes) {
         this.name = name;
         this.meetingTimes = meetingTimes;
     }
