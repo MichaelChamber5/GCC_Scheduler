@@ -83,7 +83,7 @@ p a {
 p {
     text-align: center;
 }
-
+/* this comment was strictly added to I can commit */
 
 p a:hover {
     text-decoration: underline;

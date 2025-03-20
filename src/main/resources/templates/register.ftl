@@ -64,3 +64,4 @@
 <p>Already have an account? <a href="/login">Login here</a>.</p>
 </body>
 </html>
+<!-- this comment was strictly added to I can commit -->

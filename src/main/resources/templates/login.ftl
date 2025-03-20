@@ -37,3 +37,4 @@
     <p>Don't have an account? <a href="/register">Register here</a>.</p>
 </body>
 </html>
+<!-- this comment was strictly added to I can commit -->
