@@ -153,6 +153,32 @@ public class CourseItem extends ScheduleItem {
         return getName();
     }
 
+    @Override
+    public boolean conflicts(ScheduleItem other) {
+        if (!(other instanceof CourseItem)) {
+            return false;
+        }
+        CourseItem otherCourse = (CourseItem) other;
+        // Only consider a conflict if both courses are in the same semester.
+        if (!this.semester.equals(otherCourse.getSemester())) {
+            return false;
+        }
 
-
+        // Check for overlapping meeting times on common days.
+        for (Character day : this.getMeetingTimes().keySet()) {
+            if (otherCourse.getMeetingTimes().containsKey(day)) {
+                List<Integer> thisTimes = this.getMeetingTimes().get(day);
+                List<Integer> otherTimes = otherCourse.getMeetingTimes().get(day);
+                int thisStart = thisTimes.get(0);
+                int thisEnd = thisTimes.get(1);
+                int otherStart = otherTimes.get(0);
+                int otherEnd = otherTimes.get(1);
+                // Overlap exists if one course starts before the other ends and vice versa.
+                if (thisStart < otherEnd && otherStart < thisEnd) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
