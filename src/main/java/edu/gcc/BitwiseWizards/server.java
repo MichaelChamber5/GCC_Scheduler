@@ -129,6 +129,29 @@ public class server {
                 halt(401, "Not logged in");
             }
             int courseId = Integer.parseInt(req.queryParams("courseId"));
+
+            // Get the new course to add
+            CourseItem newCourse = dbm.getCourseByID(courseId);
+            if(newCourse == null){
+                res.status(404);
+                return new Gson().toJson(Collections.singletonMap("error", "Course not found"));
+            }
+
+            // Get the current user schedule and check for conflicts
+            List<ScheduleItem> currentSchedule = dbm.getUserSchedule(user.getId());
+            for (ScheduleItem scheduledItem : currentSchedule) {
+                if (scheduledItem instanceof CourseItem) {
+                    CourseItem scheduledCourse = (CourseItem) scheduledItem;
+                    if (newCourse.conflicts(scheduledCourse)) {
+                        res.status(409);
+                        return new Gson().toJson(Collections.singletonMap("error",
+                                "Course " + newCourse.getName() + " conflicts with " +
+                                        scheduledCourse.getName() + ". Please remove the conflicting course."));
+                    }
+                }
+            }
+
+            // No conflict: add the course as normal
             dbm.insertUserCourse(user.getId(), courseId);
             res.type("application/json");
             return new Gson().toJson(Collections.singletonMap("success", true));

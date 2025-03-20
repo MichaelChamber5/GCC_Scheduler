@@ -1365,5 +1365,23 @@ public class DatabaseManager {
 
     }
 
+    protected ArrayList<Integer> searchAllCourses() {
+        ArrayList<Integer> courses = new ArrayList<>();
+        String sql = "SELECT course_id FROM courses";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                int id = rs.getInt("course_id");
+
+                courses.add(id);
+            }
+        } catch (SQLException e) {
+            System.out.println(" ERROR: failed to fetch all courses: " + e.getMessage());
+        }
+        return courses;
+    }
+
+
 
 }

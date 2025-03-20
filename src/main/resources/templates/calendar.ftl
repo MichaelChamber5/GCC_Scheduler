@@ -1,4 +1,3 @@
-<#-- File: calendar.ftl -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -278,7 +277,30 @@ pointer-events: auto;
     <div class="modal-content">
       <span class="close" onclick="closeModal()">&times;</span>
       <h3>Advanced Search Options</h3>
-      <!-- Add your advanced filter inputs here (dept code, days, start/end time, etc.) -->
+      <!-- Filter Inputs -->
+      <div>
+        <label for="deptInput">Department Code:</label><br>
+        <input type="text" id="deptInput" placeholder="e.g. COMP"><br><br>
+
+        <label for="daysInput">Days (e.g., MWF):</label><br>
+        <input type="text" id="daysInput" placeholder="Enter days"><br><br>
+
+        <label for="startInput">Start Time (military, e.g. 0930):</label><br>
+        <input type="text" id="startInput" placeholder="0930"><br><br>
+
+        <label for="endInput">End Time (military, e.g. 1500):</label><br>
+        <input type="text" id="endInput" placeholder="1500"><br><br>
+
+        <button id="applyFiltersBtn">Apply Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Modal -->
+  <div id="errorModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeErrorModal()">&times;</span>
+      <p id="errorModalMessage"></p>
     </div>
   </div>
 
@@ -304,7 +326,7 @@ b.classList.remove("active");
         };
       });
 
-      // Perform search and update sidebar
+      // Perform search and update sidebar (include advanced filters if available)
       window.performSearch = function() {
 var query = document.querySelector(".search-input").value.trim();
 if (!query) {
@@ -313,9 +335,27 @@ return;
 }
         console.log("Performing search with query:", query, "and semester:", window.currentSemester);
 
-        // Instead of encodeURIComponent in the FTL, do it in JS
+        // Build search URL with basic parameters
         var url = "/search?q=" + encodeURIComponent(query) +
                   "&semester=" + encodeURIComponent(window.currentSemester);
+
+        // Append advanced filters if provided
+        var dept = document.getElementById("deptInput") ? document.getElementById("deptInput").value.trim() : "";
+        if(dept !== ""){
+url += "&dept=" + encodeURIComponent(dept);
+}
+        var days = document.getElementById("daysInput") ? document.getElementById("daysInput").value.trim() : "";
+        if(days !== ""){
+url += "&days=" + encodeURIComponent(days);
+}
+        var start = document.getElementById("startInput") ? document.getElementById("startInput").value.trim() : "";
+        if(start !== ""){
+url += "&start=" + encodeURIComponent(start);
+}
+        var end = document.getElementById("endInput") ? document.getElementById("endInput").value.trim() : "";
+        if(end !== ""){
+url += "&end=" + encodeURIComponent(end);
+}
 
         fetch(url)
 .then(function(response) {
@@ -348,7 +388,7 @@ console.error("Error during search:", err);
 });
 };
 
-// Trigger search on Enter key
+// Trigger search on Enter key in the search input field
 document.querySelector(".search-input").addEventListener("keydown", function(e) {
 if (e.key === "Enter") {
 performSearch();
@@ -377,15 +417,21 @@ fetch("/add-course", {
 method: "POST",
 body: params
 })
-.then(function(r) { return r.text(); })
+.then(function(response) {
+if (!response.ok) {
+return response.json().then(function(err) { throw err; });
+}
+return response.json();
+})
 .then(function(result) {
 console.log("Course added:", result);
 btn.textContent = "Remove";
-            btn.dataset.added = "true";
-            window.refreshCalendar?.();
-          })
+          btn.dataset.added = "true";
+          window.refreshCalendar?.();
+        })
 .catch(function(err) {
 console.error("Error adding course:", err);
+showErrorModal(err.error || "An error occurred while adding the course.");
 });
 }
 
@@ -401,9 +447,9 @@ body: params
 .then(function(result) {
 console.log("Course removed:", result);
 btn.textContent = "Add";
-            btn.dataset.added = "false";
-            window.refreshCalendar?.();
-          })
+          btn.dataset.added = "false";
+          window.refreshCalendar?.();
+        })
 .catch(function(err) {
 console.error("Error removing course:", err);
 });
@@ -422,7 +468,7 @@ body: params
 .then(function(result) {
 console.log("Global remove result:", result);
 window.refreshCalendar?.();
-// re-run search to flip the button back if it was on "Remove"
+// Re-run search to update sidebar buttons
 performSearch();
 })
 .catch(function(err) {
@@ -430,13 +476,30 @@ console.error("Error removing course globally:", err);
 });
 };
 
-// Modal open/close
+// Modal open/close for Advanced Search
 window.openModal = function() {
 document.getElementById("advancedSearchModal").style.display = "block";
 };
       window.closeModal = function() {
 document.getElementById("advancedSearchModal").style.display = "none";
 };
+
+      // Set up the Apply Filters button inside the Advanced Search Modal
+      document.getElementById("applyFiltersBtn").addEventListener("click", function() {
+closeModal();
+performSearch();
+});
+
+      // Error modal helper functions
+      function showErrorModal(message) {
+document.getElementById("errorModalMessage").textContent = message;
+document.getElementById("errorModal").style.display = "block";
+}
+      function closeErrorModal() {
+document.getElementById("errorModal").style.display = "none";
+}
+      window.closeErrorModal = closeErrorModal;
+
       window.onclick = function(e) {
 var modal = document.getElementById("advancedSearchModal");
 if (e.target === modal) {
@@ -444,7 +507,7 @@ modal.style.display = "none";
 }
       };
 
-      // Initial search
+      // Initial search on page load
       performSearch();
     });
   </script>

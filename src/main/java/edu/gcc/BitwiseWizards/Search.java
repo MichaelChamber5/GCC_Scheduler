@@ -1,9 +1,11 @@
 package edu.gcc.BitwiseWizards;
 
+import org.apache.commons.text.similarity.LevenshteinDistance;
+
 import java.util.*;
 
 public class Search {
-    private List<CourseItem> searchedCourses;
+    List<CourseItem> searchedCourses;
     private List<CourseItem> filteredCourses;
     private String keywordStr = "";
     private String semester = "";
@@ -45,18 +47,75 @@ public class Search {
     }
 
     private List<CourseItem> performFuzzySearch(String keywordStr, String semester, User currUser, DatabaseManager dbm) {
-        ArrayList<Integer> allCourseIDs = dbm.searchCoursesFuzzy(keywordStr);
+        ArrayList<Integer> allCourseIDs = dbm.searchAllCourses();
         List<CourseItem> bestMatches = new ArrayList<>();
+        LevenshteinDistance levenshtein = new LevenshteinDistance();
+        TreeMap<Integer, List<CourseItem>> sortedMatches = new TreeMap<>();
+
+        System.out.println("\n Debug: Available Courses in DB:");
 
         for (int courseID : allCourseIDs) {
             CourseItem course = dbm.getCourseByID(courseID);
             if (course != null && course.getSemester().equalsIgnoreCase(semester)) {
-                bestMatches.add(course);
+                // System.out.println(" - " + course.getCourseName()); // PRINT ALL COURSE NAMES
+
+                String courseName = course.getCourseName().toLowerCase();
+                String keywordLower = keywordStr.toLowerCase();
+
+
+                String[] keywordWords = keywordLower.split("\\s+");
+                String[] courseWords = courseName.split("\\s+");
+
+                int totalDistance = 0;
+                int wordMatches = 0;
+
+                for (String kw : keywordWords) {
+                    int bestWordDistance = Integer.MAX_VALUE;  // Keep track of best match for each keyword word
+
+                    for (String cw : courseWords) {
+                        int dist = levenshtein.apply(kw, cw);  // Compute Levenshtein distance
+
+                        if (dist < bestWordDistance) {
+                            bestWordDistance = dist;  //  Store the closest match
+                        }
+                    }
+
+                    if (bestWordDistance < 3) {  // Allow up to 2 mistakes per word
+                        wordMatches++;
+                    }
+                    totalDistance += bestWordDistance;
+                }
+
+                //  Adjust threshold dynamically:
+                // - Require at least half of keyword words to match
+                // - Keep total distance relative to course name length
+                boolean isMatch = (wordMatches >= keywordWords.length / 2) &&
+                        (totalDistance <= courseName.length() / 3);
+
+                if (isMatch) {
+                    sortedMatches.putIfAbsent(totalDistance, new ArrayList<>());
+                    sortedMatches.get(totalDistance).add(course);
+
+                }
             }
         }
 
+        for (List<CourseItem> courses : sortedMatches.values()) {
+            bestMatches.addAll(courses);
+        }
+
+
         return bestMatches;
     }
+
+
+
+
+
+
+
+
+
 
     public List<CourseItem> filter(String deptCode, List<Character> days, Date start, Date end) {
         this.deptCode = deptCode;

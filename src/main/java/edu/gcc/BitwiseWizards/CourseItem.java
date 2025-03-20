@@ -148,4 +148,11 @@ public class CourseItem extends ScheduleItem {
     public String toString() {
         return getName() + " " + section + " (" + semester.charAt(5) + ")";
     }
+
+    public String getCourseName() {
+        return getName();
+    }
+
+
+
 }
