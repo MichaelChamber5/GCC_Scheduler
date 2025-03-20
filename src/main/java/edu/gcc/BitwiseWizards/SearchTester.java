@@ -2,7 +2,17 @@ package edu.gcc.BitwiseWizards;
 
     import java.util.*;
 
-    public class SearchTester {
+/**
+ * SearchTester:
+ * Author: Team Bitwise Wizards -Aiden
+ * The SearchTester class is responsible for testing the Search class.
+ * The SearchTester class tests the search functionality of the Search class.
+ * The SearchTester class tests the filter functionality of the Search class.
+ * The SearchTester class tests the fuzzy search functionality of the Search class.
+ * The SearchTester class tests the accuracy of the fuzzy search functionality of the Search class.
+ */
+
+public class SearchTester {
         private DatabaseManager dbm;
         private Search search;
         private User testUser;
@@ -69,8 +79,11 @@ package edu.gcc.BitwiseWizards;
             System.out.println("\n=== Fuzzy Search Results: PASSED " + passed + " / " + (passed + failed) + " ===");
         }
 
-
-        public static void main(String[] args) {
+    /**
+     * Main method to run the SearchTester class.
+     * @param args
+     */
+    public static void main(String[] args) {
             SearchTester tester = new SearchTester();
             tester.runTests();
         }

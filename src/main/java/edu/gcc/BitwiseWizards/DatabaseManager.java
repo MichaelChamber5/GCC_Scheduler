@@ -7,6 +7,12 @@ import org.apache.commons.text.similarity.LevenshteinDistance;
 import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
+/**
+ * DatabaseManager:
+ * Author: Team Bitwise Wizards -Aiden, Micheal
+ * The DatabaseManager class is responsible for managing the database.
+ *
+ */
 
 public class DatabaseManager {
 

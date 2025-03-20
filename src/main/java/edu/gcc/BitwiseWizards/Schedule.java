@@ -1,6 +1,13 @@
 package edu.gcc.BitwiseWizards;
 
 import java.util.*;
+import java.util.Date;
+import java.util.Calendar;
+/**
+ * Schedule:
+ * Author: Team Bitwise Wizards -Aiden, Micheal, Hannah
+ * The Schedule class is responsible for creating and managing schedules.
+ */
 
 public class Schedule {
 

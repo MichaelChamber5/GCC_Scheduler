@@ -2,6 +2,24 @@ package edu.gcc.BitwiseWizards;
 
 import java.util.*;
 
+/**
+ * ScheduleItem:
+ * Author: Team Bitwise Wizards -Aiden, Micheal, Hannah
+ * The ScheduleItem class is responsible for creating and managing schedule items.
+ * Schedule items can be courses or personal items.
+ * Schedule items have a name and a map of meeting times.
+ * Meeting times are stored as a map of days to a list of start and end times.
+ * e.g. {"M" : [1100, 1150], "R" : [1400, 1515]}
+ * Schedule items can be checked for conflicts with other schedule items.
+ * Schedule items can be compared for equality.
+ * Schedule items can be displayed as a string.
+ */
+
+/**
+ * ScheduleItem:
+ * Author: Team Bitwise Wizards -Aiden, Micheal, Hannah
+ * The ScheduleItem class is responsible for creating and managing schedule items.
+ */
 public class ScheduleItem {
 
     private int id;
@@ -39,6 +57,12 @@ public class ScheduleItem {
         return meetingTimes.keySet();
     }
 
+    /**
+     * Check for time conflicts between schedule items.
+     * @param item
+     * @return
+     */
+
     public boolean conflicts(ScheduleItem item) {
         // logic to determine time conflicts between schedule items
         for(Character day : meetingTimes.keySet()) {
@@ -54,11 +78,17 @@ public class ScheduleItem {
         return false;
     }
 
-    // do we need this?
+    // Unused
+    //created for testing purposes
     public boolean equals(ScheduleItem item) {
         return this.name.equals(item.getName());
     }
 
+    /**
+     * Display the schedule item as a string.
+     * e.g. "Chapel" / "Software Engineering"
+     * @return
+     */
     @Override
     public String toString() {
         // e.g. "Chapel" / "Software Engineering"

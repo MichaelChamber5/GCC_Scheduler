@@ -4,6 +4,12 @@ import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import java.util.*;
 
+/**
+ * Search:
+ * Author: Team Bitwise Wizards -Aiden, Micheal
+ * The Search class is responsible for searching and filtering courses based on user input.
+ */
+
 public class Search {
     List<CourseItem> searchedCourses;
     private List<CourseItem> filteredCourses;
@@ -16,11 +22,25 @@ public class Search {
     private Date end = null;
     private DatabaseManager dbm;
 
+    /**
+     * Constructor for Search class.
+     * @param dbm
+     */
+
     public Search(DatabaseManager dbm) {
         this.dbm = dbm;
         searchedCourses = new ArrayList<>();
         filteredCourses = new ArrayList<>();
     }
+
+    /**
+     * Searches for courses that match the keyword and semester.
+     * @param keywordStr
+     * @param semester
+     * @param currUser
+     * @param dm
+     * @return
+     */
 
     public ArrayList<CourseItem> search(String keywordStr, String semester, User currUser, DatabaseManager dm) {
         DatabaseManager dbm = new DatabaseManager(dm);
@@ -45,6 +65,15 @@ public class Search {
         this.searchedCourses = courses; // Store the searched courses for filtering
         return courses;
     }
+
+    /**
+     * Performs a fuzzy search for courses that match the keyword and semester.
+     * @param keywordStr
+     * @param semester
+     * @param currUser
+     * @param dbm
+     * @return
+     */
 
     private List<CourseItem> performFuzzySearch(String keywordStr, String semester, User currUser, DatabaseManager dbm) {
         ArrayList<Integer> allCourseIDs = dbm.searchAllCourses();

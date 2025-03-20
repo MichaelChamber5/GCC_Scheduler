@@ -2,6 +2,14 @@ package edu.gcc.BitwiseWizards;
 
 import java.util.*;
 
+/**
+ * FilterTester:
+ * Author: Team Bitwise Wizards -Aiden
+ * The FilterTester class is responsible for testing the Search class.
+ * The FilterTester class tests the filter functionality of the Search class.
+ * The FilterTester class tests the accuracy of the filter functionality of the Search class.
+ */
+
 public class FilterTester {
     private DatabaseManager dbm;
     private Search search;
