@@ -170,6 +170,7 @@ public class Search {
         }
         return false;
     }
+    //
 
     /**
      * Converts a `Date` object to an integer representing military time.

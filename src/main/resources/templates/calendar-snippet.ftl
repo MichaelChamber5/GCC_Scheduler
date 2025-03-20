@@ -4,5 +4,6 @@
     <#list schedule as item>
       <li>${item.name}</li>
     </#list>
+
   </ul>
 </div>

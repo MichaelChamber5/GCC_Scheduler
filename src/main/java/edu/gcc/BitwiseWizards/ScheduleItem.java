@@ -42,7 +42,7 @@ public class ScheduleItem {
     public Set<Character> getMeetingDays() { // useful for filtering by day?
         return meetingTimes.keySet();
     }
-
+//
     public boolean conflicts(ScheduleItem item) {
         // logic to determine time conflicts between schedule items
         for(Character day : meetingTimes.keySet()) {
