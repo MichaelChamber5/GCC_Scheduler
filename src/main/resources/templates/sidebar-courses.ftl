@@ -15,3 +15,4 @@ model.put("courses", someListOfCourses);
     <hr/>
   </#list>
 </div>
+

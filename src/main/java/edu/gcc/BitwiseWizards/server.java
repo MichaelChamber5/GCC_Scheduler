@@ -37,16 +37,19 @@ public class server {
 
         // Display the registration page.
         get("/register", (req, res) -> {
+
             Map<String, Object> model = new HashMap<>();
             return new ModelAndView(model, "register.ftl");
         }, freeMarkerEngine);
-
+      
         // Process registration form submissions.
+
         post("/register", (req, res) -> {
             String username = req.queryParams("username");
             String password = req.queryParams("confirmPassword");
 
             // Check if the username or password is missing.
+
             if (username == null || username.isEmpty() || password == null || password.isEmpty()) {
                 res.redirect("/register?error=Missing+username+or+password");
                 return null;
@@ -93,6 +96,7 @@ public class server {
                 res.redirect("/calendar");
             } else {
                 // If credentials are incorrect, redirect back with an error.
+
                 res.redirect("/login?error=Invalid+username+or+password");
             }
             return null;
@@ -117,6 +121,7 @@ public class server {
 
         // API endpoint to return the user's schedule in JSON format.
         get("/api/schedule", (req, res) -> {
+
             User user = req.session().attribute("user");
             if (user == null) {
                 res.status(401);
