@@ -43,6 +43,7 @@ public class ScheduleItem {
         return meetingTimes.keySet();
     }
 
+    //
     public boolean conflicts(ScheduleItem item) {
         // logic to determine time conflicts between schedule items
         for(Character day : meetingTimes.keySet()) {

@@ -41,7 +41,7 @@ public class Schedule {
         }
         return courses;
     }
-
+//
     public int getCreditCount() {
         return credit_count;
     }
