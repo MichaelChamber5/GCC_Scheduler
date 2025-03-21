@@ -58,7 +58,7 @@ public class ScheduleItem {
         }
         return false;
     }
-
+//
     // do we need this?
     public boolean equals(ScheduleItem item) {
         return this.name.equals(item.getName());
