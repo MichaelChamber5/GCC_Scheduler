@@ -24,6 +24,8 @@ public class server {
         // Set the port to listen on.
         port(4567);
 
+
+        staticFileLocation("/public");
         // Configure FreeMarker template engine.
         Configuration freeMarkerConfiguration = new Configuration(new Version(2, 3, 31));
         freeMarkerConfiguration.setClassForTemplateLoading(server.class, "/templates");
