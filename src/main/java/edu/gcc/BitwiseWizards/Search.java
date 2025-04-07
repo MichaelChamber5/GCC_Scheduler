@@ -12,6 +12,7 @@ public class Search {
     private Date end = null;
     private DatabaseManager dbm;
 
+    //mike wuz here
     public Search(DatabaseManager dbm) {
         this.dbm = dbm;
         searchedCourses = new ArrayList<>();
