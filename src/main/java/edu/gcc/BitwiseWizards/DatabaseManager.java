@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
 
+// testing
+
 public class DatabaseManager {
 
     private Connection connection = null;
