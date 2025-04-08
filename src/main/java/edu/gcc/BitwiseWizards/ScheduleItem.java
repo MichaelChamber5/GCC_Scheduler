@@ -7,10 +7,14 @@ public class ScheduleItem {
     private int id;
     private String name;
     private Map<Character, List<Integer>> meetingTimes; // {"M" : [1100, 1150], "R" : [1400, 1515]}
-    // TODO: add user_id?
 
     public ScheduleItem(int id, String name, Map<Character, List<Integer>> meetingTimes) {
         this.id = id;
+        this.name = name;
+        this.meetingTimes = meetingTimes;
+    }
+
+    public ScheduleItem(String name, Map<Character, List<Integer>> meetingTimes) {
         this.name = name;
         this.meetingTimes = meetingTimes;
     }
@@ -39,6 +43,7 @@ public class ScheduleItem {
         return meetingTimes.keySet();
     }
 
+    //
     public boolean conflicts(ScheduleItem item) {
         // logic to determine time conflicts between schedule items
         for(Character day : meetingTimes.keySet()) {
@@ -53,7 +58,7 @@ public class ScheduleItem {
         }
         return false;
     }
-
+//
     // do we need this?
     public boolean equals(ScheduleItem item) {
         return this.name.equals(item.getName());

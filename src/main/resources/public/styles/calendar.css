@@ -1,0 +1,220 @@
+/* File: calendar.css */
+
+/* Global & Reset */
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;  /* Use minimum height instead of fixed height */
+    /* Removed overflow: hidden so the page can scroll */
+    font-family: Arial, sans-serif;
+    background-color: #fff; /* white background */
+}
+/* this comment has been added strictly for a push */
+/* Top Navigation Bar */
+.top-bar {
+    background-color: #d32f2f; /* red */
+    color: #fff;
+    padding: 5px;
+    text-align: left;
+}
+
+/* Main Container Layout */
+.main-container {
+    display: flex;
+    /* Removed fixed height to let the container expand naturally */
+    /* height: calc(100vh - 50px); */
+}
+
+/* Sidebar (Search Area) */
+.sidebar {
+    width: 200px;
+    background-color: #f0f0f0;
+    padding: 10px;
+    box-sizing: border-box;
+    /* Removed overflow-y so it won’t have its own scroll bar */
+    /* overflow-y: auto; */
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.advanced-search-btn {
+    width: 100%;
+    padding: 8px;
+    background-color: #d32f2f; /* red */
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 15px;
+}
+
+.advanced-search-btn:hover {
+    background-color: #b71c1c; /* darker red */
+}
+
+/* Content Area */
+.content-area {
+    flex-grow: 1;
+    padding: 15px;
+    box-sizing: border-box;
+}
+
+/* Calendar View (React Calendar Container) */
+.calendar-view {
+    background-color: #eaeaea; /* light gray */
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    /* Removed height: 100%; to allow it to grow with its content */
+}
+
+/* Courses Table Wrapper */
+.calendar-table-wrapper {
+    margin-top: 5px; /* reduced space between calendar grid and table */
+    /* Removed overflow: auto; */
+}
+
+/* Courses Table */
+.calendar-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.calendar-table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+}
+
+/* Modal (for advanced search, etc.) */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 400px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: black;
+}
+
+/* ---- Additional Styles for React Calendar Components ---- */
+
+/* Calendar Container for React calendar */
+.calendar-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    border: 1px solid #999;
+    /* Removed fixed height and overflow-y to let the container adjust naturally */
+    /* height: 57vh; */
+    /* overflow-y: auto; */
+    background-color: #fff;
+}
+
+/* React Calendar Grid */
+.calendar-grid {
+    display: flex;
+    border-top: 2px solid #333;
+    border-left: 2px solid #333;
+}
+
+.day-column {
+    flex: 1;
+    border-right: 2px solid #333;
+    border-bottom: 2px solid #333;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.day-header {
+    background: #f0f0f0;
+    padding: 8px;
+    text-align: center;
+    font-weight: bold;
+    border-bottom: 2px solid #333;
+}
+
+.time-slots {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.time-slot {
+    border-bottom: 1px solid #ccc;
+    padding: 4px;
+    font-size: 12px;
+    position: relative;
+    height: 40px; /* Adjust as needed */
+}
+
+.slot-label {
+    position: relative;
+    z-index: 2;
+}
+
+/* Event Overlay (for scheduled items) */
+.event-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(211,47,47,0.5); /* semi-transparent red */
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #333;
+}
+
+/* Remove button inside events */
+.remove-button {
+    margin-left: 8px;
+    background: transparent;
+    border: none;
+    color: #333;
+    font-weight: bold;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+/* Sidebar Courses Container */
+#sidebar-container {
+    flex-grow: 1;
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    padding: 10px;
+    box-sizing: border-box;
+    /* Removed overflow-y so it will not have its own scroll bar */
+    /* overflow-y: auto; */
+}

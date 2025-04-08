@@ -41,7 +41,7 @@ public class Schedule {
         }
         return courses;
     }
-
+//
     public int getCreditCount() {
         return credit_count;
     }
@@ -61,7 +61,7 @@ public class Schedule {
             System.out.println("ERROR: overlapping schedule items");
             return false;
     }
-
+//
     public void removeScheduleItem(ScheduleItem item) {
         //if the item is a course item, reduce to credit count
         if(item instanceof CourseItem)
