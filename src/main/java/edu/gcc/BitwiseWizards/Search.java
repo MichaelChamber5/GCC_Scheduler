@@ -27,7 +27,7 @@ public class Search {
     }
 
     //TODO: talk to Rhodes about how semester logic is handled
-    public ArrayList<CourseItem> searchSingleWord(String keywordStr) {
+    public ArrayList<CourseItem> searchSingleWord(String keywordStr, String semester) {
         searchedCourses.clear();
 
         //SEARCHING FOR
@@ -41,6 +41,11 @@ public class Search {
         //description
         //professors
         for(CourseItem c : allCourses) {
+            System.out.println("Comparing " + c.getSemester() + " to " + semester);
+            if(!c.getSemester().equals(semester)) //if we arent in the current semester then skip
+            {
+                continue;
+            }
             if(keywordStr.isEmpty())//if we have the empty string
             {
                 searchedCourses.add(c);
@@ -77,7 +82,7 @@ public class Search {
         return searchedCourses;
     }
 
-    public ArrayList<CourseItem> searchMultiWord(String[] words)
+    public ArrayList<CourseItem> searchMultiWord(String[] words, String semester)
     {
         if (words == null || words.length == 0) {
             return new ArrayList<>();
@@ -96,6 +101,10 @@ public class Search {
 
             // Use similar logic as in searchSingleWord but applied to current result set
             for (CourseItem c : result) {
+                if(!c.getSemester().equals(semester)) //if we arent in the current semester then skip
+                {
+                    continue;
+                }
                 if (keyword.length() == 1) {
                     // Check for character for section (A, B, C, D...) OR day (M, T, W...)
                     if (Character.toString(c.getSection()).equalsIgnoreCase(keyword) ||
@@ -130,16 +139,16 @@ public class Search {
      * @param keywordStr
      * @return list of courses that match the keyword(s)
      */
-    public ArrayList<CourseItem> search(String keywordStr)
+    public ArrayList<CourseItem> search(String keywordStr, String semester)
     {
         String[] keyWords = keywordStr.split(" ");
         if(keyWords.length <= 1)
         {
-            return searchSingleWord(keywordStr);
+            return searchSingleWord(keywordStr, semester);
         }
         else //TODO: implement multi-word search
         {
-            return searchMultiWord(keyWords);
+            return searchMultiWord(keyWords, semester);
         }
     }
 

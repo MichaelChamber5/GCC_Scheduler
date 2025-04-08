@@ -258,8 +258,8 @@ cursor: pointer;
       <h4>Search Area</h4>
       <!-- Semester toggle buttons -->
       <div id="semester-toggle">
-        <button id="fall-btn" class="semester-btn active" data-semester="2024_Fall">Fall</button>
-        <button id="spring-btn" class="semester-btn" data-semester="2025_Spring">Spring</button>
+        <button id="fall-btn" class="semester-btn active" data-semester="2023_Fall">Fall</button>
+        <button id="spring-btn" class="semester-btn" data-semester="2024_Spring">Spring</button>
       </div>
       <!-- Main search input -->
       <input type="text" placeholder="Search for classes..." class="search-input"/>

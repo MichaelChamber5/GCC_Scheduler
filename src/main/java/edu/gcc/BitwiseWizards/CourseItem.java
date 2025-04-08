@@ -104,7 +104,7 @@ public class CourseItem extends ScheduleItem {
     }
 
     public boolean equals(CourseItem item) {
-        return this.id == item.id;
+        return this.getId() == item.getId();
     }
 
     /**

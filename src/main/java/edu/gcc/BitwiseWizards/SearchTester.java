@@ -41,7 +41,7 @@ public class SearchTester {
         System.out.println("Test 1: Basic Search");
         try {
             System.out.println("SEARCHING FOR: Computer");
-            ArrayList<CourseItem> results = search.search("Computer");
+            ArrayList<CourseItem> results = search.search("Computer", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
@@ -54,7 +54,7 @@ public class SearchTester {
         System.out.println("Test 2: Basic Search");
         try {
             System.out.println("SEARCHING FOR: accounting");
-            ArrayList<CourseItem> results = search.search("accounting");
+            ArrayList<CourseItem> results = search.search("accounting", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
@@ -67,7 +67,7 @@ public class SearchTester {
         System.out.println("Test 3: Basic Search");
         try {
             System.out.println("SEARCHING FOR: F");
-            ArrayList<CourseItem> results = search.search("F");
+            ArrayList<CourseItem> results = search.search("F", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
@@ -80,7 +80,7 @@ public class SearchTester {
         System.out.println("Test 4: Basic Search");
         try {
             System.out.println("SEARCHING FOR: Hutchins");
-            ArrayList<CourseItem> results = search.search("Hutchins");
+            ArrayList<CourseItem> results = search.search("Hutchins", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
@@ -93,7 +93,7 @@ public class SearchTester {
         System.out.println("Test 5: Basic Search");
         try {
             System.out.println("SEARCHING FOR: STEM");
-            ArrayList<CourseItem> results = search.search("STEM");
+            ArrayList<CourseItem> results = search.search("STEM", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
@@ -106,7 +106,7 @@ public class SearchTester {
         System.out.println("Test 6: Basic Search");
         try {
             System.out.println("SEARCHING FOR: 141");
-            ArrayList<CourseItem> results = search.search("141");
+            ArrayList<CourseItem> results = search.search("141", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
@@ -119,7 +119,7 @@ public class SearchTester {
         System.out.println("Test 7: Multi Search");
         try {
             System.out.println("SEARCHING FOR: accounting b");
-            ArrayList<CourseItem> results = search.search("accounting b");
+            ArrayList<CourseItem> results = search.search("accounting b", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
@@ -132,7 +132,7 @@ public class SearchTester {
         System.out.println("Test 8: Multi Search");
         try {
             System.out.println("SEARCHING FOR: comp 141 a");
-            ArrayList<CourseItem> results = search.search("comp 141 a");
+            ArrayList<CourseItem> results = search.search("comp 141 a", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
@@ -158,7 +158,7 @@ public class SearchTester {
         System.out.println("Filter Tests");
         try {
             // First perform a search to populate searchedCourses
-            search.search("");
+            search.search("", "");
 
             // Test department filter
             System.out.println("\nTesting COMP department filter:");
