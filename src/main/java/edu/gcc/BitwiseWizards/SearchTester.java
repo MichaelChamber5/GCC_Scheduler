@@ -18,21 +18,30 @@ public class SearchTester {
         System.out.println("=== Starting Search Tests ===\n");
 
         // Test 1: Basic Search
-        testBasicSearch();
+        testBasicSearch1();
+        testBasicSearch2();
+        testBasicSearch3();
+        testBasicSearch4();
+        testBasicSearch5();
+        testBasicSearch6();
+
+        testMultiSearch1();
+        testMultiSearch2();
 
         // Test 2: Fuzzy Search
-        testFuzzySearch();
+        //testFuzzySearch();
 
         // Test 3: Filter Tests
-        testFilters();
+        //testFilters();
 
         System.out.println("\n=== All Tests Completed ===");
     }
 
-    private void testBasicSearch() {
+    private void testBasicSearch1() {
         System.out.println("Test 1: Basic Search");
         try {
-            ArrayList<CourseItem> results = search.search("Computer", testUser, dbm);
+            System.out.println("SEARCHING FOR: Computer");
+            ArrayList<CourseItem> results = search.search("Computer");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
@@ -41,24 +50,115 @@ public class SearchTester {
         System.out.println();
     }
 
-    private void testFuzzySearch() {
-        System.out.println("Test 2: Fuzzy Search");
+    private void testBasicSearch2() {
+        System.out.println("Test 2: Basic Search");
         try {
-            // Using a misspelled or partial word to trigger fuzzy search
-            ArrayList<CourseItem> results = search.search("Comput", testUser, dbm);
-            System.out.println("Fuzzy search results count: " + results.size());
+            System.out.println("SEARCHING FOR: accounting");
+            ArrayList<CourseItem> results = search.search("accounting");
+            System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
-            System.out.println("Error in fuzzy search: " + e.getMessage());
+            System.out.println("Error in basic search: " + e.getMessage());
         }
         System.out.println();
     }
 
+    private void testBasicSearch3() {
+        System.out.println("Test 3: Basic Search");
+        try {
+            System.out.println("SEARCHING FOR: F");
+            ArrayList<CourseItem> results = search.search("F");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testBasicSearch4() {
+        System.out.println("Test 4: Basic Search");
+        try {
+            System.out.println("SEARCHING FOR: Hutchins");
+            ArrayList<CourseItem> results = search.search("Hutchins");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testBasicSearch5() {
+        System.out.println("Test 5: Basic Search");
+        try {
+            System.out.println("SEARCHING FOR: STEM");
+            ArrayList<CourseItem> results = search.search("STEM");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testBasicSearch6() {
+        System.out.println("Test 6: Basic Search");
+        try {
+            System.out.println("SEARCHING FOR: 141");
+            ArrayList<CourseItem> results = search.search("141");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testMultiSearch1() {
+        System.out.println("Test 7: Multi Search");
+        try {
+            System.out.println("SEARCHING FOR: accounting b");
+            ArrayList<CourseItem> results = search.search("accounting b");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testMultiSearch2() {
+        System.out.println("Test 8: Multi Search");
+        try {
+            System.out.println("SEARCHING FOR: comp 141 a");
+            ArrayList<CourseItem> results = search.search("comp 141 a");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+//    private void testFuzzySearch() {
+//        System.out.println("Test 2: Fuzzy Search");
+//        try {
+//            // Using a misspelled or partial word to trigger fuzzy search
+//            ArrayList<CourseItem> results = search.search("Comput", dbm);
+//            System.out.println("Fuzzy search results count: " + results.size());
+//            printResults(results);
+//        } catch (Exception e) {
+//            System.out.println("Error in fuzzy search: " + e.getMessage());
+//        }
+//        System.out.println();
+//    }
+
     private void testFilters() {
-        System.out.println("Test 3: Filter Tests");
+        System.out.println("Filter Tests");
         try {
             // First perform a search to populate searchedCourses
-            search.search("", testUser, dbm);
+            search.search("");
 
             // Test department filter
             System.out.println("\nTesting COMP department filter:");
@@ -98,11 +198,7 @@ public class SearchTester {
 
         for (CourseItem course : courses) {
             try {
-                System.out.println(String.format("Course: %s, Days: %s, Time: %d - %d",
-                        course.getDepCode(),
-                        course.getDays() != null ? course.getDays().toString() : "N/A",
-                        course.getStartTime(),
-                        course.getEndTime()));
+                System.out.println(course);
             } catch (Exception e) {
                 System.out.println("Error printing course: " + e.getMessage());
             }
