@@ -2,6 +2,9 @@ package edu.gcc.BitwiseWizards;
 
 import javax.xml.crypto.Data;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 import com.swabunga.spell.engine.SpellDictionary;
@@ -23,7 +26,7 @@ public class Search {
     private Date end = null;
     private DatabaseManager dbm;
 
-    public Search(DatabaseManager dbm) {
+    public Search(DatabaseManager dbm) throws IOException {
         this.dbm = dbm;
         searchedCourses = new ArrayList<>();
         filteredCourses = new ArrayList<>();
@@ -35,15 +38,32 @@ public class Search {
             allCourses.add(dbm.getCourseByID(courseID));
         }
 
-        try
-        {
-            File dictionaryPath = new File("/dictionary/english.txt");
-            SpellDictionary dictionary = new SpellDictionaryHashMap(dictionaryPath);
+        try {
+            // Load dictionary from resources
+            InputStream dictionaryStream = getClass().getClassLoader().getResourceAsStream("dictionary/words.txt");
+            if (dictionaryStream == null) {
+                throw new IOException("Dictionary file not found in resources");
+            }
+
+            // Create a temporary file to work with Jazzy API which expects a File object
+            File tempDictFile = File.createTempFile("dictionary", ".txt");
+            tempDictFile.deleteOnExit();
+
+            try (FileOutputStream out = new FileOutputStream(tempDictFile)) {
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = dictionaryStream.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+            }
+
+            SpellDictionary dictionary = new SpellDictionaryHashMap(tempDictFile);
             spellChecker = new SpellChecker(dictionary);
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
             System.out.println("Error loading spell check dictionary: " + e.getMessage());
+            e.printStackTrace();
+            spellChecker = null;
         }
     }
 
@@ -85,13 +105,13 @@ public class Search {
             else//check string
             {
                 if(
-                    c.getName().toLowerCase().contains(keywordStr.toLowerCase()) ||
-                    //TODO: add dates and times
-                    c.getLocation().toLowerCase().contains(keywordStr.toLowerCase()) ||
-                    Integer.toString(c.getCourseNumber()).equalsIgnoreCase(keywordStr) ||
-                    c.getDepCode().equalsIgnoreCase(keywordStr) ||
-                    c.getDescription().toLowerCase().contains(keywordStr.toLowerCase()) ||
-                    c.getProfessors().stream().anyMatch(p -> p.getName().toLowerCase().contains(keywordStr.toLowerCase()))
+                        c.getName().toLowerCase().contains(keywordStr.toLowerCase()) ||
+                                //TODO: add dates and times
+                                c.getLocation().toLowerCase().contains(keywordStr.toLowerCase()) ||
+                                Integer.toString(c.getCourseNumber()).equalsIgnoreCase(keywordStr) ||
+                                c.getDepCode().equalsIgnoreCase(keywordStr) ||
+                                c.getDescription().toLowerCase().contains(keywordStr.toLowerCase()) ||
+                                c.getProfessors().stream().anyMatch(p -> p.getName().toLowerCase().contains(keywordStr.toLowerCase()))
                 )
                 {
                     searchedCourses.add(c);
@@ -162,36 +182,56 @@ public class Search {
     public ArrayList<CourseItem> search(String keywordStr, String semester)
     {
         String[] keyWords = keywordStr.split(" ");
-        for(int i = 0; i < keyWords.length; i++)
+
+        //check to see if search results resturn something
+        ArrayList<CourseItem> resultingItems = new ArrayList<>();
+        if(keyWords.length == 0)
         {
-            keyWords[i] = keyWords[i].trim();
-            if(spellChecker != null && !spellChecker.isCorrect(keyWords[i]))
+            resultingItems = searchSingleWord("", semester);
+        }
+        else if(keyWords.length == 1)
+        {
+            resultingItems = searchSingleWord(keyWords[0], semester);
+        }
+        else
+        {
+            resultingItems = searchMultiWord(keyWords, semester);
+        }
+
+        //if we have stuff in the list great
+        if(!resultingItems.isEmpty())
+        {
+            return resultingItems;
+        }
+        else //if it's empty, try spellchecking
+        {
+            for(int i = 0; i < keyWords.length; i++)
             {
-                keyWords[i] = getBestSuggestion(keyWords[i]);
+                keyWords[i] = keyWords[i].trim();
+                if(spellChecker != null && !keyWords[i].isEmpty() && !spellChecker.isCorrect(keyWords[i]))
+                {
+                    String suggestion = getBestSuggestion(keyWords[i]);
+                    if (suggestion != null && !suggestion.isEmpty()) {
+                        //System.out.println("Did you mean: " + suggestion);
+                        keyWords[i] = suggestion;
+                    }
+                }
+            }
+
+            if(keyWords.length == 0)
+            {
+                return searchSingleWord("", semester);
+            }
+            else if(keyWords.length == 1)
+            {
+                return searchSingleWord(keyWords[0], semester);
+            }
+            else
+            {
+                return searchMultiWord(keyWords, semester);
             }
         }
-
-        if(keyWords.length <= 1)
-        {
-            return searchSingleWord(keywordStr, semester);
-        }
-        else //TODO: implement multi-word search
-        {
-            return searchMultiWord(keyWords, semester);
-        }
     }
-
-    //NOT CURRENTLY BEING USED
-//    private List<CourseItem> performFuzzySearch(String keywordStr, User currUser, DatabaseManager dbm) {
-//        ArrayList<Integer> allCourseIDs = dbm.searchCoursesFuzzy(keywordStr);
-//        List<CourseItem> bestMatches = new ArrayList<>();
-//
-//        for (int courseID : allCourseIDs) {
-//            bestMatches.add(dbm.getCourseByID(courseID));
-//        }
-//
-//        return bestMatches;
-//    }
 
     public List<CourseItem> filter(String deptCode, List<Character> days, Date start, Date end) {
         this.deptCode = deptCode;
@@ -258,20 +298,52 @@ public class Search {
 
     // Get suggestions for a misspelled word
     public List<String> getSuggestions(String word, int suggestionCount) {
-        List<String> suggestions = spellChecker.getSuggestions(word, suggestionCount);
-        return suggestions != null ? suggestions : new ArrayList<>();
-    }
+        if (spellChecker == null || word == null || word.isEmpty()) {
+            return new ArrayList<>();
+        }
 
-    // Check if a word is spelled correctly
-    public boolean isCorrectlySpelled(String word) {
-        return spellChecker.isCorrect(word);
+        try {
+            List<String> suggestions = new ArrayList<>();
+
+            @SuppressWarnings("unchecked")
+            List<?> rawSuggestions = spellChecker.getSuggestions(word, suggestionCount);
+
+            if (rawSuggestions != null) {
+                for (Object suggestion : rawSuggestions) {
+                    // Check if it's a Word object and extract the text
+                    if (suggestion instanceof com.swabunga.spell.engine.Word) {
+                        suggestions.add(suggestion.toString());
+                    }
+                    // If it's already a String
+                    else if (suggestion instanceof String) {
+                        suggestions.add((String) suggestion);
+                    }
+                }
+            }
+
+            //System.out.println("Suggestions for " + word + ": " + suggestions);
+            return suggestions.subList(0, Math.min(suggestions.size(), suggestionCount));
+        } catch (Exception e) {
+            System.err.println("Error getting spell suggestions: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
     }
 
     // Get the best suggestion for a misspelled word
     public String getBestSuggestion(String word) {
-        List<String> suggestions = getSuggestions(word, 1);
-        return suggestions.isEmpty() ? word : suggestions.get(0);
+        if (spellChecker == null || word == null || word.isEmpty()) {
+            return word;
+        }
+
+        try {
+            List<String> suggestions = getSuggestions(word, 1);
+            //System.out.println("Best suggestion for " + word + ": " + suggestions.get(0));
+            return suggestions.isEmpty() ? word : suggestions.get(0);
+        } catch (Exception e) {
+            System.err.println("Error getting best suggestion: " + e.getMessage());
+            e.printStackTrace();
+            return word;
+        }
     }
-
 }
-

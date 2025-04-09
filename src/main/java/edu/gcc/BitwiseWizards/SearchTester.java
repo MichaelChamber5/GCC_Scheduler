@@ -7,7 +7,7 @@ public class SearchTester {
     private Search search;
     private User testUser;
 
-    public SearchTester() {
+    public SearchTester() throws Exception {
         dbm = new DatabaseManager();
         search = new Search(dbm);
         // Create test user with ID 1, username "testUser", and password "test123"
@@ -18,17 +18,19 @@ public class SearchTester {
         System.out.println("=== Starting Search Tests ===\n");
 
         // Test 1: Basic Search
-//        testBasicSearch1();
-//        testBasicSearch2();
-//        testBasicSearch3();
-//        testBasicSearch4();
-//        testBasicSearch5();
-//        testBasicSearch6();
-//
-//        testMultiSearch1();
-//        testMultiSearch2();
+        testBasicSearch1();
+        testBasicSearch2();
+        testBasicSearch3();
+        testBasicSearch4();
+        testBasicSearch5();
+        testBasicSearch6();
+
+        testMultiSearch1();
+        testMultiSearch2();
 
         testMispelledSearch1();
+
+        testMultiSearch3();
 
         // Test 2: Fuzzy Search
         //testFuzzySearch();
@@ -135,6 +137,19 @@ public class SearchTester {
         try {
             System.out.println("SEARCHING FOR: comp 141 a");
             ArrayList<CourseItem> results = search.search("comp 141 a", "");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testMultiSearch3() {
+        System.out.println("Test 10: Multi Search");
+        try {
+            System.out.println("SEARCHING FOR: educ 488");
+            ArrayList<CourseItem> results = search.search("educ 488", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
