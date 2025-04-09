@@ -45,7 +45,7 @@ public class Search {
 
         try {
             // Load dictionary from resources
-            InputStream dictionaryStream = getClass().getClassLoader().getResourceAsStream("dictionary/words.txt");
+            InputStream dictionaryStream = getClass().getClassLoader().getResourceAsStream("dictionary/wordsActually.txt");
             if (dictionaryStream == null) {
                 throw new IOException("Dictionary file not found in resources");
             }
@@ -327,7 +327,7 @@ public class Search {
                 }
             }
 
-            //System.out.println("Suggestions for " + word + ": " + suggestions);
+            System.out.println("Suggestions for " + word + ": " + suggestions);
             return suggestions.subList(0, Math.min(suggestions.size(), suggestionCount));
         } catch (Exception e) {
             System.err.println("Error getting spell suggestions: " + e.getMessage());
@@ -344,7 +344,8 @@ public class Search {
 
         try {
             List<String> suggestions = getSuggestions(word, 1);
-            //System.out.println("Best suggestion for " + word + ": " + suggestions.get(0));
+            if(!suggestions.isEmpty())
+                System.out.println("Here's the word I think you were trying to spell: " + suggestions.get(0));
             return suggestions.isEmpty() ? word : suggestions.get(0);
         } catch (Exception e) {
             System.err.println("Error getting best suggestion: " + e.getMessage());

@@ -180,4 +180,72 @@ public class CourseItem extends ScheduleItem {
         }
         return false;
     }
+
+    public ArrayList<String> getStringsForDictionary()
+    {
+        ArrayList<String> strings = new ArrayList<>();
+
+        //course name
+        String[] courseNameStrings = getCourseName().split(" ");
+        for (String s : courseNameStrings)
+        {
+            if(s.length() > 2)
+                strings.add(s);
+        }
+
+        //location
+        String[] locationStrings = location.split(" ");
+        for (String s : locationStrings) {
+            if (s.length() > 2)
+            {
+                try {
+                    Integer.parseInt(s);
+                } catch (NumberFormatException e) {
+                    strings.add(s);
+                }
+            }
+        }
+
+        //dep code
+        String depCode = getDepCode();
+        strings.add(depCode);
+
+        //description
+        String[] descriptionStrings = getDescription().split(" ");
+        for (String s : descriptionStrings) {
+            if (s.length() > 2)
+            {
+                try {
+                    Integer.parseInt(s);
+                } catch (NumberFormatException e) {
+                    strings.add(s);
+                }
+            }
+        }
+
+        //professors
+        for (Professor p : professors) {
+            String[] professorStrings = p.getName().split(" ");
+            for (String s : professorStrings) {
+                if (s.length() > 2)
+                {
+                    try {
+                        Integer.parseInt(s);
+                    } catch (NumberFormatException e) {
+                        strings.add(s);
+                    }
+                }
+            }
+        }
+
+        //clean stuff up
+        for(int i = 0; i < strings.size(); i++)
+        {
+            strings.set(i, strings.get(i).strip());
+            strings.set(i, strings.get(i).replaceAll("\\p{P}", ""));
+            strings.set(i, strings.get(i).toLowerCase());
+        }
+
+        return strings;
+    }
 }
