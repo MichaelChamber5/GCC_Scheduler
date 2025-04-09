@@ -35,6 +35,9 @@ bin/
 /nbdist/
 /.nb-gradle/
 
+### Ignore db file ###
+GCC_Scheduler.db
+
 ### VS Code ###
 .vscode/
 
