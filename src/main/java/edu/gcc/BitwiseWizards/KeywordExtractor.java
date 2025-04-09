@@ -1,3 +1,5 @@
+package edu.gcc.BitwiseWizards;
+
 import java.net.http.*;
 import java.net.URI;
 import java.util.*;
