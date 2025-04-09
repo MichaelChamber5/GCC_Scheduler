@@ -18,25 +18,27 @@ public class SearchTester {
         System.out.println("=== Starting Search Tests ===\n");
 
         // Test 1: Basic Search
-        testBasicSearch1();
-        testBasicSearch2();
-        testBasicSearch3();
-        testBasicSearch4();
-        testBasicSearch5();
-        testBasicSearch6();
+//        testBasicSearch1();
+//        testBasicSearch2();
+//        testBasicSearch3();
+//        testBasicSearch4();
+//        testBasicSearch5();
+//        testBasicSearch6();
+//
+//        testMultiSearch1();
+//        testMultiSearch2();
+//
+//        testMispelledSearch1();
+//
+//        testMultiSearch3();
 
-        testMultiSearch1();
-        testMultiSearch2();
-
-        testMispelledSearch1();
-
-        testMultiSearch3();
+        testEmptySearch();
 
         // Test 2: Fuzzy Search
         //testFuzzySearch();
 
         // Test 3: Filter Tests
-        //testFilters();
+        testFilters();
 
         System.out.println("\n=== All Tests Completed ===");
     }
@@ -163,6 +165,19 @@ public class SearchTester {
         try {
             System.out.println("SEARCHING FOR: cmputer");
             ArrayList<CourseItem> results = search.search("cmputer", "");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testEmptySearch() {
+        System.out.println("Test 11: Empty Search");
+        try {
+            System.out.println("SEARCHING FOR: \"\"");
+            ArrayList<CourseItem> results = search.search("", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
