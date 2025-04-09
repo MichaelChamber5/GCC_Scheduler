@@ -32,10 +32,14 @@ public class SearchTester {
 //
 //        testMultiSearch3();
 
-        //testEmptySearch();
+        testEmptySearch();
 
-        mispelledFall();
-        mispelledSpring();
+//        mispelledFall();
+//        mispelledSpring();
+
+//        eleeAll();
+//        eleeFall();
+//        eleeSpring();
 
         // Test 2: Fuzzy Search
         //testFuzzySearch();
@@ -207,6 +211,45 @@ public class SearchTester {
         try {
             System.out.println("SEARCHING FOR: computr");
             ArrayList<CourseItem> results = search.search("computr", "2024_Spring");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void eleeFall() {
+        System.out.println("Test: elee fall");
+        try {
+            System.out.println("SEARCHING FOR: elee");
+            ArrayList<CourseItem> results = search.search("elee", "2023_Fall");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void eleeSpring() {
+        System.out.println("Test: elee spring");
+        try {
+            System.out.println("SEARCHING FOR: elee");
+            ArrayList<CourseItem> results = search.search("elee", "2024_Spring");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void eleeAll() {
+        System.out.println("Test: elee all");
+        try {
+            System.out.println("SEARCHING FOR: elee");
+            ArrayList<CourseItem> results = search.search("elee", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {

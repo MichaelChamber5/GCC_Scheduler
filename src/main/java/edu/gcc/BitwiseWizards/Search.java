@@ -34,9 +34,14 @@ public class Search {
 
         //initially populate the allCourses with all courses
         ArrayList<Integer> courseIDs = dbm.getAllCourseIds();
+
+        System.out.println("Size of course IDs: " + courseIDs.size());
+
         for (int courseID : courseIDs) {
             allCourses.add(dbm.getCourseByID(courseID));
         }
+
+        System.out.println("Loaded " + allCourses.size() + " courses from the database.");
 
         try {
             // Load dictionary from resources
@@ -82,7 +87,7 @@ public class Search {
         //description
         //professors
         for(CourseItem c : allCourses) {
-            if(!semester.equals("") && !c.getSemester().equals(semester)) //if we arent in the current semester then skip
+            if(!semester.isEmpty() && !c.getSemester().equals(semester)) //if we arent in the current semester then skip
             {
                 continue;
             }

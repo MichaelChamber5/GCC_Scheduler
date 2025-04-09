@@ -145,7 +145,7 @@ public class CourseItem extends ScheduleItem {
 
     @Override
     public String toString() {
-        return getName() + " " + section + " (" + semester.charAt(5) + ")";
+        return getName() + " " + section + " (" + semester + ")";
     }
 
     public String getCourseName() {
