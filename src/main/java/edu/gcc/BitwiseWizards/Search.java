@@ -168,6 +168,7 @@ public class Search {
             result = matchingCourses;
         }
 
+        searchedCourses = new ArrayList<>(result);
         return result;
     }
 
