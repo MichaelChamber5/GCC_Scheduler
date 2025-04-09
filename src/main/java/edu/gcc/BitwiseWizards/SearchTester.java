@@ -18,15 +18,17 @@ public class SearchTester {
         System.out.println("=== Starting Search Tests ===\n");
 
         // Test 1: Basic Search
-        testBasicSearch1();
-        testBasicSearch2();
-        testBasicSearch3();
-        testBasicSearch4();
-        testBasicSearch5();
-        testBasicSearch6();
+//        testBasicSearch1();
+//        testBasicSearch2();
+//        testBasicSearch3();
+//        testBasicSearch4();
+//        testBasicSearch5();
+//        testBasicSearch6();
+//
+//        testMultiSearch1();
+//        testMultiSearch2();
 
-        testMultiSearch1();
-        testMultiSearch2();
+        testMispelledSearch1();
 
         // Test 2: Fuzzy Search
         //testFuzzySearch();
@@ -133,6 +135,19 @@ public class SearchTester {
         try {
             System.out.println("SEARCHING FOR: comp 141 a");
             ArrayList<CourseItem> results = search.search("comp 141 a", "");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void testMispelledSearch1() {
+        System.out.println("Test 9: Mispelled Search");
+        try {
+            System.out.println("SEARCHING FOR: cmputer");
+            ArrayList<CourseItem> results = search.search("cmputer", "");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {

@@ -29,6 +29,9 @@ dependencies {
     implementation 'org.xerial:sqlite-jdbc:3.41.2.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+
+    //for spell checking
+    implementation 'net.sf.jazzy:jazzy-core:0.5.2'
 }
 
 test {

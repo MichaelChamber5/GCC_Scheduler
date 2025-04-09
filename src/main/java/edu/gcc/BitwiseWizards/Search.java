@@ -1,9 +1,19 @@
 package edu.gcc.BitwiseWizards;
 
 import javax.xml.crypto.Data;
+import java.io.File;
 import java.util.*;
 
+import com.swabunga.spell.engine.SpellDictionary;
+import com.swabunga.spell.engine.SpellDictionaryHashMap;
+import com.swabunga.spell.event.SpellCheckEvent;
+import com.swabunga.spell.event.SpellCheckListener;
+import com.swabunga.spell.event.SpellChecker;
+import com.swabunga.spell.event.StringWordTokenizer;
+
 public class Search {
+    private SpellChecker spellChecker;
+
     private ArrayList<CourseItem> allCourses;
     private ArrayList<CourseItem> searchedCourses;
     private ArrayList<CourseItem> filteredCourses;
@@ -24,6 +34,17 @@ public class Search {
         for (int courseID : courseIDs) {
             allCourses.add(dbm.getCourseByID(courseID));
         }
+
+        try
+        {
+            File dictionaryPath = new File("/dictionary/english.txt");
+            SpellDictionary dictionary = new SpellDictionaryHashMap(dictionaryPath);
+            spellChecker = new SpellChecker(dictionary);
+        }
+        catch (Exception e)
+        {
+            System.out.println("Error loading spell check dictionary: " + e.getMessage());
+        }
     }
 
     //TODO: talk to Rhodes about how semester logic is handled
@@ -41,8 +62,7 @@ public class Search {
         //description
         //professors
         for(CourseItem c : allCourses) {
-            System.out.println("Comparing " + c.getSemester() + " to " + semester);
-            if(!c.getSemester().equals(semester)) //if we arent in the current semester then skip
+            if(!semester.equals("") && !c.getSemester().equals(semester)) //if we arent in the current semester then skip
             {
                 continue;
             }
@@ -101,7 +121,7 @@ public class Search {
 
             // Use similar logic as in searchSingleWord but applied to current result set
             for (CourseItem c : result) {
-                if(!c.getSemester().equals(semester)) //if we arent in the current semester then skip
+                if(!semester.equals("") && !c.getSemester().equals(semester)) //if we arent in the current semester then skip
                 {
                     continue;
                 }
@@ -142,6 +162,15 @@ public class Search {
     public ArrayList<CourseItem> search(String keywordStr, String semester)
     {
         String[] keyWords = keywordStr.split(" ");
+        for(int i = 0; i < keyWords.length; i++)
+        {
+            keyWords[i] = keyWords[i].trim();
+            if(spellChecker != null && !spellChecker.isCorrect(keyWords[i]))
+            {
+                keyWords[i] = getBestSuggestion(keyWords[i]);
+            }
+        }
+
         if(keyWords.length <= 1)
         {
             return searchSingleWord(keywordStr, semester);
@@ -225,6 +254,23 @@ public class Search {
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         int minute = calendar.get(Calendar.MINUTE);
         return hour * 100 + minute;
+    }
+
+    // Get suggestions for a misspelled word
+    public List<String> getSuggestions(String word, int suggestionCount) {
+        List<String> suggestions = spellChecker.getSuggestions(word, suggestionCount);
+        return suggestions != null ? suggestions : new ArrayList<>();
+    }
+
+    // Check if a word is spelled correctly
+    public boolean isCorrectlySpelled(String word) {
+        return spellChecker.isCorrect(word);
+    }
+
+    // Get the best suggestion for a misspelled word
+    public String getBestSuggestion(String word) {
+        List<String> suggestions = getSuggestions(word, 1);
+        return suggestions.isEmpty() ? word : suggestions.get(0);
     }
 
 }
