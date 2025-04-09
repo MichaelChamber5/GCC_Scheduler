@@ -32,13 +32,16 @@ public class SearchTester {
 //
 //        testMultiSearch3();
 
-        testEmptySearch();
+        //testEmptySearch();
+
+        mispelledFall();
+        mispelledSpring();
 
         // Test 2: Fuzzy Search
         //testFuzzySearch();
 
         // Test 3: Filter Tests
-        testFilters();
+        //testFilters();
 
         System.out.println("\n=== All Tests Completed ===");
     }
@@ -178,6 +181,32 @@ public class SearchTester {
         try {
             System.out.println("SEARCHING FOR: \"\"");
             ArrayList<CourseItem> results = search.search("", "");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void mispelledFall() {
+        System.out.println("Test: mispelled search fall");
+        try {
+            System.out.println("SEARCHING FOR: computr");
+            ArrayList<CourseItem> results = search.search("computr", "2023_Fall");
+            System.out.println("Basic search results count: " + results.size());
+            printResults(results);
+        } catch (Exception e) {
+            System.out.println("Error in basic search: " + e.getMessage());
+        }
+        System.out.println();
+    }
+
+    private void mispelledSpring() {
+        System.out.println("Test: mispelled search spring");
+        try {
+            System.out.println("SEARCHING FOR: computr");
+            ArrayList<CourseItem> results = search.search("computr", "2024_Spring");
             System.out.println("Basic search results count: " + results.size());
             printResults(results);
         } catch (Exception e) {
