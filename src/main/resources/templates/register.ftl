@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
     <title>Register Account</title>
     <link rel="stylesheet" href="/styles/loginRegister.css">
     <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
@@ -14,14 +14,14 @@
 
 <script type="text/babel">
     function RegisterForm(){
-        const [password, setPassword] = React.useState('');
-        const [confirmPassword, setConfirmPassword] = React.useState('');
+const [password, setPassword] = React.useState('');
+const [confirmPassword, setConfirmPassword] = React.useState('');
 
-        const handleSubmit = (e) => {
-            if (password !== confirmPassword) {
-                alert("Passwords do not match!");
-                e.preventDefault();
-            }
+const handleSubmit = (e) => {
+if (password !== confirmPassword) {
+alert("Passwords do not match!");
+e.preventDefault();
+}
         };
 
         return (

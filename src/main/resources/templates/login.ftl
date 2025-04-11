@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
     <title>
         Login
     </title>
@@ -15,22 +15,22 @@
 
     <script type="text/babel">
         function LoginForm() {
-            return (
-                <form action="/login" method="post">
-                    <div>
-                        <label htmlFor="username">Username: </label>
-                        <input type="text" id="username" name = "username" required />
-                    </div>
-                    <div>
-                        <label htmlFor="confirmedPassword">Confirm Password: </label>
-                        <input type="password" id="confirmedPassword" name = "confirmPassword" required />
-                    </div>
-                    <div>
-                    <input type="submit" value="Login" />
-                    </div>
-                </form>
-            );
-        }
+return (
+<form action="/login" method="post">
+<div>
+<label htmlFor="username">Username: </label>
+<input type="text" id="username" name = "username" required />
+</div>
+<div>
+<label htmlFor="confirmedPassword">Confirm Password: </label>
+<input type="password" id="confirmedPassword" name = "confirmPassword" required />
+</div>
+<div>
+<input type="submit" value="Login" />
+</div>
+</form>
+);
+}
 
     ReactDOM.render(<LoginForm />, document.getElementById('login-form'));
     </script>

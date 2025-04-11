@@ -23,6 +23,16 @@ align-items: center;
 padding: 0 20px;
 box-sizing: border-box;
 }
+/* Logout button styling */
+.logout-button {
+background-color: #4CAF50;
+border: none;
+color: white;
+padding: 8px 16px;
+font-size: 14px;
+cursor: pointer;
+margin-right: 20px;
+}
 /* Main container holds the sidebar and content area */
 .main-container {
 display: flex;
@@ -246,9 +256,11 @@ cursor: pointer;
   <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script crossorigin src="https://unpkg.com/moment/min/moment.min.js"></script>
 </head>
+
 <body>
   <!-- Top navigation bar -->
   <div class="top-bar">
+    <button class="logout-button" onclick="handleLogout()">Logout</button>
     <h3>Scheduler Navigation Bar</h3>
   </div>
 
@@ -262,7 +274,7 @@ cursor: pointer;
         <button id="spring-btn" class="semester-btn" data-semester="2024_Spring">Spring</button>
       </div>
       <!-- Main search input -->
-      <input type="text" placeholder="Search for classes..." class="search-input"/>
+      <input type="text" placeholder="Search for classes..." class="search-input" />
       <!-- Button to open advanced search modal -->
       <button class="advanced-search-btn" onclick="openModal()">Advanced Search</button>
       <!-- Container where search results will be displayed -->
@@ -328,12 +340,17 @@ cursor: pointer;
     document.addEventListener("DOMContentLoaded", function() {
 console.log("DOM fully loaded. Attaching event listeners.");
 
-// Set the default semester from the Fall button and store it in the session
-var currentSemester = document.querySelector("#fall-btn").dataset.semester;
-window.currentSemester = currentSemester;
+// Logout function to redirect to the logout URL
+window.handleLogout = function() {
+window.location.href = '/login';
+};
 
-// Attach click listeners to each semester button to update the current semester
-document.querySelectorAll(".semester-btn").forEach(function(btn) {
+      // Set the default semester from the Fall button and store it in the session
+      var currentSemester = document.querySelector("#fall-btn").dataset.semester;
+      window.currentSemester = currentSemester;
+
+      // Attach click listeners to each semester button to update the current semester
+      document.querySelectorAll(".semester-btn").forEach(function(btn) {
 btn.onclick = function() {
 document.querySelectorAll(".semester-btn").forEach(function(b) {
 b.classList.remove("active");
@@ -474,10 +491,10 @@ return response.json();
 .then(function(result) {
 console.log("Course added:", result);
 btn.textContent = "Remove";
-            btn.dataset.added = "true";
-            window.refreshCalendar?.();
-            updateScheduleTable();
-          })
+          btn.dataset.added = "true";
+          window.refreshCalendar?.();
+          updateScheduleTable();
+        })
 .catch(function(err) {
 console.error("Error adding course:", err);
 showErrorModal(err.error || "An error occurred while adding the course.");
@@ -497,10 +514,10 @@ body: params
 .then(function(result) {
 console.log("Course removed:", result);
 btn.textContent = "Add";
-            btn.dataset.added = "false";
-            window.refreshCalendar?.();
-            updateScheduleTable();
-          })
+          btn.dataset.added = "false";
+          window.refreshCalendar?.();
+          updateScheduleTable();
+        })
 .catch(function(err) {
 console.error("Error removing course:", err);
 });
