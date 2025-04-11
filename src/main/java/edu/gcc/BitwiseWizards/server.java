@@ -223,7 +223,9 @@ public class server {
 
                 // Perform an initial search based on the keyword and semester.
                 Search searchInstance = new Search(dbm);
-                ArrayList<CourseItem> results = searchInstance.search(keyword, semester, currUser, dbm);
+                ArrayList<CourseItem> results = searchInstance.search(keyword, semester);
+
+                System.out.println("DEBUG: Initial search results count: " + results.size());
 
                 // Convert the days filter string into a list of valid day characters.
                 List<Character> daysList = new ArrayList<>();

@@ -1094,6 +1094,25 @@ public class DatabaseManager {
     // SEARCH METHODS
 
     /**
+     * returns all course ids in the database
+     * @return ArrayList of all course ids
+     */
+    protected ArrayList<Integer> getAllCourseIds() {
+        ArrayList<Integer> courses = new ArrayList<>();
+        String sql = "SELECT course_id FROM courses";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                courses.add(rs.getInt("course_id"));
+            }
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to retrieve all course IDs: " + e.getMessage());
+        }
+        return courses;
+    }
+
+    /**
      * returns a list of course IDs for all courses that contain the keyword
      * @param keyword
      * @return a list of course IDs
@@ -1123,6 +1142,7 @@ public class DatabaseManager {
         }
         return courses;
     }
+
     protected ArrayList<Integer> searchCoursesFuzzy(String keyword) {
         ArrayList<Integer> courses = new ArrayList<>();
         String sql = """
