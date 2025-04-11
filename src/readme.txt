@@ -1,0 +1,1 @@
+run main on 'server', then navigate to localhost:4567/

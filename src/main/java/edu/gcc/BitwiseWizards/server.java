@@ -178,8 +178,7 @@ public class server {
                     }
                 }
             }
-            //
-             //
+
 
 
             // If no conflicts, insert the course into the user's schedule.
