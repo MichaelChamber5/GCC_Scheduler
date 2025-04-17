@@ -39,7 +39,11 @@ public class GeminiKeywordExtractor {
 
     // Send user input to Gemini and get keywords back
     public List<String> extractKeywords(String inputText) throws IOException {
-        String catalogText = PDFTextExtractor.extractText("src/main/resources/2024-25-Catalog.pdf");
+        String catalogText = PDFProcessor.getCatalogText();
+        if (catalogText == null) {
+            System.err.println("Warning: Course catalog not processed. Falling back to direct PDF extraction.");
+            catalogText = PDFTextExtractor.extractText("src/main/resources/2024-25-Catalog.pdf");
+        }
 
         String prompt = """
         You are given a college course catalog and a student query.

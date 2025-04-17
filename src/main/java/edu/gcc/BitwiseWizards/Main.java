@@ -84,11 +84,8 @@ class Main {
     // testing...
     // TODO: actually implement main
     public static void main(String[] args) throws Exception {
-
-
-
-
-        // launch();
+        // Initialize PDF processor
+        PDFProcessor.initialize();
 
         // create / initialize database
         dm = new DatabaseManager();
