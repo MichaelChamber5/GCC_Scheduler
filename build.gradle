@@ -32,8 +32,13 @@ dependencies {
 
     //for spell checking
     implementation 'net.sf.jazzy:jazzy-core:0.5.2'
+    //for api
     implementation 'com.squareup.okhttp3:okhttp:4.9.3'
+    //using json in api call
     implementation 'org.json:json:20220320'
+    //pdf File reader of course catalog
+    implementation 'org.apache.pdfbox:pdfbox:2.0.29'
+
 
 }
 

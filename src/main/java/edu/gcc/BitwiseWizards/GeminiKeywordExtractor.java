@@ -39,19 +39,19 @@ public class GeminiKeywordExtractor {
 
     // Send user input to Gemini and get keywords back
     public List<String> extractKeywords(String inputText) throws IOException {
+        String catalogText = PDFTextExtractor.extractText("src/main/resources/2024-25-Catalog.pdf");
+
         String prompt = """
-        Extract relevant keywords from the following course search query. Keywords should include:
-        - Professor names
-        - Course titles or topics
-        - Department codes
-        - Days of the week
-        - Time of day (like morning/evening)
-        - Semester info
+        You are given a college course catalog and a student query.
+        Extract a comma-separated list of **relevant keywords** based only on what exists in the catalog.
+        Examples: course titles, professor names, department names, class days/times, semester terms.
         
-        Respond ONLY with a comma-separated list of keywords, no full sentences.
+        Catalog:
+        """ + catalogText + """
         
         Query:
-        """ + inputText;
+        """ + inputText + """
+        """;
 
         JSONObject requestBody = new JSONObject()
                 .put("contents", new JSONArray().put(new JSONObject()
