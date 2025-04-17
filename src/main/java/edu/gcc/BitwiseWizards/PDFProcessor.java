@@ -7,7 +7,7 @@ import java.nio.file.Paths;
 
 public class PDFProcessor {
     private static String catalogText = null;
-    private static final String PDF_PATH = "src/main/resources/2024-25-Catalog.pdf";
+    private static final String PDF_PATH = "C:\\Users\\VANGURAAL23\\IdeaProjects\\GCC_Scheduler\\2024-25-Catalog.pdf";
 
     public static void initialize() {
         try {
