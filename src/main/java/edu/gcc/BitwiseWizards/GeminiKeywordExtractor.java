@@ -65,18 +65,22 @@ public class GeminiKeywordExtractor {
                         .put("maxOutputTokens", 100));
 
         Request request = new Request.Builder()
-                .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent")
+                .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey)
                 .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", "Bearer " + apiKey)
                 .post(RequestBody.create(requestBody.toString(), MediaType.parse("application/json")))
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                throw new IOException("Gemini API failed: " + response.body().string());
+                String errorBody = response.body().string();
+                System.err.println("Gemini API Error Response: " + errorBody);
+                throw new IOException("Gemini API failed with status " + response.code() + ": " + errorBody);
             }
 
-            JSONObject json = new JSONObject(response.body().string());
+            String responseBody = response.body().string();
+            System.out.println("Gemini API Response: " + responseBody);
+
+            JSONObject json = new JSONObject(responseBody);
             String text = json
                     .getJSONArray("candidates")
                     .getJSONObject(0)
@@ -85,10 +89,16 @@ public class GeminiKeywordExtractor {
                     .getJSONObject(0)
                     .getString("text");
 
+            System.out.println("Extracted keywords: " + text);
+
             return Arrays.stream(text.split(","))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.err.println("Error in Gemini API call: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 }
