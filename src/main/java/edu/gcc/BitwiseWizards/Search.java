@@ -191,7 +191,7 @@ public class Search {
 
         try {
             if (keyWords.length > 2 || keywordStr.length() > 20) { // trigger LLM for long queries
-                GeminiKeywordExtractor extractor = new GeminiKeywordExtractor("AIzaSyDW2ONTUi-Zca3Rp9y_7f6fLNdN9xp4Rpo");
+                GeminiKeywordExtractor extractor = new GeminiKeywordExtractor();
                 List<String> extractedKeywords = extractor.extractKeywords(keywordStr);
                 System.out.println("LLM extracted keywords: " + extractedKeywords);
                 resultingItems = searchMultiWord(extractedKeywords.toArray(new String[0]), semester);
