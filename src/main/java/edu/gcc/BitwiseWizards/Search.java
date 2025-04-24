@@ -185,59 +185,48 @@ public class Search {
      * @param keywordStr
      * @return list of courses that match the keyword(s)
      */
-    public ArrayList<CourseItem> search(String keywordStr, String semester)
-    {
+    public ArrayList<CourseItem> search(String keywordStr, String semester) {
         String[] keyWords = keywordStr.split(" ");
-
-        //check to see if search results resturn something
         ArrayList<CourseItem> resultingItems = new ArrayList<>();
-        if(keyWords.length == 0)
-        {
-            resultingItems = searchSingleWord("", semester);
-        }
-        else if(keyWords.length == 1)
-        {
-            resultingItems = searchSingleWord(keyWords[0], semester);
-        }
-        else
-        {
-            resultingItems = searchMultiWord(keyWords, semester);
+
+        try {
+            if (keyWords.length > 2 || keywordStr.length() > 20) { // trigger LLM for long queries
+                GeminiKeywordExtractor extractor = new GeminiKeywordExtractor("YOUR_API_KEY");
+                List<String> extractedKeywords = extractor.extractKeywords(keywordStr);
+                System.out.println("LLM extracted keywords: " + extractedKeywords);
+                resultingItems = searchMultiWord(extractedKeywords.toArray(new String[0]), semester);
+            } else {
+                resultingItems = (keyWords.length == 1)
+                        ? searchSingleWord(keyWords[0], semester)
+                        : searchMultiWord(keyWords, semester);
+            }
+        } catch (Exception e) {
+            System.err.println("LLM keyword extraction failed, falling back to standard search.");
+            resultingItems = (keyWords.length == 1)
+                    ? searchSingleWord(keyWords[0], semester)
+                    : searchMultiWord(keyWords, semester);
         }
 
-        //if we have stuff in the list great
-        if(!resultingItems.isEmpty())
-        {
-            return resultingItems;
-        }
-        else //if it's empty, try spellchecking
-        {
-            for(int i = 0; i < keyWords.length; i++)
-            {
+        // If empty, try spell check fallback
+        if (resultingItems.isEmpty()) {
+            for (int i = 0; i < keyWords.length; i++) {
                 keyWords[i] = keyWords[i].trim();
-                if(spellChecker != null && !keyWords[i].isEmpty() && !spellChecker.isCorrect(keyWords[i]))
-                {
+                if (spellChecker != null && !keyWords[i].isEmpty() && !spellChecker.isCorrect(keyWords[i])) {
                     String suggestion = getBestSuggestion(keyWords[i]);
                     if (suggestion != null && !suggestion.isEmpty()) {
-                        //System.out.println("Did you mean: " + suggestion);
                         keyWords[i] = suggestion;
                     }
                 }
             }
 
-            if(keyWords.length == 0)
-            {
-                return searchSingleWord("", semester);
-            }
-            else if(keyWords.length == 1)
-            {
-                return searchSingleWord(keyWords[0], semester);
-            }
-            else
-            {
-                return searchMultiWord(keyWords, semester);
-            }
+            resultingItems = (keyWords.length == 1)
+                    ? searchSingleWord(keyWords[0], semester)
+                    : searchMultiWord(keyWords, semester);
         }
+
+        return resultingItems;
     }
+
 
     public List<CourseItem> filter(String deptCode, List<Character> days, Date start, Date end) {
         this.deptCode = deptCode;
