@@ -22,7 +22,7 @@ return (
 <input type="text" id="username" name = "username" required />
 </div>
 <div>
-<label htmlFor="confirmedPassword">Confirm Password: </label>
+<label htmlFor="confirmedPassword">Password: </label>
 <input type="password" id="confirmedPassword" name = "confirmPassword" required />
 </div>
 <div>
