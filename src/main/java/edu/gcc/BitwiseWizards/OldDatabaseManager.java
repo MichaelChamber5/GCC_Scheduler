@@ -7,24 +7,18 @@ import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
 
-/**
- * TODO
- */
+// testing
 
-public class DatabaseManager {
+public class OldDatabaseManager {
 
     private Connection connection = null;
     private static final String DB_URL = "jdbc:sqlite:GCC_Scheduler.db";
-    private static final String JSON_FILE = "/data_wolfe.json";
-
-    // ############################################################################
-    // DB CONNECTION / INITIALIZATION
-    // ############################################################################
+    private static final String JSON_FILE = "/data_wolfe.json"; // download / move to resources folder
 
     /**
-     * Initialize database connection / table data.
+     * Connects to and initializes database.
      */
-    public DatabaseManager() {
+    public OldDatabaseManager() {
         try {
             connection = DriverManager.getConnection(DB_URL);
             System.out.println("\nSuccessfully connected to database.");
@@ -35,164 +29,30 @@ public class DatabaseManager {
     }
 
     /**
-     * Close database connection.
+     * Connects to but DOES NOT initialize database.
+     * TODO: better way to incorporate search / DatabaseManager?
+     * @param dbm database manager
      */
-    protected void close() {
+    public OldDatabaseManager(OldDatabaseManager dbm) {
         try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-                System.out.println("\nSuccessfully closed database connection.");
-            }
-        } catch (SQLException e) {
-            System.out.println("Failed to close database connection: " + e.getMessage());
+            connection = DriverManager.getConnection(DB_URL);
+        } catch(SQLException e) {
+            System.err.println("Failed to connect to database: " + e.getMessage());
         }
     }
 
     /**
-     * Initialize data by creating / populating tables.
-     * TODO: comment out dropTables()
+     * Creates tables and fills them with dummy data.
+     * TODO: ideally only run dropTables() once before commenting it out.. but its good for testing
      */
     private void initializeDatabase() {
         try {
-            dropTables();
+            // dropTables();
             createTables();
             populateTables();
             System.out.println("Successfully initialized database.");
         } catch (SQLException e) {
             System.err.println("Error initializing database: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Creates the following tables:
-     *      departments         (dept_id, dept_code, dept_name)
-     *      faculty             (faculty_id, faculty_name, avg_rating, avg_difficulty)
-     *      courses             (course_id, credits, is_lab, is_open, location, ...)
-     *      course_faculty      (course_id, faculty_id)
-     *      users               (user_id, user_email, user_password)
-     *      user_schedules      (user_id, sched_id)
-     *      user_courses        (sched_id, course_id)
-     *      user_personal_items (sched_id, pitem_id, pitem_name)
-     *      time_slots          (time_id, day, start, end)
-     *      course_time_slots   (course_id, time_id)
-     *      pitem_time_slots    (pitem_id, time_id)
-     * @throws SQLException if commands fail
-     */
-    private void createTables() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
-            // DEPARTMENTS (dept_id, "COMP", "Computer Science")
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS departments (
-                    dept_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    dept_code TEXT NOT NULL UNIQUE,
-                    dept_name TEXT
-                )
-            """);
-            // COURSES (course_id, "SOFTWARE ENGINEERING", "COMP", 350, "B", "2024_Spring")
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS courses (
-                    course_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    credits INTEGER NOT NULL,
-                    is_lab BOOLEAN NOT NULL,
-                    is_open BOOLEAN NOT NULL,
-                    location TEXT NOT NULL,
-                    course_name TEXT NOT NULL,
-                    course_number INTEGER NOT NULL,
-                    open_seats INTEGER NOT NULL,
-                    section_id TEXT NOT NULL,
-                    semester TEXT NOT NULL,
-                    dept_id INTEGER NOT NULL,
-                    total_seats INTEGER NOT NULL,
-                    FOREIGN KEY (dept_id) REFERENCES departments(dept_id),
-                    UNIQUE(dept_id, course_number, section_id, semester)
-                )
-            """);
-            // FACULTY (faculty_id, "Hutchins, Jonathan O.", 4.3, 2.5)
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS faculty (
-                    faculty_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    faculty_name TEXT NOT NULL UNIQUE,
-                    avg_rating REAL,
-                    avg_difficulty REAL
-                )
-            """);
-            // COURSE_FACULTY (course_id, faculty_id)
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS course_faculty (
-                    course_id INTEGER NOT NULL,
-                    faculty_id INTEGER NOT NULL,
-                    PRIMARY KEY (course_id, faculty_id),
-                    FOREIGN KEY (course_id) REFERENCES courses(course_id),
-                    FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id)
-                )
-            """);
-            // TIME_SLOTS (time_id, 'W', 1100, 1145)
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS time_slots (
-                    time_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    day TEXT NOT NULL,
-                    start INTEGER NOT NULL,
-                    end INTEGER NOT NULL,
-                    UNIQUE(day, start, end)
-                )
-            """);
-            // COURSE_TIME_SLOTS (course_id, time_id)
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS course_time_slots (
-                    course_id INTEGER NOT NULL,
-                    time_id INTEGER NOT NULL,
-                    PRIMARY KEY (course_id, time_id),
-                    FOREIGN KEY (course_id) REFERENCES courses(course_id),
-                    FOREIGN KEY (time_id) REFERENCES time_slots(time_id)
-                )
-            """);
-            // USERS (user_id, "proctorhm22@gcc.edu", "password")
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_email TEXT NOT NULL UNIQUE,
-                    user_password TEXT NOT NULL
-                )
-            """);
-            // USER_SCHEDULES (user_id, sched_id, "Senior Fall")
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS user_schedules (
-                    user_id TEXT NOT NULL,
-                    sched_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    sched_name TEXT NOT NULL UNIQUE,
-                    FOREIGN KEY (user_id) REFERENCES users(user_id)
-                )
-            """);
-            // USER_COURSES (sched_id, course_id)
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS user_courses (
-                    sched_id INTEGER NOT NULL,
-                    course_id INTEGER NOT NULL,
-                    PRIMARY KEY (sched_id, course_id),
-                    FOREIGN KEY (sched_id) REFERENCES user_schedules(sched_id),
-                    FOREIGN KEY (course_id) REFERENCES courses(course_id)
-                )
-            """);
-            // USER_PERSONAL_ITEMS (sched_id, pitem_id, "Chapel")
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS user_personal_items (
-                    sched_id INTEGER NOT NULL,
-                    pitem_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    pitem_name TEXT NOT NULL,
-                    UNIQUE(user_id, pitem_name),
-                    FOREIGN KEY (sched_id) REFERENCES user_schedules(sched_id),
-                )
-            """);
-            // PITEM_TIME_SLOTS table (pitem_id, time_id)
-            stmt.execute("""
-                CREATE TABLE IF NOT EXISTS pitem_time_slots (
-                    pitem_id INTEGER NOT NULL,
-                    time_id INTEGER NOT NULL,
-                    PRIMARY KEY (pitem_id, time_id),
-                    FOREIGN KEY (pitem_id) REFERENCES personal_items(pitem_id),
-                    FOREIGN KEY (time_id) REFERENCES time_slots(time_id)
-                )
-            """);
         }
     }
 
@@ -216,6 +76,176 @@ public class DatabaseManager {
             stmt.execute("""
                 DROP TABLE IF EXISTS pitem_time_slots;
             """);
+        }
+    }
+
+    /**
+     * Creates the following tables:
+     *      departments         (dept_id, dept_code, dept_name)
+     *      faculty             (faculty_id, faculty_name, avg_rating, avg_difficulty)
+     *      courses             (course_id, credits, is_lab, is_open, location, ...)
+     *      course_faculty      (course_id, faculty_id)
+     *      personal_items      (pitem_id, pitem_name)
+     *      users               (user_id, user_email, user_password)
+     *      user_courses        (user_id, course_id)
+     *      time_slots          (time_id, day, start, end)
+     *      course_time_slots   (course_id, time_id)
+     *      pitem_time_slots    (pitem_id, time_id)
+     * @throws SQLException if commands fail
+     */
+    private void createTables() throws SQLException {
+        // Example JSON entry:
+        /*
+            {   "credits":3,
+                "faculty":["Hutchins, Jonathan O."],
+                "is_lab":false,
+                "is_open":true,
+                "location":"STEM 326",
+                "name":"SOFTWARE ENGINEERING",
+                "number":350,
+                "open_seats":9,
+                "section":"B",
+                "semester":"2024_Spring",
+                "subject":"COMP",
+                "times":[   {   "day":"M",
+                                "end_time":"15:50:00",
+                                "start_time":"15:00:00"
+                            },
+                            {   "day":"W",
+                                "end_time":"15:50:00",
+                                "start_time":"15:00:00"
+                            },
+                            {   "day":"F",
+                                "end_time":"15:50:00",
+                                "start_time":"15:00:00"
+                            }
+                        ],
+                "total_seats":23
+            }
+         */
+        try (Statement stmt = connection.createStatement()) {
+            // departments table (dept_id, "COMP", "Computer Science")
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS departments (
+                    dept_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    dept_code TEXT NOT NULL UNIQUE,
+                    dept_name TEXT
+                )
+            """);
+            // faculty table (faculty_id, "Hutchins, Jonathan O.", 4.3, 2.5)
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS faculty (
+                    faculty_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    faculty_name TEXT NOT NULL UNIQUE,
+                    avg_rating REAL,
+                    avg_difficulty REAL
+                )
+            """);
+            // courses table (course_id, "SOFTWARE ENGINEERING", "COMP", 350, "B", "2024_Spring")
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS courses (
+                    course_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    credits INTEGER NOT NULL,
+                    is_lab BOOLEAN NOT NULL,
+                    is_open BOOLEAN NOT NULL,
+                    location TEXT NOT NULL,
+                    course_name TEXT NOT NULL,
+                    course_number INTEGER NOT NULL,
+                    open_seats INTEGER NOT NULL,
+                    section_id TEXT NOT NULL,
+                    semester TEXT NOT NULL,
+                    dept_id INTEGER NOT NULL,
+                    total_seats INTEGER NOT NULL,
+                    FOREIGN KEY (dept_id) REFERENCES departments(dept_id),
+                    UNIQUE(dept_id, course_number, section_id, semester)
+                )
+            """);
+            // courses x faculty table (course_id, faculty_id)
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS course_faculty (
+                    course_id INTEGER NOT NULL,
+                    faculty_id INTEGER NOT NULL,
+                    PRIMARY KEY (course_id, faculty_id),
+                    FOREIGN KEY (course_id) REFERENCES courses(course_id),
+                    FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id)
+                )
+            """);
+            // personal_items table (pitem_id, "Chapel")
+            // TODO: pitem_id / unique(user_id, pitem_name) issues
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS personal_items (
+                    pitem_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    pitem_name TEXT NOT NULL,
+                    UNIQUE(user_id, pitem_name),
+                    FOREIGN KEY (user_id) REFERENCES users(user_id)
+                )
+            """);
+            // users table (user_id, "proctorhm22@gcc.edu", "password")
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_email TEXT NOT NULL UNIQUE,
+                    user_password TEXT NOT NULL
+                )
+            """);
+            // users x courses table (user_id, course_id)
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS user_courses (
+                    user_id INTEGER NOT NULL,
+                    course_id INTEGER NOT NULL,
+                    PRIMARY KEY (user_id, course_id),
+                    FOREIGN KEY (user_id) REFERENCES users(user_id),
+                    FOREIGN KEY (course_id) REFERENCES courses(course_id)
+                )
+            """);
+            // time slots table (time_id, 'W', 1100, 1145)
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS time_slots (
+                    time_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    day TEXT NOT NULL,
+                    start INTEGER NOT NULL,
+                    end INTEGER NOT NULL,
+                    UNIQUE(day, start, end)
+                )
+            """);
+            // course_time_slots table (course_id, time_id)
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS course_time_slots (
+                    course_id INTEGER NOT NULL,
+                    time_id INTEGER NOT NULL,
+                    PRIMARY KEY (course_id, time_id),
+                    FOREIGN KEY (course_id) REFERENCES courses(course_id),
+                    FOREIGN KEY (time_id) REFERENCES time_slots(time_id)
+                )
+            """);
+            // pitem_time_slots table (pitem_id, time_id)
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS pitem_time_slots (
+                    pitem_id INTEGER NOT NULL,
+                    time_id INTEGER NOT NULL,
+                    PRIMARY KEY (pitem_id, time_id),
+                    FOREIGN KEY (pitem_id) REFERENCES personal_items(pitem_id),
+                    FOREIGN KEY (time_id) REFERENCES time_slots(time_id)
+                )
+            """);
+        }
+    }
+
+    /**
+     * @return the number of courses in the courses table or -1 if SQLException occurred
+     */
+    protected int getCourseCount() {
+        String sql = "SELECT COUNT(*) FROM courses";
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            return 0;
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to get course count: " + e.getMessage());
+            return -1;
         }
     }
 
@@ -331,23 +361,6 @@ public class DatabaseManager {
         }
     }
 
-    /**
-     * @return the number of courses in the courses table or -1 if SQLException occurred
-     */
-    protected int getCourseCount() {
-        String sql = "SELECT COUNT(*) FROM courses";
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-            return 0;
-        } catch (SQLException e) {
-            System.out.println("ERROR: failed to get course count: " + e.getMessage());
-            return -1;
-        }
-    }
-
     // helper methods for safely getting values from JsonNode
 
     private String getTextValue(JsonNode node, String fieldName) {
@@ -360,77 +373,7 @@ public class DatabaseManager {
         return (field != null && !field.isNull()) ? field.asInt() : 0;
     }
 
-
-    // ############################################################################
-    // DB ACCESS CALLS
-    // ############################################################################
-
-    /*
-    DEPARTMENTS
-    - private int insertDepartment(String dept_code, String dept_name)
-    - protected int getDeptID(String dept_code)
-    - protected String getDeptCode(int dept_id)
-
-    COURSES
-    - private int insertCourse(...)
-    - protected int getCourseID(int dept_id, int course_number, String section, String semester)
-    - protected CourseItem getCourseByID(int course_id)
-
-    FACULTY
-    - private int insertFaculty(String faculty_name, double avg_rating, double avg_difficulty)
-    - protected int getFacultyID(String faculty_name)
-    - TODO: protected Professor getFacultyObject(int faculty_id)
-
-    COURSE_FACULTY
-    - private void insertCourseFaculty(int course_id, int faculty_id)
-    - protected ArrayList<Professor> getCourseFaculty(int course_id)
-
-    TIME_SLOTS
-    - protected int insertTimeSlot(String day, int start, int end)
-    - protected int getTimeSlotID(String day, int start, int end)
-    - protected Map<Character, List<Integer>> getMeetingTime(int time_id)
-    - TODO: protected void deleteTimeSlot(int time_id) (**only delete pitem_time_slots)
-
-    COURSE_TIME_SLOTS
-    - private void insertCourseTimeSlot(int time_id, int course_id)
-    - protected Map<Character, List<Integer>> getCourseMeetingTimes(int course_id)
-
-    USERS
-    - protected int insertUser(String user_email, String user_password)
-    - protected int getUserID(String user_email, String user_password)
-    - TODO: protected void updateUserEmail(int user_id, String new_email)
-    - TODO: protected void updateUserPassword(int user_id, String new_password)
-    - TODO: protected void deleteUser(int user_id)
-
-    USER_SCHEDULES
-    - TODO: protected int insertUserSchedule(user_id, String sched_name)
-    = TODO: protected int getScheduleID(user_id, String sched_name)
-    - TODO: modify - protected Schedule getUserSchedule(int user_id, int sched_id)
-    - TODO: protected ArrayList<Schedule> getAllUserSchedules(int user_id)
-    - TODO: protected void deleteUserSchedule(int user_id, int sched_id)
-    - TODO: protected void deleteAllUserSchedules(int user_id)
-
-    USER_COURSES
-    - TODO: modify - protected void insertUserCourse(*int sched_id, int course_id)
-    - TODO: modify - protected void deleteUserCourse(*int sched_id, int course_id)
-    - TODO: modify - protected ArrayList<CourseItem> getUserCourses(*int sched_id)
-    - TODO: protected void deleteAllCourses(int sched_id)
-
-    USER_PERSONAL_ITEMS
-    - TODO: modify - protected int insertUserPersonalItem(*int sched_id, String pitem_name, Map<Character, List<Integer>> meetingTimes)
-    - TODO: modify - protected int getPersonalItemID(*int sched_id, String pitem_name)
-    - protected ScheduleItem getPersonalItemByID(int pitem_id)
-    - TODO: modify - protected void deleteUserPersonalItem(*int sched_id, int pitem_id)
-    - TODO: modify - protected ArrayList<ScheduleItem> getUserPersonalItems(*int sched_id)
-    - TODO: protected void deleteAllPersonalItems(int sched_id)
-
-    PITEM_TIME_SLOTS
-    - void insertPersonalItemTimeSlot(int time_id, int pitem_id)
-    - Map<Character, List<Integer>> getPersonalItemMeetingTimes(int pitem_id)
-    - TODO: protected void deletePersonalItemTimeSlot(int time_id)
-     */
-
-    // ######## DEPARTMENTS #######################################################
+    // DEPARTMENTS TABLE INSERT / GET methods
 
     /**
      * Insert department into departments table.
@@ -470,6 +413,7 @@ public class DatabaseManager {
             if (rs.next()) {
                 return rs.getInt("dept_id");
             }
+//            System.err.println("Failed to get department id: dept_code not found");
         } catch (SQLException e) {
             System.err.println("Failed to get department id: " + e.getMessage());
         }
@@ -492,13 +436,64 @@ public class DatabaseManager {
             if (rs.next()) {
                 return rs.getString("dept_code");
             }
+//            System.err.println("Failed to get department code: dept_id not found");
         } catch (SQLException e) {
             System.err.println("Failed to get department code: " + e.getMessage());
         }
         return null;
     }
 
-    // ######## COURSES ###########################################################
+    // FACULTY TABLE INSERT / GET methods
+
+    /**
+     * Insert faculty member into faculty table.
+     * Duplicate entries (entries with the same faculty_name) are ignored.
+     * TODO: as is, faculty_name must be unique.
+     * TODO: get avg_rating / avg_difficulty from RateMyProfessor API.
+     * @param faculty_name faculty name e.g. "Hutchins, Jonathan O."
+     * @param avg_rating "Overall Quality" rating on RateMyProfessor (default -1)
+     * @param avg_difficulty "Level of Difficulty" rating on RateMyProfessor (default -1)
+     * @return faculty_id of the inserted faculty member; -1 if insertion failed
+     */
+    private int insertFaculty(String faculty_name, double avg_rating, double avg_difficulty) {
+        String sql = "INSERT INTO faculty (faculty_name, avg_rating, avg_difficulty) VALUES (?, ?, ?) " +
+                "ON CONFLICT(faculty_name) DO NOTHING";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, faculty_name);
+            pstmt.setDouble(2, avg_rating);
+            pstmt.setDouble(3, avg_difficulty);
+            pstmt.executeUpdate();
+            return getFacultyID(faculty_name);
+        } catch (SQLException e) {
+            System.err.println("Failed to insert faculty: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * @param faculty_name faculty name e.g. "Hutchins, Jonathan O."
+     * @return faculty_id of the specified faculty member or -1 if not found / SQLException occurred
+     */
+    protected int getFacultyID(String faculty_name) {
+        String sql = """
+            SELECT *
+            FROM faculty
+            WHERE faculty_name = ?
+        """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, faculty_name);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("faculty_id");
+            }
+//            System.err.println("Failed to get faculty id: faculty_name not found");
+        } catch (SQLException e) {
+            System.err.println("Failed to get faculty id: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    // COURSES TABLE INSERT / GET methods
 
     /**
      * Insert course into courses table.
@@ -517,8 +512,7 @@ public class DatabaseManager {
      */
     private int insertCourse(int credits, boolean is_lab, boolean is_open, String location,
                              String course_name, int course_number, int open_seats,
-                             String section_id, String semester, int dept_id,
-                             int total_seats) {
+                             String section_id, String semester, int dept_id, int total_seats) {
         String sql = """
             INSERT INTO courses (credits, is_lab, is_open, location, course_name, course_number,
                 open_seats, section_id, semester, dept_id, total_seats)
@@ -552,8 +546,7 @@ public class DatabaseManager {
      * @param semester semester course is offered e.g. "2024_Spring"
      * @return course_id or -1 if not found or SQLException thrown
      */
-    protected int getCourseID(int dept_id, int course_number, String section,
-                              String semester) {
+    protected int getCourseID(int dept_id, int course_number, String section, String semester) {
         String sql = """
             SELECT *
             FROM courses
@@ -619,57 +612,7 @@ public class DatabaseManager {
         return null;
     }
 
-    // ######## FACULTY ###########################################################
-
-    /**
-     * Insert faculty member into faculty table.
-     * Duplicate entries (entries with the same faculty_name) are ignored.
-     * As is, faculty_name must be unique.
-     * TODO: avg_rating / avg_difficulty
-     * @param faculty_name faculty name e.g. "Hutchins, Jonathan O."
-     * @param avg_rating "Overall Quality" rating on RateMyProfessor (default -1)
-     * @param avg_difficulty "Level of Difficulty" rating on RateMyProfessor (default -1)
-     * @return faculty_id of the inserted faculty member; -1 if insertion failed
-     */
-    private int insertFaculty(String faculty_name, double avg_rating, double avg_difficulty) {
-        String sql = "INSERT INTO faculty (faculty_name, avg_rating, avg_difficulty) VALUES (?, ?, ?) " +
-                "ON CONFLICT(faculty_name) DO NOTHING";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, faculty_name);
-            pstmt.setDouble(2, avg_rating);
-            pstmt.setDouble(3, avg_difficulty);
-            pstmt.executeUpdate();
-            return getFacultyID(faculty_name);
-        } catch (SQLException e) {
-            System.err.println("Failed to insert faculty: " + e.getMessage());
-            return -1;
-        }
-    }
-
-    /**
-     * @param faculty_name faculty name e.g. "Hutchins, Jonathan O."
-     * @return faculty_id of the specified faculty member or -1 if not found / SQLException occurred
-     */
-    protected int getFacultyID(String faculty_name) {
-        String sql = """
-            SELECT *
-            FROM faculty
-            WHERE faculty_name = ?
-        """;
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, faculty_name);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("faculty_id");
-            }
-//            System.err.println("Failed to get faculty id: faculty_name not found");
-        } catch (SQLException e) {
-            System.err.println("Failed to get faculty id: " + e.getMessage());
-        }
-        return -1;
-    }
-
-    // ######## COURSE_FACULTY ####################################################
+    // COURSE_FACULTY TABLE INSERT / GET methods
 
     /**
      * Insert (course_id, faculty_id) pair into course_faculty table.
@@ -718,261 +661,7 @@ public class DatabaseManager {
         }
     }
 
-    // ######## TIME_SLOTS ########################################################
-
-    /**
-     * Insert time slot into time_slots table.
-     * Duplicate entries (entries with the same day, start, and end) are ignored.
-     * @param day e.g. "W"
-     * @param start e.g. 1100
-     * @param end e.g. 1145
-     * @return time_id of inserted time slot or -1 if exception thrown
-     */
-    private int insertTimeSlot(String day, int start, int end) {
-        String sql = "INSERT INTO time_slots (day, start, end) VALUES (?, ?, ?)" +
-                     "ON CONFLICT(day, start, end) DO NOTHING";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, day);
-            pstmt.setInt(2, start);
-            pstmt.setInt(3, end);
-            pstmt.executeUpdate();
-            return getTimeSlotID(day, start, end);
-        } catch (SQLException e) {
-            System.err.println("Failed to insert department: " + e.getMessage());
-            return -1;
-        }
-    }
-
-    /**
-     * Get id of the time slot with entries (day, start, end).
-     * @param day e.g. "W"
-     * @param start e.g. 1100
-     * @param end e.g. 1145
-     * @return time_id or -1 if not found or SQLException thrown
-     */
-    private int getTimeSlotID(String day, int start, int end) {
-        String sql = """
-            SELECT time_id
-            FROM time_slots
-            WHERE day = ? AND start = ? AND end = ?
-        """;
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, day);
-            pstmt.setInt(2, start);
-            pstmt.setInt(3, end);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("time_id");
-            }
-        } catch (SQLException e) {
-            System.err.println("Failed to get time slot id: " + e.getMessage());
-        }
-        return -1;
-    }
-
-    /**
-     * Get map ('D', [1100, 200]) from time_id.
-     * @param time_id
-     * @return
-     */
-    private Map<Character, List<Integer>> getMeetingTime(int time_id) {
-        Map<Character, List<Integer>> meetingTime = new HashMap<>();
-        String sql = """
-            SELECT *
-            FROM time_slots
-            WHERE time_id = ?
-        """;
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, time_id);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                meetingTime.put(rs.getString("day").charAt(0),
-                        new ArrayList<>(Arrays.asList(rs.getInt("start"),
-                                rs.getInt("end"))));
-                return meetingTime;
-            }
-        } catch (SQLException e) {
-            System.err.println("Failed to get time slot id: " + e.getMessage());
-        }
-        return null;
-    }
-
-    // ######## COURSE_TIME_SLOTS #################################################
-
-    /**
-     * Insert course time slot into pitem_time_slots table.
-     * @param time_id
-     * @param course_id FK references courses(course_id)
-     */
-    private void insertCourseTimeSlot(int time_id, int course_id) {
-        String sql = "INSERT INTO course_time_slots (time_id, course_id) VALUES (?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, time_id);
-            pstmt.setInt(2, course_id);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.err.println("Failed to insert course time slot: " + e.getMessage());
-            System.out.println(course_id + " " + time_id);
-        }
-    }
-
-    /**
-     * Get meeting times of course with specified id.
-     * @param course_id FK references courses(course_id)
-     * @return
-     */
-    private Map<Character, List<Integer>> getCourseMeetingTimes(int course_id) {
-        Map<Character, List<Integer>> meetingTimes = new HashMap<>();
-        String sql = """
-            SELECT time_id
-            FROM course_time_slots
-            WHERE course_id = ?
-        """;
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, course_id);
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                Map<Character, List<Integer>> meetingTime = getMeetingTime(rs.getInt("time_id"));
-                if (meetingTime != null) {
-                    meetingTimes.putAll(meetingTime);
-                }
-            }
-            return meetingTimes;
-        } catch (SQLException e) {
-            System.err.println("Failed to get course meeting times: " + e.getMessage());
-        }
-        return null;
-    }
-
-    // ######## USERS #############################################################
-
-    /**
-     * Insert user into users table.
-     * NOTE: password should be hashed before calling this method.
-     * @param user_email user email e.g. "proctorhm22@gcc.edu"
-     * @param user_password user password e.g. "password"
-     * @return user_id of the inserted user or -1 if insertion failed
-     */
-    protected int insertUser(String user_email, String user_password) {
-        String sql = "INSERT INTO users (user_email, user_password) VALUES (?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, user_email);
-            pstmt.setString(2, user_password);
-            pstmt.executeUpdate();
-            try {
-                return getUserID(user_email, user_password);
-            } catch (Exception e) {
-                System.err.println("Failed to get user_id: " + e.getMessage());
-            }
-        } catch (SQLException e) {
-            System.err.println("Failed to insert user: " + e.getMessage());
-        }
-        return -1;
-    }
-
-    /**
-     * Returns user_id of the user corresponding to the given email and password.
-     * Use user_id to get user schedule (getUserCourses() / getUserPersonalItems() / getUserSchedule()).
-     * @param user_email user email e.g. "proctorhm22@gcc.edu
-     * @param user_password user password e.g. "password"
-     * @return user_id of the specified user or -1 if not found or SQLException thrown
-     */
-    protected int getUserID(String user_email, String user_password) {
-        String sql = """
-            SELECT *
-            FROM users
-            WHERE user_email = ? AND user_password = ?
-        """;
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, user_email);
-            pstmt.setString(2, user_password);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("user_id");
-            }
-        } catch (SQLException e) {
-            System.out.println("ERROR: failed to get user from database: " + e.getMessage());
-        }
-        return -1;
-    }
-
-    // ######## USER_SCHEDULES ####################################################
-
-    /**
-     * Returns an array list of courses / personal items associated with the given user.
-     * @param user_id FK references users(user_id)
-     * @return
-     */
-    protected ArrayList<ScheduleItem> getUserSchedule(int user_id) {
-        ArrayList<ScheduleItem> schedule = new ArrayList<>();
-        schedule.addAll(getUserCourses(user_id));
-        schedule.addAll(getUserPersonalItems(user_id));
-        return schedule;
-    }
-
-    // ######## USER_COURSES ######################################################
-
-    /**
-     * Add course to user's schedule.
-     * @param user_id FK references users(user_id)
-     * @param course_id FK references courses(course_id)
-     */
-    protected void insertUserCourse(int user_id, int course_id) {
-        // TODO: check that course_id is valid id
-        String sql = "INSERT INTO user_courses (user_id, course_id) VALUES (?, ?) "
-                     + "ON CONFLICT(user_id, course_id) DO NOTHING";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
-            pstmt.setInt(2, course_id);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.err.println("ERROR: failed to insert user_course: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Remove course from user's schedule.
-     * @param user_id FK references users(user_id)
-     * @param course_id FK references courses(course_id)
-     */
-    protected void deleteUserCourse(int user_id, int course_id) {
-        // TODO: check that course_id is valid id
-        String sql = "DELETE FROM user_courses WHERE user_id = ? AND course_id = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
-            pstmt.setInt(2, course_id);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.out.println("ERROR: failed to delete user_course: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Returns an ArrayList of the courses associated with the given user.
-     * @param user_id FK references users(user_id)
-     * @return
-     */
-    protected ArrayList<CourseItem> getUserCourses(int user_id) {
-        ArrayList<CourseItem> courses = new ArrayList<>();
-        String sql = """
-            SELECT course_id
-            FROM user_courses
-            WHERE user_id = ?
-        """;
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
-            ResultSet rs = pstmt.executeQuery();
-            while(rs.next()) {
-                int course_id = rs.getInt("course_id");
-                courses.add(getCourseByID(course_id));
-            }
-        } catch (SQLException e) {
-            System.out.println("ERROR: failed to get user courses: " + e.getMessage());
-        }
-        return courses;
-    }
-
-    // ######## USER_PERSONAL_ITEMS ###############################################
+    // PERSONAL_ITEMS TABLE INSERT / GET / DELETE methods
 
     /**
      * Adds personal item to personal_items table / user's schedule.
@@ -981,8 +670,7 @@ public class DatabaseManager {
      * @param meetingTimes personal item meeting times e.g. {"W":{1100, 1145}}
      * @return pitem_id ocf inserted personal item.
      */
-    protected int insertPersonalItem(int user_id, String pitem_name, Map<Character,
-            List<Integer>> meetingTimes) {
+    protected int insertPersonalItem(int user_id, String pitem_name, Map<Character, List<Integer>> meetingTimes) {
         String sql = "INSERT INTO personal_items (user_id, pitem_name) VALUES (?, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, user_id);
@@ -1059,6 +747,136 @@ public class DatabaseManager {
         return null;
     }
 
+    // TODO: updatePersonalItem()?
+
+    // USERS TABLE INSERT / GET methods
+
+    /**
+     * Insert user into users table.
+     * NOTE: password should be hashed before calling this method.
+     * @param user_email user email e.g. "proctorhm22@gcc.edu"
+     * @param user_password user password e.g. "password"
+     * @return user_id of the inserted user or -1 if insertion failed
+     */
+    protected int insertUser(String user_email, String user_password) {
+        String sql = "INSERT INTO users (user_email, user_password) VALUES (?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, user_email);
+            pstmt.setString(2, user_password);
+            pstmt.executeUpdate();
+            try {
+                return getUserID(user_email, user_password);
+            } catch (Exception e) {
+                System.err.println("Failed to get user_id: " + e.getMessage());
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to insert user: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    /**
+     * Returns user_id of the user corresponding to the given email and password.
+     * Use user_id to get user schedule (getUserCourses() / getUserPersonalItems() / getUserSchedule()).
+     * @param user_email user email e.g. "proctorhm22@gcc.edu
+     * @param user_password user password e.g. "password"
+     * @return user_id of the specified user or -1 if not found or SQLException thrown
+     */
+    protected int getUserID(String user_email, String user_password) {
+        String sql = """
+            SELECT *
+            FROM users
+            WHERE user_email = ? AND user_password = ?
+        """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, user_email);
+            pstmt.setString(2, user_password);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("user_id");
+            }
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to get user from database: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    /**
+     * Returns an array list of courses / personal items associated with the given user.
+     * @param user_id FK references users(user_id)
+     * @return
+     */
+    protected ArrayList<ScheduleItem> getUserSchedule(int user_id) {
+        ArrayList<ScheduleItem> schedule = new ArrayList<>();
+        schedule.addAll(getUserCourses(user_id));
+        schedule.addAll(getUserPersonalItems(user_id));
+        return schedule;
+    }
+
+    // USER_COURSES TABLE INSERT / DELETE / GET methods
+
+    /**
+     * Add course to user's schedule.
+     * @param user_id FK references users(user_id)
+     * @param course_id FK references courses(course_id)
+     */
+    protected void insertUserCourse(int user_id, int course_id) {
+        // TODO: check that course_id is valid id
+        String sql = "INSERT INTO user_courses (user_id, course_id) VALUES (?, ?) "
+                + "ON CONFLICT(user_id, course_id) DO NOTHING";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, user_id);
+            pstmt.setInt(2, course_id);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("ERROR: failed to insert user_course: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Remove course from user's schedule.
+     * @param user_id FK references users(user_id)
+     * @param course_id FK references courses(course_id)
+     */
+    protected void deleteUserCourse(int user_id, int course_id) {
+        // TODO: check that course_id is valid id
+        String sql = "DELETE FROM user_courses WHERE user_id = ? AND course_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, user_id);
+            pstmt.setInt(2, course_id);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to delete user_course: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Returns an ArrayList of the courses associated with the given user.
+     * @param user_id FK references users(user_id)
+     * @return
+     */
+    protected ArrayList<CourseItem> getUserCourses(int user_id) {
+        ArrayList<CourseItem> courses = new ArrayList<>();
+        String sql = """
+            SELECT course_id
+            FROM user_courses
+            WHERE user_id = ?
+        """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, user_id);
+            ResultSet rs = pstmt.executeQuery();
+            while(rs.next()) {
+                int course_id = rs.getInt("course_id");
+                courses.add(getCourseByID(course_id));
+            }
+        } catch (SQLException e) {
+            System.out.println("ERROR: failed to get user courses: " + e.getMessage());
+        }
+        return courses;
+    }
+
+    // "USER_PITEMS" DELETE / GET methods
+
     /**
      * remove personal item from user's schedule
      * @param user_id FK references users(user_id)
@@ -1102,12 +920,140 @@ public class DatabaseManager {
         return new ArrayList<>();
     }
 
-    // ######## PITEM_TIME_SLOTS ##################################################
+    // TIME_SLOTS TABLE INSERT / GET methods
 
     /**
-     * Insert personal item time slot into pitem_time_slots table.
+     * Insert time slot into time_slots table.
+     * Duplicate entries (entries with the same day, start, and end) are ignored.
+     * @param day e.g. "W"
+     * @param start e.g. 1100
+     * @param end e.g. 1145
+     * @return time_id of inserted time slot or -1 if exception thrown
+     */
+    private int insertTimeSlot(String day, int start, int end) {
+        String sql = "INSERT INTO time_slots (day, start, end) VALUES (?, ?, ?)" +
+                "ON CONFLICT(day, start, end) DO NOTHING";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, day);
+            pstmt.setInt(2, start);
+            pstmt.setInt(3, end);
+            pstmt.executeUpdate();
+            return getTimeSlotID(day, start, end);
+        } catch (SQLException e) {
+            System.err.println("Failed to insert department: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    /**
+     * Get id of the time slot with entries (day, start, end).
+     * @param day e.g. "W"
+     * @param start e.g. 1100
+     * @param end e.g. 1145
+     * @return time_id or -1 if not found or SQLException thrown
+     */
+    private int getTimeSlotID(String day, int start, int end) {
+        String sql = """
+            SELECT time_id
+            FROM time_slots
+            WHERE day = ? AND start = ? AND end = ?
+        """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, day);
+            pstmt.setInt(2, start);
+            pstmt.setInt(3, end);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("time_id");
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to get time slot id: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    /**
+     * ...
      * @param time_id
-     * @param pitem_id FK references user_personal_items(pitem_id)
+     * @return
+     */
+    private Map<Character, List<Integer>> getMeetingTime(int time_id) {
+        Map<Character, List<Integer>> meetingTime = new HashMap<>();
+        String sql = """
+            SELECT *
+            FROM time_slots
+            WHERE time_id = ?
+        """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, time_id);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                meetingTime.put(rs.getString("day").charAt(0),
+                        new ArrayList<>(Arrays.asList(rs.getInt("start"),
+                                rs.getInt("end"))));
+                return meetingTime;
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to get time slot id: " + e.getMessage());
+        }
+        return null;
+    }
+
+    // TODO: deleteTimeSlot(time_id)
+
+    // COURSE_TIME_SLOTS TABLE INSERT / GET methods
+
+    /**
+     * ...
+     * @param time_id
+     * @param course_id FK references courses(course_id)
+     */
+    private void insertCourseTimeSlot(int time_id, int course_id) {
+        String sql = "INSERT INTO course_time_slots (time_id, course_id) VALUES (?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, time_id);
+            pstmt.setInt(2, course_id);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Failed to insert course time slot: " + e.getMessage());
+            System.out.println(course_id + " " + time_id);
+        }
+    }
+
+    /**
+     * ...
+     * @param course_id FK references courses(course_id)
+     * @return
+     */
+    private Map<Character, List<Integer>> getCourseMeetingTimes(int course_id) {
+        Map<Character, List<Integer>> meetingTimes = new HashMap<>();
+        String sql = """
+            SELECT time_id
+            FROM course_time_slots
+            WHERE course_id = ?
+        """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, course_id);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Map<Character, List<Integer>> meetingTime = getMeetingTime(rs.getInt("time_id"));
+                if (meetingTime != null) {
+                    meetingTimes.putAll(meetingTime);
+                }
+            }
+            return meetingTimes;
+        } catch (SQLException e) {
+            System.err.println("Failed to get course meeting times: " + e.getMessage());
+        }
+        return null;
+    }
+
+    // PITEM_TIME_SLOTS TABLE INSERT / GET methods
+
+    /**
+     * ...
+     * @param time_id
+     * @param pitem_id
      */
     private void insertPersonalItemTimeSlot(int time_id, int pitem_id) {
         String sql = "INSERT INTO pitem_time_slots (time_id, pitem_id) VALUES (?, ?)";
@@ -1121,8 +1067,8 @@ public class DatabaseManager {
     }
 
     /**
-     * Get meeting times of personal item with specified id.
-     * @param pitem_id FK references user_personal_items(pitem_id)
+     * ...
+     * @param pitem_id
      * @return
      */
     private Map<Character, List<Integer>> getPersonalItemMeetingTimes(int pitem_id) {
@@ -1148,34 +1094,9 @@ public class DatabaseManager {
         return null;
     }
 
-
-    // ############################################################################
     // SEARCH METHODS
-    // ############################################################################
 
     /**
-     * TODO
-     * @return
-     */
-    protected ArrayList<Integer> searchAllCourses() {
-        ArrayList<Integer> courses = new ArrayList<>();
-        String sql = "SELECT course_id FROM courses";
-
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                int id = rs.getInt("course_id");
-
-                courses.add(id);
-            }
-        } catch (SQLException e) {
-            System.out.println(" ERROR: failed to fetch all courses: " + e.getMessage());
-        }
-        return courses;
-    }
-
-    /**
-     * TODO
      * returns a list of course IDs for all courses that contain the keyword
      * @param keyword
      * @return a list of course IDs
@@ -1205,12 +1126,6 @@ public class DatabaseManager {
         }
         return courses;
     }
-
-    /**
-     * TODO
-     * @param keyword
-     * @return
-     */
     protected ArrayList<Integer> searchCoursesFuzzy(String keyword) {
         ArrayList<Integer> courses = new ArrayList<>();
         String sql = """
@@ -1239,17 +1154,24 @@ public class DatabaseManager {
         }
         return courses;
     }
-
-    /**
-     * TODO
-     * @param course
-     */
     public void addCourse(CourseItem course) {
         // Add the course to your database or in-memory storage
     }
 
+
     /**
-     * TODO
+     * Close database connection.
+     */
+    protected void close() {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+            }
+        } catch (SQLException e) {
+            System.out.println("ERROR: Failed to close database connection: " + e.getMessage());
+        }
+    }
+    /**
      * Retrieves all courses from the database.
      * @return a list of all CourseItem objects
      */
@@ -1303,12 +1225,6 @@ public class DatabaseManager {
         return courses;
     }
 
-    /**
-     * TODO
-     * @param userId
-     * @param courseId
-     * @return
-     */
     public boolean isUserCourse(int userId, int courseId) {
         String sql = "SELECT 1 FROM user_courses WHERE user_id = ? AND course_id = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -1324,7 +1240,6 @@ public class DatabaseManager {
     }
 
     /**
-     * TODO
      * Returns the list of course IDs that the specified user has added to their schedule.
      */
     public List<Integer> getUserCourseIds(int userId) {
@@ -1342,16 +1257,11 @@ public class DatabaseManager {
         }
         return ids;
     }
-
-
-    // ############################################################################
-    // EXAMPLE USAGE/ TESTING
-    // ############################################################################
-
-    // TODO: comment out method
+    // testing...
+    // TODO: delete method
     public static void main(String[] args) {
 
-        DatabaseManager dm = new DatabaseManager();
+        OldDatabaseManager dm = new OldDatabaseManager();
 
         System.out.println("\n" + dm.getCourseCount() + " courses loaded from JSON");
 
@@ -1457,5 +1367,26 @@ public class DatabaseManager {
         dm.close();
 
     }
+
+    protected ArrayList<Integer> searchAllCourses() {
+        ArrayList<Integer> courses = new ArrayList<>();
+        String sql = "SELECT course_id FROM courses";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                int id = rs.getInt("course_id");
+
+                courses.add(id);
+            }
+        } catch (SQLException e) {
+            System.out.println(" ERROR: failed to fetch all courses: " + e.getMessage());
+        }
+        return courses;
+    }
+
+    //
+     //
+
 
 }

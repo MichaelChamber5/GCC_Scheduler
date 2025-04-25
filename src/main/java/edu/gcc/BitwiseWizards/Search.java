@@ -14,16 +14,16 @@ public class Search {
     private Date semesterStart = null;
     private Date start = null;
     private Date end = null;
-    private DatabaseManager dbm;
+    private OldDatabaseManager dbm;
 
-    public Search(DatabaseManager dbm) {
+    public Search(OldDatabaseManager dbm) {
         this.dbm = dbm;
         searchedCourses = new ArrayList<>();
         filteredCourses = new ArrayList<>();
     }
 
-    public ArrayList<CourseItem> search(String keywordStr, String semester, User currUser, DatabaseManager dm) {
-        DatabaseManager dbm = new DatabaseManager(dm);
+    public ArrayList<CourseItem> search(String keywordStr, String semester, User currUser, OldDatabaseManager dm) {
+        OldDatabaseManager dbm = new OldDatabaseManager(dm);
         this.semester = semester;  // Store the selected semester
 
         ArrayList<Integer> courseIDs = dbm.searchCoursesByKeyword(keywordStr);
@@ -46,7 +46,7 @@ public class Search {
         return courses;
     }
 
-    private List<CourseItem> performFuzzySearch(String keywordStr, String semester, User currUser, DatabaseManager dbm) {
+    private List<CourseItem> performFuzzySearch(String keywordStr, String semester, User currUser, OldDatabaseManager dbm) {
         ArrayList<Integer> allCourseIDs = dbm.searchAllCourses();
         List<CourseItem> bestMatches = new ArrayList<>();
         LevenshteinDistance levenshtein = new LevenshteinDistance();

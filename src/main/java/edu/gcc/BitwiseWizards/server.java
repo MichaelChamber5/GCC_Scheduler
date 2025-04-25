@@ -8,7 +8,7 @@ import spark.ModelAndView;
 import spark.template.freemarker.FreeMarkerEngine;
 import freemarker.template.Configuration;
 import freemarker.template.Version;
-import java.sql.*;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -16,11 +16,11 @@ import java.util.Date;
 
 public class server {
     // This DatabaseManager handles all database operations.
-    private static DatabaseManager dbm;
+    private static OldDatabaseManager dbm;
 
     public static void main(String[] args) {
         // Initialize the database manager.
-        dbm = new DatabaseManager();
+        dbm = new OldDatabaseManager();
         // Set the port to listen on.
         port(4567);
 

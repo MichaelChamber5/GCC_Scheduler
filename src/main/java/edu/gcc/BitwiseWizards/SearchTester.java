@@ -3,12 +3,12 @@ package edu.gcc.BitwiseWizards;
 import java.util.*;
 
 public class SearchTester {
-    private DatabaseManager dbm;
+    private OldDatabaseManager dbm;
     private Search search;
     private User testUser;
 
     public SearchTester() {
-        dbm = new DatabaseManager();
+        dbm = new OldDatabaseManager();
         search = new Search(dbm);
         testUser = new User(1, "testUser", "test123");
     }
