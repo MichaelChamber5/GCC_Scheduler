@@ -34,12 +34,12 @@ public class SearchTester {
 
         testEmptySearch();
 
-//        mispelledFall();
-//        mispelledSpring();
+        mispelledFall();
+        mispelledSpring();
 
-//        eleeAll();
-//        eleeFall();
-//        eleeSpring();
+        eleeAll();
+        eleeFall();
+        eleeSpring();
 
         // Test 2: Fuzzy Search
         //testFuzzySearch();
