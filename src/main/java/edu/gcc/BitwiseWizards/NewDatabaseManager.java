@@ -54,7 +54,7 @@ public class NewDatabaseManager {
      */
     private void initializeDatabase() {
         try {
-            // dropTables();
+            dropTables();
             createTables();
             populateTables();
             System.out.println("Successfully initialized database.");
@@ -689,7 +689,7 @@ public class NewDatabaseManager {
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                courses.add(rs.getInt("course_id"));
+                courses.add(Integer.valueOf(rs.getInt("course_id")));
             }
         } catch (SQLException e) {
             System.out.println("ERROR: failed to retrieve all course IDs: " + e.getMessage());
@@ -912,7 +912,7 @@ public class NewDatabaseManager {
             pstmt.setInt(1, time_id);
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
-                meetingTime.put(rs.getString("day").charAt(0),
+                meetingTime.put(Character.valueOf(rs.getString("day").charAt(0)),
                         new ArrayList<>(Arrays.asList(rs.getInt("start"),
                                 rs.getInt("end"))));
                 return meetingTime;
@@ -1273,7 +1273,7 @@ public class NewDatabaseManager {
             ps.setInt(1, sched_id);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    ids.add(rs.getInt("course_id"));
+                    ids.add(Integer.valueOf(rs.getInt("course_id")));
                 }
             }
             return ids;
@@ -1508,7 +1508,7 @@ public class NewDatabaseManager {
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                courses.add(rs.getInt("course_id"));
+                courses.add(Integer.valueOf(rs.getInt("course_id")));
             }
         } catch (SQLException e) {
             System.out.println("ERROR: failed to search courses: " + e.getMessage());
@@ -1542,7 +1542,7 @@ public class NewDatabaseManager {
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                courses.add(rs.getInt("course_id"));
+                courses.add(Integer.valueOf(rs.getInt("course_id")));
             }
         } catch (SQLException e) {
             System.out.println("ERROR: failed to search courses: " + e.getMessage());
@@ -1647,12 +1647,12 @@ public class NewDatabaseManager {
         System.out.println("\nTEST ADDING USER PERSONAL ITEMS (1)");
         System.out.println(dm.getAllUserSchedules(user_id));
         Map<Character, List<Integer>> meetingTimes = new HashMap<>();
-        meetingTimes.put('W', new ArrayList<>(Arrays.asList(1100, 1145)));
+        meetingTimes.put(Character.valueOf('W'), new ArrayList<>(Arrays.asList(1100, 1145)));
         dm.addPersonalItemToSchedule(sched_id, "Chapel", meetingTimes);
         System.out.println(dm.getAllUserSchedules(user_id));
         meetingTimes.clear();
-        meetingTimes.put('M', new ArrayList<>(Arrays.asList(1100, 1145)));
-        meetingTimes.put('F', new ArrayList<>(Arrays.asList(1100, 1145)));
+        meetingTimes.put(Character.valueOf('M'), new ArrayList<>(Arrays.asList(1100, 1145)));
+        meetingTimes.put(Character.valueOf('F'), new ArrayList<>(Arrays.asList(1100, 1145)));
         dm.addPersonalItemToSchedule(sched_id, "Lunch", meetingTimes);
         System.out.println(dm.getAllUserSchedules(user_id));
 

@@ -67,13 +67,12 @@ public class User {
     public String toString() {
         String s = "";
         s = s + email + "\n";
-        s = s + "Schedules -";
         if (schedules.isEmpty()) {
-            s = s + " NONE";
+            s = s + "[none]";
         }
         else {
             for (Schedule schedule : schedules) {
-                s = s + "\t\t" + schedule + "\n";
+                s = s + schedule + "\n";
             }
         }
         return s;

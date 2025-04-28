@@ -65,7 +65,23 @@ class Main {
     }
 
     /**
-     * Get schedule with the given id /
+     * TODO
+     * @param sched_name
+     */
+    public static void createNewSchedule(String sched_name) {
+        dm.insertUserSchedule(curr_user.getId(), sched_name);
+        int sched_id = dm.getScheduleID(curr_user.getId(), sched_name);
+        if (sched_id < 0) {
+            System.out.println("Failed to create new schedule: ...");
+        }
+        else {
+            curr_user.setSchedules(dm.getAllUserSchedules(curr_user.getId()));
+            setCurrentSchedule(sched_id);
+        }
+    }
+
+    /**
+     * Set curr_schedule to the schedule with the given schedule id.
      * @param sched_id
      */
     public static void setCurrentSchedule(int sched_id) {
@@ -81,33 +97,39 @@ class Main {
      * @param item
      */
     public static void addScheduleItem(ScheduleItem item) {
-        // boolean added = curr_user.getSchedule().addScheduleItem(item);
-        boolean added = curr_schedule.addScheduleItem(item);
+        if (curr_user != null && curr_schedule != null) {
+            // boolean added = curr_user.getSchedule().addScheduleItem(item);
+            boolean added = curr_schedule.addScheduleItem(item);
 
-        if(added)
-        {
-            if (item instanceof CourseItem) {
-                dm.addCourseToSchedule(curr_schedule.getID(), item.getId());
-            }
-            else {
-                dm.addPersonalItemToSchedule(curr_schedule.getID(), item.getName(), item.getMeetingTimes());
+            if (added) {
+                if (item instanceof CourseItem) {
+                    dm.addCourseToSchedule(curr_schedule.getID(), item.getId());
+                } else {
+                    dm.addPersonalItemToSchedule(curr_schedule.getID(), item.getName(), item.getMeetingTimes());
+                }
+                curr_user.setSchedules(dm.getAllUserSchedules(curr_user.getId()));
+            } else {
+                System.out.println("ERROR: item not added to DB");
             }
         }
-        else
-        {
-            System.out.println("ERROR: item not added to DB");
+        else {
+            System.err.println("Failed to add schedule item: curr_user or curr_schedule is null");
         }
     }
 
     public static void removeScheduleItem(ScheduleItem item) {
-        if (item instanceof CourseItem) {
-            dm.removeCourseFromSchedule(curr_schedule.getID(), item.getId());
+        if (curr_user != null && curr_schedule != null) {
+            if (item instanceof CourseItem) {
+                dm.removeCourseFromSchedule(curr_schedule.getID(), item.getId());
+            } else {
+                dm.removePersonalItemFromSchedule(curr_schedule.getID(),
+                        dm.getPersonalItemID(curr_user.getId(), item.getName()));
+            }
+            curr_user.setSchedules(dm.getAllUserSchedules(curr_user.getId()));
         }
         else {
-            dm.removePersonalItemFromSchedule(curr_schedule.getID(),
-                    dm.getPersonalItemID(curr_user.getId(), item.getName()));
+            System.err.println("Failed to remove schedule item: curr_user or curr_schedule is null");
         }
-        curr_user.setSchedules(dm.getAllUserSchedules(curr_user.getId()));
     }
 
     // testing...
@@ -128,6 +150,10 @@ class Main {
         System.out.println("Created user: " + curr_user);
         System.out.println(curr_user.getSchedules());
 
+        createNewSchedule("EX1");
+        System.out.println(curr_user.getSchedules());
+        System.out.println(curr_schedule);
+
         // create / initialize search
         String keyword = "Accounting";
         Search mySearch = new Search(dm);
@@ -147,7 +173,7 @@ class Main {
 
         // create new schedule item
         Map<Character, List<Integer>> meetingTimes = new HashMap<>();
-        meetingTimes.put('W', new ArrayList<>(Arrays.asList(1100, 1145)));
+        meetingTimes.put(Character.valueOf('W'), new ArrayList<>(Arrays.asList(1100, 1145)));
         ScheduleItem item = new ScheduleItem(-1, "Chapel", meetingTimes);
 
         // add it to user schedule
@@ -160,8 +186,9 @@ class Main {
         login(email, password);
         System.out.println("\nLogged in: " + curr_user);
 
-        // reload previously saved schedule
         System.out.println(curr_user.getSchedules());
+        setCurrentSchedule(curr_user.getSchedules().getFirst().getID());
+        System.out.println(curr_schedule);
 
         // remove pitem from saved schedule
         removeScheduleItem(item);
