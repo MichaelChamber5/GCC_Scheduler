@@ -24,9 +24,9 @@ public class Search {
     private List<Character> days = new ArrayList<>();
     private Date start = null;
     private Date end = null;
-    private DatabaseManager dbm;
+    private NewDatabaseManager dbm;
 
-    public Search(DatabaseManager dbm) throws IOException {
+    public Search(NewDatabaseManager dbm) throws IOException {
         this.dbm = dbm;
         searchedCourses = new ArrayList<>();
         filteredCourses = new ArrayList<>();

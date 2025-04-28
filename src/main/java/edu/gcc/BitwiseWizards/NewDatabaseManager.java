@@ -160,7 +160,7 @@ public class NewDatabaseManager {
                     user_id TEXT NOT NULL,
                     sched_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     sched_name TEXT NOT NULL UNIQUE,
-                    FOREIGN KEY (user_id) REFERENCES users(user_id)
+                    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
                 )
             """);
             // USER_COURSES (sched_id, course_id)
@@ -169,7 +169,7 @@ public class NewDatabaseManager {
                     sched_id INTEGER NOT NULL,
                     course_id INTEGER NOT NULL,
                     PRIMARY KEY (sched_id, course_id),
-                    FOREIGN KEY (sched_id) REFERENCES user_schedules(sched_id),
+                    FOREIGN KEY (sched_id) REFERENCES user_schedules(sched_id) ON DELETE CASCADE,
                     FOREIGN KEY (course_id) REFERENCES courses(course_id)
                 )
             """);
@@ -179,8 +179,8 @@ public class NewDatabaseManager {
                     sched_id INTEGER NOT NULL,
                     pitem_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     pitem_name TEXT NOT NULL,
-                    UNIQUE(user_id, pitem_name),
-                    FOREIGN KEY (sched_id) REFERENCES user_schedules(sched_id),
+                    UNIQUE(sched_id, pitem_name),
+                    FOREIGN KEY (sched_id) REFERENCES user_schedules(sched_id) ON DELETE CASCADE
                 )
             """);
             // PITEM_TIME_SLOTS table (pitem_id, time_id)
@@ -189,7 +189,7 @@ public class NewDatabaseManager {
                     pitem_id INTEGER NOT NULL,
                     time_id INTEGER NOT NULL,
                     PRIMARY KEY (pitem_id, time_id),
-                    FOREIGN KEY (pitem_id) REFERENCES personal_items(pitem_id),
+                    FOREIGN KEY (pitem_id) REFERENCES personal_items(pitem_id) ON DELETE CASCADE,
                     FOREIGN KEY (time_id) REFERENCES time_slots(time_id)
                 )
             """);
@@ -204,17 +204,19 @@ public class NewDatabaseManager {
     private void dropTables() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("""
-                DROP TABLE IF EXISTS personal_items;
+                DROP TABLE IF EXISTS pitem_time_slots;
             """);
             stmt.execute("""
-                DROP TABLE IF EXISTS users;
+                DROP TABLE IF EXISTS user_personal_items;
             """);
             stmt.execute("""
                 DROP TABLE IF EXISTS user_courses;
             """);
-            // TODO: drop personal item times from time_slots table?
             stmt.execute("""
-                DROP TABLE IF EXISTS pitem_time_slots;
+                DROP TABLE IF EXISTS user_schedules;
+            """);
+            stmt.execute("""
+                DROP TABLE IF EXISTS users;
             """);
         }
     }
@@ -374,8 +376,8 @@ public class NewDatabaseManager {
     - private int insertCourse(...)
     - protected int getCourseID(int dept_id, int course_number, String section, String semester)
     - protected CourseItem getCourseByID(int course_id)
-    - getAllCourseIDs
-    - getAllCourses
+    - protected List<CourseItem> getAllCourses()
+    - protected ArrayList<Integer> getAllCourseIds()
 
     FACULTY
     - private int insertFaculty(String faculty_name, double avg_rating, double avg_difficulty)
@@ -754,7 +756,8 @@ public class NewDatabaseManager {
      * @throws SQLException
      * @throws IllegalArgumentException
      */
-    protected boolean updateFacultyRating(int facultyId, double newRating, double newDifficulty) throws SQLException, IllegalArgumentException {
+    protected boolean updateFacultyRating(int facultyId, double newRating, double newDifficulty)
+            throws SQLException, IllegalArgumentException {
 
         String tableName = "faculty";
 
@@ -1019,138 +1022,294 @@ public class NewDatabaseManager {
         return -1;
     }
 
+    /**
+     * TODO
+     * @param user_id
+     * @param new_email
+     */
+    protected void updateUserEmail(int user_id, String new_email) {
+        String sql = "UPDATE users SET user_email = ? WHERE user_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, new_email);
+            pstmt.setInt(2, user_id);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Failed to update user email: " + e.getMessage());
+        }
+    }
+
+    /**
+     * TODO
+     * @param user_id
+     * @param new_password
+     */
+    protected void updateUserPassword(int user_id, String new_password) {
+        String sql = "UPDATE users SET user_password = ? WHERE user_id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, new_password); // Consider hashing in production
+            stmt.setInt(2, user_id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Failed to update user password: " + e.getMessage());
+        }
+    }
+
+    /**
+     * TODO: delete other data first!
+     * @param user_id
+     */
+    protected void deleteUser(int user_id) {
+        String sql = "DELETE FROM users WHERE user_id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, user_id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Failed to delete user: " + e.getMessage());
+        }
+    }
+
     // ######## USER_SCHEDULES ####################################################
 
     /**
-     * Returns an array list of courses / personal items associated with the given user.
-     * @param user_id FK references users(user_id)
+     * TODO
+     * @param user_id
+     * @param sched_name
      * @return
      */
-    protected ArrayList<ScheduleItem> getUserSchedule(int user_id) {
+    protected int insertUserSchedule(int user_id, String sched_name) {
+        String sql = "INSERT INTO user_schedules (user_id, sched_name) VALUES (?, ?)";
+        try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setInt(1, user_id);
+            stmt.setString(2, sched_name);
+            stmt.executeUpdate();
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to create user schedule: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    /**
+     * TODO
+     * @param user_id
+     * @param sched_name
+     * @return
+     */
+    protected int getScheduleID(int user_id, String sched_name) {
+        String sql = "SELECT sched_id FROM user_schedules WHERE user_id = ? AND sched_name = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, user_id);
+            stmt.setString(2, sched_name);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("sched_id");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to get schedule id: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    /**
+     * Returns an array list of courses / personal items associated with the given schedule id.
+     * @param sched_id
+     * @return
+     */
+    protected ArrayList<ScheduleItem> getScheduleItems(int sched_id) {
         ArrayList<ScheduleItem> schedule = new ArrayList<>();
-        schedule.addAll(getUserCourses(user_id));
-        schedule.addAll(getUserPersonalItems(user_id));
+        schedule.addAll(getScheduleCourses(sched_id));
+        schedule.addAll(getSchedulePersonalItems(sched_id));
         return schedule;
+    }
+
+    /**
+     * TODO
+     * @param user_id
+     * @param sched_id
+     * @return
+     */
+    protected Schedule getScheduleObject(int user_id, int sched_id) {
+        String sql = "SELECT sched_name FROM user_schedules WHERE user_id = ? AND sched_id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, user_id);
+            stmt.setInt(2, sched_id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String name = rs.getString("sched_name");
+                    Schedule schedule = new Schedule(sched_id, name);
+                    schedule.setScheduleItems(getScheduleItems(sched_id));
+                    return schedule;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to get user schedule: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * TODO
+     * @param user_id
+     * @return
+     */
+    protected ArrayList<Schedule> getAllUserSchedules(int user_id) {
+        ArrayList<Schedule> schedules = new ArrayList<>();
+        String sql = "SELECT sched_id FROM user_schedules WHERE user_id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, user_id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    int schedId = rs.getInt("sched_id");
+                    schedules.add(getScheduleObject(user_id, schedId));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to get list of user schedules: " + e.getMessage());
+        }
+        return schedules;
+    }
+
+
+    /**
+     * TODO
+     * @param user_id
+     * @param sched_id
+     */
+    protected void deleteUserSchedule(int user_id, int sched_id) {
+        String sql = "DELETE FROM user_schedules WHERE user_id = ? AND sched_id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, user_id);
+            stmt.setInt(2, sched_id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Failed to delete user schedule: " + e.getMessage());
+        }
     }
 
     // ######## USER_COURSES ######################################################
 
     /**
-     * Add course to user's schedule.
-     * @param user_id FK references users(user_id)
-     * @param course_id FK references courses(course_id)
+     * Add course to specified schedule.
+     * @param sched_id
+     * @param course_id
      */
-    protected void insertUserCourse(int user_id, int course_id) {
-        // TODO: check that course_id is valid id
-        String sql = "INSERT INTO user_courses (user_id, course_id) VALUES (?, ?) "
-                     + "ON CONFLICT(user_id, course_id) DO NOTHING";
+    protected void addCourseToSchedule(int sched_id, int course_id) {
+        // TODO: validate course_id / sched_id exist
+        String sql = "INSERT INTO user_courses (sched_id, course_id) VALUES (?, ?) "
+                     + "ON CONFLICT(sched_id, course_id) DO NOTHING";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
+            pstmt.setInt(1, sched_id);
             pstmt.setInt(2, course_id);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("ERROR: failed to insert user_course: " + e.getMessage());
+            System.err.println("Failed to add course to schedule: " + e.getMessage());
         }
     }
 
     /**
-     * Remove course from user's schedule.
-     * @param user_id FK references users(user_id)
-     * @param course_id FK references courses(course_id)
+     * Remove course from specified schedule.
+     * @param sched_id
+     * @param course_id
      */
-    protected void deleteUserCourse(int user_id, int course_id) {
-        // TODO: check that course_id is valid id
-        String sql = "DELETE FROM user_courses WHERE user_id = ? AND course_id = ?";
+    protected void removeCourseFromSchedule(int sched_id, int course_id) {
+        String sql = "DELETE FROM user_courses WHERE sched_id = ? AND course_id = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
+            pstmt.setInt(1, sched_id);
             pstmt.setInt(2, course_id);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("ERROR: failed to delete user_course: " + e.getMessage());
+            System.out.println("Failed to remove course from schedule: " + e.getMessage());
         }
     }
 
     /**
-     * Returns an ArrayList of the courses associated with the given user.
-     * @param user_id FK references users(user_id)
+     * Returns an ArrayList of the courses associated with the given schedule.
+     * @param sched_id
      * @return
      */
-    protected ArrayList<CourseItem> getUserCourses(int user_id) {
+    protected ArrayList<CourseItem> getScheduleCourses(int sched_id) {
         ArrayList<CourseItem> courses = new ArrayList<>();
         String sql = """
             SELECT course_id
             FROM user_courses
-            WHERE user_id = ?
+            WHERE sched_id = ?
         """;
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
+            pstmt.setInt(1, sched_id);
             ResultSet rs = pstmt.executeQuery();
             while(rs.next()) {
                 int course_id = rs.getInt("course_id");
                 courses.add(getCourseByID(course_id));
             }
+            return courses;
         } catch (SQLException e) {
-            System.out.println("ERROR: failed to get user courses: " + e.getMessage());
+            System.out.println("Failed to get schedule courses: " + e.getMessage());
         }
-        return courses;
+        return null;
     }
 
     /**
-     * Returns the list of course IDs that the specified user has added to their schedule.
+     * Returns the list of course IDs in the specified schedule.
      */
-    protected List<Integer> getUserCourseIds(int userId) {
+    protected List<Integer> getScheduleCourseIds(int sched_id) {
         List<Integer> ids = new ArrayList<>();
-        String sql = "SELECT course_id FROM user_courses WHERE user_id = ?";
+        String sql = "SELECT course_id FROM user_courses WHERE sched_id = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, userId);
+            ps.setInt(1, sched_id);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     ids.add(rs.getInt("course_id"));
                 }
             }
+            return ids;
         } catch (SQLException e) {
-            System.err.println("Error fetching user courses: " + e.getMessage());
+            System.err.println("Error fetching course ids: " + e.getMessage());
         }
-        return ids;
+        return null;
     }
 
-    /**
-     * TODO
-     * @param userId
-     * @param courseId
-     * @return
-     */
-    protected boolean isUserCourse(int userId, int courseId) {
-        String sql = "SELECT 1 FROM user_courses WHERE user_id = ? AND course_id = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, userId);
-            ps.setInt(2, courseId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException e) {
-            System.err.println("Error checking user course: " + e.getMessage());
-            return false;
-        }
-    }
+//    /**
+//     * TODO
+//     * @param userId
+//     * @param courseId
+//     * @return
+//     */
+//    protected boolean isUserCourse(int userId, int courseId) {
+//        String sql = "SELECT 1 FROM user_courses WHERE user_id = ? AND course_id = ?";
+//        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+//            ps.setInt(1, userId);
+//            ps.setInt(2, courseId);
+//            try (ResultSet rs = ps.executeQuery()) {
+//                return rs.next();
+//            }
+//        } catch (SQLException e) {
+//            System.err.println("Error checking user course: " + e.getMessage());
+//            return false;
+//        }
+//    }
 
     // ######## USER_PERSONAL_ITEMS ###############################################
 
     /**
-     * Adds personal item to personal_items table / user's schedule.
-     * @param user_id FK references users(user_id)
+     * Adds personal item to specified schedule.
+     * @param sched_id
      * @param pitem_name personal item name e.g. "Chapel"
      * @param meetingTimes personal item meeting times e.g. {"W":{1100, 1145}}
      * @return pitem_id ocf inserted personal item.
      */
-    protected int insertPersonalItem(int user_id, String pitem_name, Map<Character,
+    protected int addPersonalItemToSchedule(int sched_id, String pitem_name, Map<Character,
             List<Integer>> meetingTimes) {
-        String sql = "INSERT INTO personal_items (user_id, pitem_name) VALUES (?, ?)";
+        String sql = "INSERT INTO user_personal_items (sched_id, pitem_name) VALUES (?, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
+            pstmt.setInt(1, sched_id);
             pstmt.setString(2, pitem_name);
             pstmt.executeUpdate();
-            int pitem_id = getPersonalItemID(user_id, pitem_name);
+            int pitem_id = getPersonalItemID(sched_id, pitem_name);
             // link to time-slots table
             for (Map.Entry<Character, List<Integer>> entry : meetingTimes.entrySet()) {
                 String day = "" + entry.getKey();
@@ -1170,19 +1329,19 @@ public class NewDatabaseManager {
     }
 
     /**
-     * Returns id of the personal item associated with the given user / pitem_name.
-     * @param user_id FK references users(user_id)
+     * Returns id of the personal item associated with the given schedule / pitem_name.
+     * @param sched_id
      * @param pitem_name
      * @return
      */
-    protected int getPersonalItemID(int user_id, String pitem_name) {
+    protected int getPersonalItemID(int sched_id, String pitem_name) {
         String sql = """
-            SELECT *
-            FROM personal_items
-            WHERE user_id = ? AND pitem_name = ?
+            SELECT pitem_id
+            FROM user_personal_items
+            WHERE sched_id = ? AND pitem_name = ?
         """;
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
+            pstmt.setInt(1, sched_id);
             pstmt.setString(2, pitem_name);
             ResultSet rs = pstmt.executeQuery();
             if(rs.next()) {
@@ -1203,7 +1362,7 @@ public class NewDatabaseManager {
     protected ScheduleItem getPersonalItemByID(int pitem_id) {
         String sql = """
             SELECT *
-            FROM personal_items
+            FROM user_personal_items
             WHERE pitem_id = ?
         """;
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
@@ -1223,14 +1382,14 @@ public class NewDatabaseManager {
 
     /**
      * remove personal item from user's schedule
-     * @param user_id FK references users(user_id)
+     * @param sched_id
      * @param pitem_id
      */
-    protected void deleteUserPersonalItem(int user_id, int pitem_id) {
+    protected void deletePersonalItem(int sched_id, int pitem_id) {
         // TODO: check that user_id / pitem_id are valid ids
-        String sql = "DELETE FROM personal_items WHERE user_id = ? AND pitem_id = ?";
+        String sql = "DELETE FROM user_personal_items WHERE sched_id = ? AND pitem_id = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
+            pstmt.setInt(1, sched_id);
             pstmt.setInt(2, pitem_id);
             pstmt.executeUpdate();
         } catch (SQLException e) {
@@ -1239,18 +1398,19 @@ public class NewDatabaseManager {
     }
 
     /**
-     * @param user_id FK references users(user_id)
-     * @return ArrayList of personal items associated with the given user.
+     * TODO
+     * @param sched_id
+     * @return ArrayList of personal items associated with the given schedule.
      */
-    protected ArrayList<ScheduleItem> getUserPersonalItems(int user_id) {
+    protected ArrayList<ScheduleItem> getSchedulePersonalItems(int sched_id) {
         ArrayList<ScheduleItem> scheduleItems = new ArrayList<>();
         String sql = """
             SELECT pitem_id
-            FROM personal_items
-            WHERE user_id = ?
+            FROM user_personal_items
+            WHERE sched_id = ?
         """;
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, user_id);
+            pstmt.setInt(1, sched_id);
             ResultSet rs = pstmt.executeQuery();
             while(rs.next()) {
                 int pitem_id = rs.getInt("pitem_id");
@@ -1259,7 +1419,7 @@ public class NewDatabaseManager {
             }
             return scheduleItems;
         } catch (SQLException e) {
-            System.out.println("ERROR: failed to get user personal items: " + e.getMessage());
+            System.out.println("ERROR: failed to get schedule personal items: " + e.getMessage());
         }
         return new ArrayList<>();
     }
@@ -1382,7 +1542,7 @@ public class NewDatabaseManager {
 
 
     // ############################################################################
-    // MISC HELPER METHODS
+    // HELPER METHODS
     // ############################################################################
 
     // ...
@@ -1421,9 +1581,6 @@ public class NewDatabaseManager {
         System.out.println("\nTEST LOGIN (3)");
         System.out.println("invalid email: " + dm.getUserID("bad email", password));
 
-        // "login" as user 1
-        int user_id = dm.getUserID(email1, password);
-
         // get info - SOFTWARE ENGINEERING (db calls)
         System.out.println("\nTEST COURSE INFO (1)");
         System.out.println("course: " + dm.getCourseByID(925));
@@ -1431,11 +1588,11 @@ public class NewDatabaseManager {
         System.out.println("course meeting times: " + dm.getCourseMeetingTimes(925));
 
         // get info - SOFTWARE ENGINEERING (class calls)
-//        System.out.println("\nTEST COURSE INFO (1.5)");
-//        CourseItem course = dm.getCourseByID(925);
-//        System.out.println("course: " + course);
-//        System.out.println("course faculty: " + course.getProfessors());
-//        System.out.println("course meeting times: " + course.getMeetingTimes());
+        System.out.println("\nTEST COURSE INFO (1.5)");
+        CourseItem course = dm.getCourseByID(925);
+        System.out.println("course: " + course);
+        System.out.println("course faculty: " + course.getProfessors());
+        System.out.println("course meeting times: " + course.getMeetingTimes());
 
         // get info - MECHANICAL SYSTEMS LAB (multiple professors)
         System.out.println("\nTEST COURSE INFO (2)");
@@ -1443,60 +1600,82 @@ public class NewDatabaseManager {
         System.out.println("course faculty: " + dm.getCourseFaculty(424));
         System.out.println("course meeting times: " + dm.getCourseMeetingTimes(424));
 
+        // "login" as user 1
+        int user_id = dm.getUserID(email1, password);
+        System.out.println("\n[logged in as  " + email1 + " / " + user_id + "]");
+
+        // test get all schedules
+        System.out.println("\nTEST GET ALL SCHEDULES (1)");
+        System.out.println(dm.getAllUserSchedules(user_id));
+
+        // test adding schedules
+        System.out.println("\nTEST ADD SCHEDULE (1)");
+        System.out.println(dm.getAllUserSchedules(user_id));
+        dm.insertUserSchedule(user_id, "EX1");
+        System.out.println(dm.getAllUserSchedules(user_id));
+        dm.insertUserSchedule(user_id, "EX2");
+        System.out.println(dm.getAllUserSchedules(user_id));
+        dm.insertUserSchedule(user_id, "EX3");
+        System.out.println(dm.getAllUserSchedules(user_id));
+
+        // test deleting schedule
+        System.out.println("\nTEST DELETE SCHEDULE (1)");
+        System.out.println(dm.getAllUserSchedules(user_id));
+        dm.deleteUserSchedule(user_id, dm.getScheduleID(user_id, "EX3"));
+        System.out.println(dm.getAllUserSchedules(user_id));
+
+        int sched_id = dm.getScheduleID(user_id, "EX1");
+
         // add courses to user schedule
-        System.out.println("\nTEST ADDING USER COURSES");
-        System.out.println(dm.getUserCourses(user_id));
-        dm.insertUserCourse(user_id, 925); // software engineering
-        System.out.println(dm.getUserCourses(user_id));
-        dm.insertUserCourse(user_id, 424); // MECHANICAL SYSTEMS LAB
-        System.out.println(dm.getUserCourses(user_id));
+        System.out.println("\nTEST ADDING COURSES TO SCHEDULE (1)");
+        System.out.println(dm.getAllUserSchedules(user_id));
+        dm.addCourseToSchedule(sched_id, 925); // SOFTWARE ENGINEERING
+        System.out.println(dm.getAllUserSchedules(user_id));
+        dm.addCourseToSchedule(sched_id, 424); // MECHANICAL SYSTEMS LAB
+        System.out.println(dm.getAllUserSchedules(user_id));
 
         // remove course from user schedule
-        System.out.println("\nTEST REMOVING USER COURSE");
-        System.out.println(dm.getUserCourses(user_id));
-        dm.deleteUserCourse(user_id, 424); // MECHANICAL SYSTEMS LAB
-        System.out.println(dm.getUserCourses(user_id));
+        System.out.println("\nTEST REMOVING COURSE FROM SCHEDULE (1)");
+        System.out.println(dm.getAllUserSchedules(user_id));
+        dm.removeCourseFromSchedule(sched_id, 424); // MECHANICAL SYSTEMS LAB
+        System.out.println(dm.getAllUserSchedules(user_id));
 
         // add personal items to user schedule
-        System.out.println("\nTEST ADDING USER PERSONAL ITEMS");
-        System.out.println(dm.getUserPersonalItems(user_id));
+        System.out.println("\nTEST ADDING USER PERSONAL ITEMS (1)");
+        System.out.println(dm.getAllUserSchedules(user_id));
         Map<Character, List<Integer>> meetingTimes = new HashMap<>();
         meetingTimes.put('W', new ArrayList<>(Arrays.asList(1100, 1145)));
-        dm.insertPersonalItem(user_id, "Chapel", meetingTimes);
-        System.out.println(dm.getUserPersonalItems(user_id));
+        dm.addPersonalItemToSchedule(sched_id, "Chapel", meetingTimes);
+        System.out.println(dm.getAllUserSchedules(user_id));
         meetingTimes.clear();
         meetingTimes.put('M', new ArrayList<>(Arrays.asList(1100, 1145)));
         meetingTimes.put('F', new ArrayList<>(Arrays.asList(1100, 1145)));
-        dm.insertPersonalItem(user_id, "Lunch", meetingTimes);
-        System.out.println(dm.getUserPersonalItems(user_id));
-
-        // get info - "Lunch" (db calls)
-        System.out.println("\nTEST PERSONAL ITEM INFO (1)");
-        int pitem_id = dm.getPersonalItemID(user_id, "Chapel");
-        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
-        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
-
-        // get info - "Lunch" (db calls)
-        System.out.println("\nTEST PERSONAL ITEM INFO (2)");
-        pitem_id = dm.getPersonalItemID(user_id, "Lunch");
-        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
-        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
-
-        // remove personal item from user schedule
-        System.out.println("\nTEST REMOVING USER PERSONAL ITEM");
-        System.out.println(dm.getUserPersonalItems(user_id));
-        dm.deleteUserPersonalItem(user_id, pitem_id); // "Lunch"
-        System.out.println(dm.getUserPersonalItems(user_id));
-
-        // TODO: when deleting personal items, also delete the corresponding pitem_time_slot
-
-        // TODO: when deleting users, also delete their personal items / corresponding pitem_time_slots
+        dm.addPersonalItemToSchedule(sched_id, "Lunch", meetingTimes);
+        System.out.println(dm.getAllUserSchedules(user_id));
+//
+//        // get info - "Lunch" (db calls)
+//        System.out.println("\nTEST PERSONAL ITEM INFO (1)");
+//        int pitem_id = dm.getPersonalItemID(user_id, "Chapel");
+//        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
+//        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
+//
+//        // get info - "Lunch" (db calls)
+//        System.out.println("\nTEST PERSONAL ITEM INFO (2)");
+//        pitem_id = dm.getPersonalItemID(user_id, "Lunch");
+//        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
+//        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
+//
+//        // remove personal item from user schedule
+//        System.out.println("\nTEST REMOVING USER PERSONAL ITEM");
+//        System.out.println(dm.getUserPersonalItems(user_id));
+//        dm.deleteUserPersonalItem(user_id, pitem_id); // "Lunch"
+//        System.out.println(dm.getUserPersonalItems(user_id));
 
         // get user schedule
         System.out.println("\nTEST GETTING USER SCHEDULE");
-        System.out.println("courses: "+ dm.getUserCourses(user_id));
-        System.out.println("personal items: " + dm.getUserPersonalItems(user_id));
-        System.out.println("schedule: " + dm.getUserSchedule(user_id));
+        System.out.println("courses: "+ dm.getScheduleCourses(sched_id));
+        System.out.println("personal items: " + dm.getSchedulePersonalItems(sched_id));
+        System.out.println("schedule: " + dm.getScheduleItems(sched_id));
 
         dm.close();
 

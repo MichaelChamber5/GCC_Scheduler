@@ -3,12 +3,12 @@ package edu.gcc.BitwiseWizards;
 import java.util.*;
 
 public class SearchTester {
-    private DatabaseManager dbm;
+    private NewDatabaseManager dbm;
     private Search search;
     private User testUser;
 
     public SearchTester() throws Exception {
-        dbm = new DatabaseManager();
+        dbm = new NewDatabaseManager();
         search = new Search(dbm);
         // Create test user with ID 1, username "testUser", and password "test123"
         testUser = new User(1, "testUser", "test123");
