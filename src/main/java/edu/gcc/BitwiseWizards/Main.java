@@ -70,14 +70,18 @@ class Main {
      * @param sched_name
      */
     public static void createNewSchedule(String sched_name) {
-        dm.insertUserSchedule(curr_user.getId(), sched_name);
-        int sched_id = dm.getScheduleID(curr_user.getId(), sched_name);
-        if (sched_id < 0) {
-            System.out.println("Failed to create new schedule: ...");
+        if (curr_user != null) {
+            dm.insertUserSchedule(curr_user.getId(), sched_name);
+            int sched_id = dm.getScheduleID(curr_user.getId(), sched_name);
+            if (sched_id < 0) {
+                System.out.println("Failed to create new schedule: DB issue");
+            } else {
+                curr_user.setSchedules(dm.getAllUserSchedules(curr_user.getId()));
+                setCurrentSchedule(sched_id);
+            }
         }
         else {
-            curr_user.setSchedules(dm.getAllUserSchedules(curr_user.getId()));
-            setCurrentSchedule(sched_id);
+            System.err.println("Failed to create new schedule: curr_user is null.");
         }
     }
 
@@ -86,10 +90,15 @@ class Main {
      * @param sched_id
      */
     public static void setCurrentSchedule(int sched_id) {
-        curr_schedule = dm.getSchduleByID(curr_user.getId(), sched_id);
-        if (curr_schedule == null) {
-            System.err.println("Failed to set current schedule: user does not have schedule with " +
-                    "specified id.");
+        if (curr_user != null) {
+            curr_schedule = dm.getSchduleByID(curr_user.getId(), sched_id);
+            if (curr_schedule == null) {
+                System.err.println("Failed to set current schedule: user does not have a schedule with " +
+                        "the specified id.");
+            }
+        }
+        else {
+            System.err.println("Failed to set current schedule: curr_user is null.");
         }
     }
 
@@ -186,12 +195,12 @@ class Main {
         addScheduleItem(courses.get(1));
         System.out.println("add " + courses.get(1) + " to user schedule: " + curr_user.getSchedules());
         addScheduleItem(courses.get(2));
-        System.out.println("add " + courses.get(1) + " to user schedule: " + curr_user.getSchedules());
+        System.out.println("add " + courses.get(2) + " to user schedule: " + curr_user.getSchedules());
 
         // remove course from curr_schedule
         System.out.println("\nTEST REMOVING COURSE FROM USER SCHEDULE (1)");
-        removeScheduleItem(courses.get(1));
-        System.out.println("remove " + courses.get(1) + " from user schedule: " + curr_user.getSchedules());
+        removeScheduleItem(courses.get(2));
+        System.out.println("remove " + courses.get(2) + " from user schedule: " + curr_user.getSchedules());
 
         // add personal item to curr_schedule
         System.out.println("\nTEST ADD SCHEDULE ITEM TO USER SCHEDULE (1)");
