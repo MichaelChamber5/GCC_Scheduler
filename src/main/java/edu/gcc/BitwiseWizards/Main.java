@@ -1,5 +1,6 @@
 package edu.gcc.BitwiseWizards;
 
+import java.sql.SQLException;
 import java.util.*;
 
 class Main {
@@ -140,6 +141,13 @@ class Main {
 
         // create / initialize database
         dm = new NewDatabaseManager();
+        try {
+            dm.dropTables();
+            dm.createTables();
+        } catch (SQLException e) {
+            System.err.println("[RESET TABLES FOR TESTING]");
+        }
+
         System.out.println("\nInitially curr_user is " + curr_user + ".");
 
         String email = "example@gcc.edu";

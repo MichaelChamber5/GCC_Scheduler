@@ -27,7 +27,7 @@ public class PopulateDictionary {
 
     public static void populateCourseItemList(ArrayList<CourseItem> courseItemList)
     {
-        DatabaseManager dbm = new DatabaseManager();
+        NewDatabaseManager dbm = new NewDatabaseManager();
         //initially populate the allCourses with all courses
         ArrayList<Integer> courseIDs = dbm.getAllCourseIds();
 
