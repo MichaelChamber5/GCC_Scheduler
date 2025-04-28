@@ -382,7 +382,6 @@ public class NewDatabaseManager {
     FACULTY
     - private int insertFaculty(String faculty_name, double avg_rating, double avg_difficulty)
     - protected int getFacultyID(String faculty_name)
-    - TODO: protected Professor getFacultyObject(int faculty_id)
 
     COURSE_FACULTY
     - private void insertCourseFaculty(int course_id, int faculty_id)
@@ -392,7 +391,6 @@ public class NewDatabaseManager {
     - protected int insertTimeSlot(String day, int start, int end)
     - protected int getTimeSlotID(String day, int start, int end)
     - protected Map<Character, List<Integer>> getMeetingTime(int time_id)
-    - TODO: protected void deleteTimeSlot(int time_id) (**only delete pitem_time_slots)
 
     COURSE_TIME_SLOTS
     - private void insertCourseTimeSlot(int time_id, int course_id)
@@ -401,38 +399,40 @@ public class NewDatabaseManager {
     USERS
     - protected int insertUser(String user_email, String user_password)
     - protected int getUserID(String user_email, String user_password)
-    - TODO: protected void updateUserEmail(int user_id, String new_email)
-    - TODO: protected void updateUserPassword(int user_id, String new_password)
-    - TODO: protected void deleteUser(int user_id)
+    - protected void updateUserEmail(int user_id, String new_email)
+    - protected void updateUserPassword(int user_id, String new_password)
+    - protected void deleteUser(int user_id)
 
     USER_SCHEDULES
-    - TODO: protected int insertUserSchedule(user_id, String sched_name)
-    = TODO: protected int getScheduleID(user_id, String sched_name)
-    - TODO: modify - protected Schedule getUserSchedule(int user_id, int sched_id)
-    - TODO: protected ArrayList<Schedule> getAllUserSchedules(int user_id)
-    - TODO: protected void deleteUserSchedule(int user_id, int sched_id)
-    - TODO: protected void deleteAllUserSchedules(int user_id)
+    - protected int insertUserSchedule(int user_id, String sched_name)
+    = protected int getScheduleID(int user_id, String sched_name)
+    - protected ArrayList<ScheduleItem> getScheduleItems(int sched_id)
+    - protected Schedule getScheduleObject(int user_id, int sched_id)
+    - protected ArrayList<Schedule> getAllUserSchedules(int user_id)
+    - protected void deleteUserSchedule(int user_id, int sched_id)
 
     USER_COURSES
-    - TODO: modify - protected void insertUserCourse(*int sched_id, int course_id)
-    - TODO: modify - protected void deleteUserCourse(*int sched_id, int course_id)
-    - TODO: modify - protected ArrayList<CourseItem> getUserCourses(*int sched_id)
-    - TODO: protected void deleteAllCourses(int sched_id)
-    - protected List<Integer> getUserCourseIds(int userId)
-    - protected boolean isUserCourse(int userId, int courseId)
+    - protected void addCourseToSchedule(int sched_id, int course_id)
+    - protected void removeCourseFromSchedule(int sched_id, int course_id)
+    - protected ArrayList<CourseItem> getScheduleCourses(int sched_id)
+    - protected List<Integer> getScheduleCourseIds(int sched_id)
+    - protected boolean courseInSchedule(int sched_id, int courseId)
+    - TODO: protected void removeAllCoursesFromSchedule(int sched_id)
 
     USER_PERSONAL_ITEMS
-    - TODO: modify - protected int insertUserPersonalItem(*int sched_id, String pitem_name, Map<Character, List<Integer>> meetingTimes)
-    - TODO: modify - protected int getPersonalItemID(*int sched_id, String pitem_name)
+    - protected int addPersonalItemToSchedule(int sched_id, String pitem_name, Map<Character,
+            List<Integer>> meetingTimes)
+    - protected int getPersonalItemID(int sched_id, String pitem_name)
     - protected ScheduleItem getPersonalItemByID(int pitem_id)
-    - TODO: modify - protected void deleteUserPersonalItem(*int sched_id, int pitem_id)
-    - TODO: modify - protected ArrayList<ScheduleItem> getUserPersonalItems(*int sched_id)
-    - TODO: protected void deleteAllPersonalItems(int sched_id)
+    - protected void removePersonalItemFromSchedule(int sched_id, int pitem_id)
+    - protected ArrayList<ScheduleItem> getSchedulePersonalItems(int sched_id)
+    - TODO: protected void removeAllPersonalItemsFromSchedule(int sched_id)
 
     PITEM_TIME_SLOTS
     - void insertPersonalItemTimeSlot(int time_id, int pitem_id)
     - Map<Character, List<Integer>> getPersonalItemMeetingTimes(int pitem_id)
-    - TODO: protected void deletePersonalItemTimeSlot(int time_id)
+
+    TODO: delete personal item time slots?
      */
 
     // ######## DEPARTMENTS #######################################################
@@ -582,6 +582,7 @@ public class NewDatabaseManager {
 
     /**
      * Given a course id, return a CourseItem object representing the table entry.
+     * TODO: course db items currently do not contain descriptions!
      * @param course_id FK references courses(course_id)
      * @return CourseItem object or null if entry does not exist / SQLException occurred
      */
@@ -601,8 +602,7 @@ public class NewDatabaseManager {
                 ArrayList<Professor> professors = getCourseFaculty(course_id);
                 // get meeting times
                 Map<Character, List<Integer>> meetingTimes = getCourseMeetingTimes(course_id);
-                //TODO: course db items currently do not contain descriptions!
-                String desc = "This class stinks :(";
+                String desc = "TODO: course db items currently do not contain descriptions!";
                 /*
                 int id, int credits, boolean isLab, String location, String courseName, int courseNumber,
                       char section, String semester, String depCode, String description,
@@ -689,7 +689,7 @@ public class NewDatabaseManager {
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                courses.add(rs.getInt("course_id"));
+                courses.add(Integer.valueOf(rs.getInt("course_id")));
             }
         } catch (SQLException e) {
             System.out.println("ERROR: failed to retrieve all course IDs: " + e.getMessage());
@@ -705,8 +705,8 @@ public class NewDatabaseManager {
      * As is, faculty_name must be unique.
      * TODO: avg_rating / avg_difficulty
      * @param faculty_name faculty name e.g. "Hutchins, Jonathan O."
-     * @param avg_rating "Overall Quality" rating on RateMyProfessor (default -1)
-     * @param avg_difficulty "Level of Difficulty" rating on RateMyProfessor (default -1)
+     * @param avg_rating "Overall Quality" rating (default -1)
+     * @param avg_difficulty "Level of Difficulty" rating (default -1)
      * @return faculty_id of the inserted faculty member; -1 if insertion failed
      */
     private int insertFaculty(String faculty_name, double avg_rating, double avg_difficulty) {
@@ -749,14 +749,14 @@ public class NewDatabaseManager {
 
     /**
      * TODO
-     * @param facultyId
-     * @param newRating
-     * @param newDifficulty
-     * @return
+     * @param faculty_id FK references faculty(faculty_id)
+     * @param newRating "Overall Quality" rating (...)
+     * @param newDifficulty "Level of Difficulty" rating (default -1)
+     * @return true if rating updated successfully; false otherwise
      * @throws SQLException
      * @throws IllegalArgumentException
      */
-    protected boolean updateFacultyRating(int facultyId, double newRating, double newDifficulty)
+    protected boolean updateFacultyRating(int faculty_id, double newRating, double newDifficulty)
             throws SQLException, IllegalArgumentException {
 
         String tableName = "faculty";
@@ -778,18 +778,18 @@ public class NewDatabaseManager {
             // Set parameters
             stmt.setDouble(1, newRating);
             stmt.setDouble(2, newDifficulty);
-            stmt.setInt(3, facultyId);
+            stmt.setInt(3, faculty_id);
 
             // Execute the update
             rowsUpdated = stmt.executeUpdate();
 
             if (rowsUpdated > 0) {
-                System.out.println("Successfully updated faculty ID " + facultyId +
+                System.out.println("Successfully updated faculty ID " + faculty_id +
                                    " with rating: " + newRating +
                                    ", difficulty: " + newDifficulty);
                 return true;
             } else {
-                System.out.println("Faculty ID " + facultyId + " not found in the database.");
+                System.out.println("Faculty ID " + faculty_id + " not found in the database.");
                 return false;
             }
         }
@@ -912,7 +912,7 @@ public class NewDatabaseManager {
             pstmt.setInt(1, time_id);
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
-                meetingTime.put(rs.getString("day").charAt(0),
+                meetingTime.put(Character.valueOf(rs.getString("day").charAt(0)),
                         new ArrayList<>(Arrays.asList(rs.getInt("start"),
                                 rs.getInt("end"))));
                 return meetingTime;
@@ -998,7 +998,6 @@ public class NewDatabaseManager {
 
     /**
      * Returns user_id of the user corresponding to the given email and password.
-     * Use user_id to get user schedule (getUserCourses() / getUserPersonalItems() / getUserSchedule()).
      * @param user_email user email e.g. "proctorhm22@gcc.edu
      * @param user_password user password e.g. "password"
      * @return user_id of the specified user or -1 if not found or SQLException thrown
@@ -1134,9 +1133,9 @@ public class NewDatabaseManager {
      * TODO
      * @param user_id
      * @param sched_id
-     * @return
+     * @return Schedule object or null if schedule does not exist.
      */
-    protected Schedule getScheduleObject(int user_id, int sched_id) {
+    protected Schedule getSchduleByID(int user_id, int sched_id) {
         String sql = "SELECT sched_name FROM user_schedules WHERE user_id = ? AND sched_id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, user_id);
@@ -1168,7 +1167,7 @@ public class NewDatabaseManager {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     int schedId = rs.getInt("sched_id");
-                    schedules.add(getScheduleObject(user_id, schedId));
+                    schedules.add(getSchduleByID(user_id, schedId));
                 }
             }
         } catch (SQLException e) {
@@ -1274,7 +1273,7 @@ public class NewDatabaseManager {
             ps.setInt(1, sched_id);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    ids.add(rs.getInt("course_id"));
+                    ids.add(Integer.valueOf(rs.getInt("course_id")));
                 }
             }
             return ids;
@@ -1284,25 +1283,25 @@ public class NewDatabaseManager {
         return null;
     }
 
-//    /**
-//     * TODO
-//     * @param userId
-//     * @param courseId
-//     * @return
-//     */
-//    protected boolean isUserCourse(int userId, int courseId) {
-//        String sql = "SELECT 1 FROM user_courses WHERE user_id = ? AND course_id = ?";
-//        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-//            ps.setInt(1, userId);
-//            ps.setInt(2, courseId);
-//            try (ResultSet rs = ps.executeQuery()) {
-//                return rs.next();
-//            }
-//        } catch (SQLException e) {
-//            System.err.println("Error checking user course: " + e.getMessage());
-//            return false;
-//        }
-//    }
+    /**
+     * TODO
+     * @param sched_id
+     * @param courseId
+     * @return
+     */
+    protected boolean courseInSchedule(int sched_id, int courseId) {
+        String sql = "SELECT 1 FROM user_courses WHERE sched_id = ? AND course_id = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, sched_id);
+            ps.setInt(2, courseId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            System.err.println("Error checking user course: " + e.getMessage());
+            return false;
+        }
+    }
 
     // ######## USER_PERSONAL_ITEMS ###############################################
 
@@ -1509,7 +1508,7 @@ public class NewDatabaseManager {
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                courses.add(rs.getInt("course_id"));
+                courses.add(Integer.valueOf(rs.getInt("course_id")));
             }
         } catch (SQLException e) {
             System.out.println("ERROR: failed to search courses: " + e.getMessage());
@@ -1543,20 +1542,13 @@ public class NewDatabaseManager {
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                courses.add(rs.getInt("course_id"));
+                courses.add(Integer.valueOf(rs.getInt("course_id")));
             }
         } catch (SQLException e) {
             System.out.println("ERROR: failed to search courses: " + e.getMessage());
         }
         return courses;
     }
-
-
-    // ############################################################################
-    // HELPER METHODS
-    // ############################################################################
-
-    // ...
 
 
     // ############################################################################
@@ -1655,12 +1647,12 @@ public class NewDatabaseManager {
         System.out.println("\nTEST ADDING USER PERSONAL ITEMS (1)");
         System.out.println(dm.getAllUserSchedules(user_id));
         Map<Character, List<Integer>> meetingTimes = new HashMap<>();
-        meetingTimes.put('W', new ArrayList<>(Arrays.asList(1100, 1145)));
+        meetingTimes.put(Character.valueOf('W'), new ArrayList<>(Arrays.asList(1100, 1145)));
         dm.addPersonalItemToSchedule(sched_id, "Chapel", meetingTimes);
         System.out.println(dm.getAllUserSchedules(user_id));
         meetingTimes.clear();
-        meetingTimes.put('M', new ArrayList<>(Arrays.asList(1100, 1145)));
-        meetingTimes.put('F', new ArrayList<>(Arrays.asList(1100, 1145)));
+        meetingTimes.put(Character.valueOf('M'), new ArrayList<>(Arrays.asList(1100, 1145)));
+        meetingTimes.put(Character.valueOf('F'), new ArrayList<>(Arrays.asList(1100, 1145)));
         dm.addPersonalItemToSchedule(sched_id, "Lunch", meetingTimes);
         System.out.println(dm.getAllUserSchedules(user_id));
 

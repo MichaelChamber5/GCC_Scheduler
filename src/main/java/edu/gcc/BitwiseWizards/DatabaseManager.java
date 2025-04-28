@@ -61,7 +61,7 @@ public class DatabaseManager {
      */
     private void initializeDatabase() {
         try {
-            //dropTables();
+            // dropTables();
             createTables();
             populateTables();
             System.out.println("Successfully initialized database.");
