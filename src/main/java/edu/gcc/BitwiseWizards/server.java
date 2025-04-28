@@ -90,7 +90,7 @@ public class server {
         });
 
         /* ------------------------------------------------------------------ */
-        /*  SINGLE SCHEDULE PAGE (calendar.ftl)                               */
+        /*  SINGLE SCHEDULE PAGE                               */
         /* ------------------------------------------------------------------ */
         get("/schedules/:schedId", (rq, rs) -> {
             try {
@@ -149,24 +149,46 @@ public class server {
             }
         });
 
+
         post("/add-course", (rq, rs) -> {
-            try{
+            try {
                 User u = rq.session().attribute("user");
-                if (u==null){ halt(401); }
+                if (u == null) { halt(401); }
 
                 int sid = Integer.parseInt(rq.queryParams("schedId"));
                 int cid = Integer.parseInt(rq.queryParams("courseId"));
-                System.out.println("DEBUG /add-course sid="+sid+" cid="+cid);
+                System.out.println("DEBUG /add-course sid=" + sid + " cid=" + cid);
 
+                // the candidate course we want to add
+                CourseItem newCourse = dbm.getCourseByID(cid);
+                if (newCourse == null) {
+                    rs.status(404);
+                    return new Gson().toJson(Map.of("error", "Course not found"));
+                }
+
+                //checks for conflicts
+                List<ScheduleItem> existing = new ArrayList<>();
+                existing.addAll(dbm.getScheduleCourses(sid));
+                existing.addAll(dbm.getSchedulePersonalItems(sid));
+
+                for (ScheduleItem si : existing) {
+                    if (si.conflicts(newCourse)) {                      // <-- your method
+                        System.out.println("DEBUG   conflict with item " + si.getId());
+                        rs.status(409);  // 409 = Conflict
+                        return new Gson().toJson(
+                                Map.of("error", "Course conflicts with " + si.getName()));
+                    }
+                }
+
+                // no conflict was found
                 dbm.addCourseToSchedule(sid, cid);
-
                 rs.type("application/json");
-                return new Gson().toJson(Collections.singletonMap("success", true));
+                return new Gson().toJson(Map.of("success", true));
 
-            }catch(Exception ex){
+            } catch (Exception ex) {
                 System.out.println("DEBUG ERROR /add-course"); ex.printStackTrace();
                 rs.status(500);
-                return new Gson().toJson(Collections.singletonMap("error","add failed"));
+                return new Gson().toJson(Map.of("error", "Server error while adding"));
             }
         });
 
@@ -219,7 +241,7 @@ public class server {
         });
     }
 
-    /* ----------- utility (unchanged) ------------- */
+
     private static Date parseTime(String s){
         if (s==null||s.trim().isEmpty()) return null;
         try{

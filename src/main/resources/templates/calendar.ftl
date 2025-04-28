@@ -193,13 +193,25 @@ $('#courseInfoModalContent').innerHTML = `
             });
         }
 
-        function addCourse(courseId,btn){
-const params = new URLSearchParams({courseId,schedId:window.currentSchedId});
-            fetch('/add-course',{method:'POST',body:params})
-.then(r=>r.json())
-.then(()=>{btn.textContent='Remove';btn.dataset.added='true';window.refreshCalendar?.();updateScheduleTable();})
-.catch(err=>showErrorModal(err.error||'Add failed'));
-        }
+function addCourse(courseId, btn) {
+const params = new URLSearchParams({ courseId, schedId: window.currentSchedId });
+
+    fetch('/add-course', { method: 'POST', body: params })
+.then(async r => {
+const j = await r.json();
+if (!r.ok) throw j;
+return j;
+})
+.then(() => {
+btn.textContent   = 'Remove';
+btn.dataset.added = 'true';
+window.refreshCalendar?.();
+updateScheduleTable();
+})
+.catch(err => {
+showErrorModal(err.error || 'Error adding class');
+});
+}
         function removeCourse(courseId,btn){
 const params = new URLSearchParams({scheduleItemId:courseId,schedId:window.currentSchedId});
             fetch('/remove-course',{method:'POST',body:params})
