@@ -27,8 +27,8 @@ e.preventDefault();
         return (
             <form action="/register" method="post" onSubmit={handleSubmit}>
                 <div>
-                    <label htmlFor="email">Email: </label>
-                    <input type="email" id="email" name="email" required />
+                    <label htmlFor="username">Email: </label>
+                    <input type="text" id="user" name="user" required />
                 </div>
                 <div>
                     <label htmlFor="password">Password: </label>

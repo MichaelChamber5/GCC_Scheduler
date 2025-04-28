@@ -8,6 +8,7 @@ import freemarker.template.Configuration;
 import freemarker.template.Version;
 import spark.ModelAndView;
 import spark.template.freemarker.FreeMarkerEngine;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -36,31 +37,46 @@ public class server {
         get("/register", (rq, rs) -> new ModelAndView(new HashMap<>(), "register.ftl"), fm);
 
         post("/register", (rq, rs) -> {
-            String u = rq.queryParams("username");
+            String u = rq.queryParams("user");
             String p = rq.queryParams("confirmPassword");
             System.out.println("DEBUG register  user=" + u);
             if (u==null||p==null||u.isEmpty()||p.isEmpty()) { rs.redirect("/register?error=missing"); return null; }
-            int id = dbm.insertUser(u, p);
+            // hash it here:
+            String hashed = BCrypt.hashpw(p, BCrypt.gensalt());
+            int id = dbm.insertUser(u, hashed);
             System.out.println("DEBUG register  id=" + id);
             rs.redirect(id==-1?"/register?error=fail":"/login");
             return null;
         });
 
         post("/login", (rq, rs) -> {
-            String u = rq.queryParams("username");
-            String p = Optional.ofNullable(rq.queryParams("confirmPassword"))
-                    .orElse(rq.queryParams("password"));
-            System.out.println("DEBUG login  u=" + u + "  p=" + p);
-            if (u==null||p==null||u.trim().isEmpty()||p.trim().isEmpty()){
-                rs.redirect("/login?error=Missing+credentials");
+            String email = rq.queryParams("user");
+            String plain  = rq.queryParams("password");
+            if (email==null || plain==null || email.isBlank() || plain.isBlank()) {
+                rs.redirect("/login?error=missing");
                 return null;
             }
-            int id = dbm.getUserID(u, p);
-            System.out.println("DEBUG login  id=" + id);
-            if (id>0){ rq.session().attribute("user", new User(id,u,p)); rs.redirect("/schedules"); }
-            else     { rs.redirect("/login?error=invalid"); }
+
+            // 1) pull the BCrypt hash
+            String hash = dbm.getPasswordHashByEmail(email);
+            // 2) verify it
+            if (hash == null || !BCrypt.checkpw(plain, hash)) {
+                rs.redirect("/login?error=invalid");
+                return null;
+            }
+            // 3) fetch the user ID by email only
+            int id = dbm.getUserIDByEmail(email);
+            if (id <= 0) {
+                rs.redirect("/login?error=invalid");
+                return null;
+            }
+
+            // 4) success!
+            rq.session().attribute("user", new User(id, email, /* you can pass null here or the hash */ null));
+            rs.redirect("/schedules");
             return null;
         });
+
 
         /* ------------------------------------------------------------------ */
         /*  SCHEDULE LIST PAGE                                                */

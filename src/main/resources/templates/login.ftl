@@ -18,12 +18,12 @@
 return (
 <form action="/login" method="post">
 <div>
-<label htmlFor="email">Email: </label>
-<input type="email" id="email" name = "email" required />
+<label htmlFor="user">Email: </label>
+<input type="text" id="user" name = "user" required />
 </div>
 <div>
-<label htmlFor="confirmedPassword">Password: </label>
-<input type="password" id="confirmedPassword" name = "confirmPassword" required />
+<label htmlFor="password">Password: </label>
+<input type="password" id="password" name = "password" required />
 </div>
 <div>
 <input type="submit" value="Login" />
@@ -37,4 +37,3 @@ return (
     <p>Don't have an account? <a href="/register">Register here</a>.</p>
 </body>
 </html>
-<!-- this comment was strictly added to I can commit -->
