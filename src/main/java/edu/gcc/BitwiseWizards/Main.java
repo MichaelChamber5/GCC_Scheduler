@@ -187,7 +187,7 @@ class Main {
         System.out.println("\nLogged in: " + curr_user);
 
         System.out.println(curr_user.getSchedules());
-        setCurrentSchedule(curr_user.getSchedules().getFirst().getID());
+        //setCurrentSchedule(curr_user.getSchedules().getFirst().getID());
         System.out.println(curr_schedule);
 
         // remove pitem from saved schedule

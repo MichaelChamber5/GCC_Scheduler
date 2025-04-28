@@ -18,8 +18,8 @@
 return (
 <form action="/login" method="post">
 <div>
-<label htmlFor="username">Username: </label>
-<input type="text" id="username" name = "username" required />
+<label htmlFor="email">Email: </label>
+<input type="email" id="email" name = "email" required />
 </div>
 <div>
 <label htmlFor="confirmedPassword">Password: </label>
