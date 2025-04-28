@@ -1,5 +1,6 @@
 package edu.gcc.BitwiseWizards;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class User {
@@ -7,13 +8,13 @@ public class User {
     private int id;
     private String email;
     private String password_hash;
-    private Schedule schedule;
+    private ArrayList<Schedule> schedules;
 
     public User(int user_id, String email, String password) {
         id = user_id;
         setEmail(email);
         setPassword(password);
-        schedule = new Schedule();
+        schedules = new ArrayList<>();
     }
 
     public int getId() {
@@ -34,19 +35,47 @@ public class User {
         this.password_hash = password;
     }
 
-    public void setSchedule(List<ScheduleItem> items) {
-        Schedule new_schedule = new Schedule();
-        new_schedule.setScheduleItems(items);
-        this.schedule = new_schedule;
+    public void setSchedules(ArrayList<Schedule> schedules) {
+        this.schedules = new ArrayList<>(schedules);
     }
 
-    public Schedule getSchedule() {
-        return schedule;
+    public ArrayList<Schedule> getSchedules() {
+        return schedules;
+    }
+
+    public void createNewSchedule(int sched_id, String name) {
+        Schedule new_schedule = new Schedule(sched_id, name);
+        this.schedules.add(new_schedule);
+    }
+
+    public void createNewSchedule(int sched_id, String name, List<ScheduleItem> items) {
+        Schedule new_schedule = new Schedule(sched_id, name);
+        new_schedule.setScheduleItems(items);
+        this.schedules.add(new_schedule);
+    }
+
+    public Schedule getSchduleByID(int sched_id) {
+        for (Schedule schedule : schedules) {
+            if (schedule.getID() == sched_id) {
+                return schedule;
+            }
+        }
+        return null;
     }
 
     @Override
     public String toString() {
-        return email + "\n";
+        String s = "";
+        s = s + email + "\n";
+        if (schedules.isEmpty()) {
+            s = s + "[none]";
+        }
+        else {
+            for (Schedule schedule : schedules) {
+                s = s + schedule + "\n";
+            }
+        }
+        return s;
     }
 
 }

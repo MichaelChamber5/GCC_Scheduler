@@ -39,13 +39,29 @@ public class DatabaseManager {
         }
     }
 
+    public void removeColumns(String tableName, ArrayList<String> columnNames)
+    {
+        try(Statement stmt = connection.createStatement())
+        {
+            for (String column : columnNames) {
+                String alterQuery = "ALTER TABLE " + tableName + " DROP COLUMN " + column;
+                System.out.println("Executing: " + alterQuery);
+                stmt.executeUpdate(alterQuery);
+            }
+        }
+        catch (Exception e)
+        {
+            System.out.println("ERROR: failed to remove columns: " + e.getMessage());
+        }
+    }
+
     /**
      * Creates tables and fills them with dummy data.
      * TODO: ideally only run dropTables() once before commenting it out.. but its good for testing
      */
     private void initializeDatabase() {
         try {
-            //dropTables();
+            // dropTables();
             createTables();
             populateTables();
             System.out.println("Successfully initialized database.");
@@ -465,6 +481,44 @@ public class DatabaseManager {
         } catch (SQLException e) {
             System.err.println("Failed to insert faculty: " + e.getMessage());
             return -1;
+        }
+    }
+
+    public boolean updateFacultyRating(int facultyId, double newRating, double newDifficulty) throws SQLException, IllegalArgumentException {
+
+        String tableName = "faculty";
+
+        // Validate the input values
+        if (newRating < 0 || newRating > 5) {
+            throw new IllegalArgumentException("Rating must be between 0 and 5");
+        }
+
+        if (newDifficulty < 0 || newDifficulty > 5) {
+            throw new IllegalArgumentException("Difficulty must be between 0 and 5");
+        }
+
+        int rowsUpdated = 0;
+            // Prepare the update statement
+            String updateQuery = "UPDATE " + tableName + " SET avg_rating = ?, avg_difficulty = ? WHERE faculty_id = ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(updateQuery)) {
+            // Set parameters
+            stmt.setDouble(1, newRating);
+            stmt.setDouble(2, newDifficulty);
+            stmt.setInt(3, facultyId);
+
+            // Execute the update
+            rowsUpdated = stmt.executeUpdate();
+
+            if (rowsUpdated > 0) {
+                System.out.println("Successfully updated faculty ID " + facultyId +
+                        " with rating: " + newRating +
+                        ", difficulty: " + newDifficulty);
+                return true;
+            } else {
+                System.out.println("Faculty ID " + facultyId + " not found in the database.");
+                return false;
+            }
         }
     }
 
