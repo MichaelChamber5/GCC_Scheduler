@@ -160,7 +160,7 @@ public class NewDatabaseManager {
                     user_id TEXT NOT NULL,
                     sched_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     sched_name TEXT NOT NULL UNIQUE,
-                    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+                    FOREIGN KEY (user_id) REFERENCES users(user_id)
                 )
             """);
             // USER_COURSES (sched_id, course_id)
@@ -169,7 +169,7 @@ public class NewDatabaseManager {
                     sched_id INTEGER NOT NULL,
                     course_id INTEGER NOT NULL,
                     PRIMARY KEY (sched_id, course_id),
-                    FOREIGN KEY (sched_id) REFERENCES user_schedules(sched_id) ON DELETE CASCADE,
+                    FOREIGN KEY (sched_id) REFERENCES user_schedules(sched_id),
                     FOREIGN KEY (course_id) REFERENCES courses(course_id)
                 )
             """);
@@ -180,7 +180,7 @@ public class NewDatabaseManager {
                     pitem_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     pitem_name TEXT NOT NULL,
                     UNIQUE(sched_id, pitem_name),
-                    FOREIGN KEY (sched_id) REFERENCES user_schedules(sched_id) ON DELETE CASCADE
+                    FOREIGN KEY (sched_id) REFERENCES user_schedules(sched_id)
                 )
             """);
             // PITEM_TIME_SLOTS table (pitem_id, time_id)
@@ -189,7 +189,7 @@ public class NewDatabaseManager {
                     pitem_id INTEGER NOT NULL,
                     time_id INTEGER NOT NULL,
                     PRIMARY KEY (pitem_id, time_id),
-                    FOREIGN KEY (pitem_id) REFERENCES personal_items(pitem_id) ON DELETE CASCADE,
+                    FOREIGN KEY (pitem_id) REFERENCES personal_items(pitem_id),
                     FOREIGN KEY (time_id) REFERENCES time_slots(time_id)
                 )
             """);
@@ -1066,6 +1066,9 @@ public class NewDatabaseManager {
         } catch (SQLException e) {
             System.err.println("Failed to delete user: " + e.getMessage());
         }
+        for (Schedule schedule : getAllUserSchedules(user_id)) {
+            deleteUserSchedule(user_id, schedule.getID());
+        }
     }
 
     // ######## USER_SCHEDULES ####################################################
@@ -1181,6 +1184,14 @@ public class NewDatabaseManager {
      * @param sched_id
      */
     protected void deleteUserSchedule(int user_id, int sched_id) {
+        for (ScheduleItem item : getScheduleItems(sched_id)) {
+            if (item instanceof CourseItem) {
+                removeCourseFromSchedule(sched_id, item.getId());
+            }
+            else {
+                removePersonalItemFromSchedule(sched_id, item.getId());
+            }
+        }
         String sql = "DELETE FROM user_schedules WHERE user_id = ? AND sched_id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, user_id);
@@ -1385,7 +1396,7 @@ public class NewDatabaseManager {
      * @param sched_id
      * @param pitem_id
      */
-    protected void deletePersonalItem(int sched_id, int pitem_id) {
+    protected void removePersonalItemFromSchedule(int sched_id, int pitem_id) {
         // TODO: check that user_id / pitem_id are valid ids
         String sql = "DELETE FROM user_personal_items WHERE sched_id = ? AND pitem_id = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
@@ -1652,30 +1663,31 @@ public class NewDatabaseManager {
         meetingTimes.put('F', new ArrayList<>(Arrays.asList(1100, 1145)));
         dm.addPersonalItemToSchedule(sched_id, "Lunch", meetingTimes);
         System.out.println(dm.getAllUserSchedules(user_id));
-//
-//        // get info - "Lunch" (db calls)
-//        System.out.println("\nTEST PERSONAL ITEM INFO (1)");
-//        int pitem_id = dm.getPersonalItemID(user_id, "Chapel");
-//        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
-//        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
-//
-//        // get info - "Lunch" (db calls)
-//        System.out.println("\nTEST PERSONAL ITEM INFO (2)");
-//        pitem_id = dm.getPersonalItemID(user_id, "Lunch");
-//        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
-//        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
-//
-//        // remove personal item from user schedule
-//        System.out.println("\nTEST REMOVING USER PERSONAL ITEM");
-//        System.out.println(dm.getUserPersonalItems(user_id));
-//        dm.deleteUserPersonalItem(user_id, pitem_id); // "Lunch"
-//        System.out.println(dm.getUserPersonalItems(user_id));
 
-        // get user schedule
-        System.out.println("\nTEST GETTING USER SCHEDULE");
-        System.out.println("courses: "+ dm.getScheduleCourses(sched_id));
-        System.out.println("personal items: " + dm.getSchedulePersonalItems(sched_id));
-        System.out.println("schedule: " + dm.getScheduleItems(sched_id));
+        // get info - "Lunch" (db calls)
+        System.out.println("\nTEST PERSONAL ITEM INFO (1)");
+        int pitem_id = dm.getPersonalItemID(user_id, "Chapel");
+        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
+        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
+
+        // get info - "Lunch" (db calls)
+        System.out.println("\nTEST PERSONAL ITEM INFO (2)");
+        pitem_id = dm.getPersonalItemID(user_id, "Lunch");
+        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
+        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
+
+        // remove personal item from user schedule
+        System.out.println("\nTEST REMOVING USER PERSONAL ITEM (1)");
+        System.out.println(dm.getAllUserSchedules(user_id));
+        dm.removePersonalItemFromSchedule(sched_id, pitem_id); // "Lunch"
+        System.out.println(dm.getAllUserSchedules(user_id));
+
+        // test deleting user
+        System.out.println("\nTEST DELETING USER (1)");
+        dm.deleteUser(user_id);
+        System.out.println(dm.getUserID(email1, password));
+        System.out.println(dm.getAllUserSchedules(user_id));
+        System.out.println(dm.getScheduleCourses(sched_id));
 
         dm.close();
 
