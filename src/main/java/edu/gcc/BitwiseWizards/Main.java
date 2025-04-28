@@ -6,7 +6,7 @@ class Main {
 
     private static User curr_user = null;
     private static Search search;
-    private static DatabaseManager dm;
+    private static NewDatabaseManager dm;
 
     /**
      * Creates a new user with the specified email and password / updates curr_user accordingly.
@@ -18,7 +18,12 @@ class Main {
     public static void createUser(String email, String password) {
         try {
             int user_id = dm.insertUser(email, password);
-            login(email, password);
+            if (user_id > 0) {
+                login(email, password);
+            }
+            else {
+                System.out.println("Failed to create user: dm.insertUser() issue");
+            }
         } catch (Exception e) {
             System.out.println("Failed to create user: " + e.getMessage());
         }
@@ -33,13 +38,18 @@ class Main {
     public static void login(String email, String password) {
         try {
             int user_id = dm.getUserID(email, password);
-            User user = new User(user_id, email, password);
-            user.setSchedule(dm.getUserSchedule(user_id));
-            curr_user = user;
+            if (user_id > 0) {
+                User user = new User(user_id, email, password);
+                user.setSchedules(dm.getAllUserSchedules(user_id));
+                curr_user = user;
+            }
+            else {
+                System.err.println("Login failed: email / password invalid");
+            }
         }
         catch (Exception e) {
             System.err.println("Login failed: " + e.getMessage());
-            curr_user = null; // should be redundant, but just in case
+            curr_user = null;
         }
     }
 
@@ -51,34 +61,34 @@ class Main {
     }
 
     public static void addScheduleItem(ScheduleItem item) {
-        boolean added = curr_user.getSchedule().addScheduleItem(item);
-
-        if(added)
-        {
-            if (item instanceof CourseItem) {
-                dm.insertUserCourse(curr_user.getId(), item.getId());
-            }
-            else {
-                // TODO: fix pitem id issues
-                dm.insertPersonalItem(curr_user.getId(), item.getName(), item.getMeetingTimes());
-            }
-        }
-        else
-        {
-            System.out.println("ERROR: item not added to DB");
-        }
+//        boolean added = curr_user.getSchedule().addScheduleItem(item);
+//
+//        if(added)
+//        {
+//            if (item instanceof CourseItem) {
+//                dm.insertUserCourse(curr_user.getId(), item.getId());
+//            }
+//            else {
+//                // TODO: fix pitem id issues
+//                dm.insertPersonalItem(curr_user.getId(), item.getName(), item.getMeetingTimes());
+//            }
+//        }
+//        else
+//        {
+//            System.out.println("ERROR: item not added to DB");
+//        }
     }
 
     public static void removeScheduleItem(ScheduleItem item) {
-        if (item instanceof CourseItem) {
-            dm.deleteUserCourse(curr_user.getId(), item.getId());
-        }
-        else {
-            dm.deleteUserPersonalItem(curr_user.getId(), dm.getPersonalItemID(curr_user.getId(), item.getName()));
-        }
-        curr_user.setSchedule(dm.getUserSchedule(curr_user.getId()));
-        // TODO: fix remove schedule item issue
-//        curr_user.getSchedule().removeScheduleItem(item);
+//        if (item instanceof CourseItem) {
+//            dm.deleteUserCourse(curr_user.getId(), item.getId());
+//        }
+//        else {
+//            dm.deleteUserPersonalItem(curr_user.getId(), dm.getPersonalItemID(curr_user.getId(), item.getName()));
+//        }
+//        curr_user.setSchedule(dm.getUserSchedule(curr_user.getId()));
+//        // TODO: fix remove schedule item issue
+////        curr_user.getSchedule().removeScheduleItem(item);
     }
 
     // testing...
@@ -88,7 +98,7 @@ class Main {
         PDFProcessor.initialize();
 
         // create / initialize database
-        dm = new DatabaseManager();
+        dm = new NewDatabaseManager();
         System.out.println("\nInitially curr_user is " + curr_user + ".\n");
 
         String email = "example@gcc.edu";
@@ -97,6 +107,7 @@ class Main {
         // create user account
         createUser(email, password);
         System.out.println("Created user: " + curr_user);
+        System.out.println(curr_user.getSchedules());
 
         // create / initialize search
         String keyword = "Accounting";
@@ -106,14 +117,14 @@ class Main {
         System.out.println("RESULTS:");
         System.out.println(courses);
 
-        addScheduleItem(courses.get(0));
-        System.out.println("\nadd " + courses.get(0) + " to user schedule: " + curr_user.getSchedule());
-
-        addScheduleItem(courses.get(1));
-        System.out.println("\nadd " + courses.get(1) + " to user schedule: " + curr_user.getSchedule());
-
-        removeScheduleItem(courses.get(1));
-        System.out.println("\nremove " + courses.get(1) + " from user schedule: " + curr_user.getSchedule());
+//        addScheduleItem(courses.get(0));
+//        System.out.println("\nadd " + courses.get(0) + " to user schedule: " + curr_user.getSchedule());
+//
+//        addScheduleItem(courses.get(1));
+//        System.out.println("\nadd " + courses.get(1) + " to user schedule: " + curr_user.getSchedule());
+//
+//        removeScheduleItem(courses.get(1));
+//        System.out.println("\nremove " + courses.get(1) + " from user schedule: " + curr_user.getSchedule());
 
         // create new schedule item
         Map<Character, List<Integer>> meetingTimes = new HashMap<>();
@@ -121,8 +132,8 @@ class Main {
         ScheduleItem item = new ScheduleItem(-1, "Chapel", meetingTimes);
 
         // add it to user schedule
-        addScheduleItem(item);
-        System.out.println("\nadd " + item + " to user schedule: " + curr_user.getSchedule());
+//        addScheduleItem(item);
+//        System.out.println("\nadd " + item + " to user schedule: " + curr_user.getSchedule());
 
         logout();
         System.out.println("\nLogged out: " + curr_user);
@@ -131,15 +142,15 @@ class Main {
         System.out.println("\nLogged in: " + curr_user);
 
         // reload previously saved schedule
-        System.out.println(curr_user.getSchedule());
+        System.out.println(curr_user.getSchedules());
 
-        // remove pitem from saved schedule
-        removeScheduleItem(item);
-        System.out.println("\nremove " + item + " from user schedule: " + curr_user.getSchedule());
-
-        // remove course from saved schedule
-        removeScheduleItem(courses.get(0));
-        System.out.println("\nremove " + courses.get(0) + " from user schedule: " + curr_user.getSchedule());
+//        // remove pitem from saved schedule
+//        removeScheduleItem(item);
+//        System.out.println("\nremove " + item + " from user schedule: " + curr_user.getSchedule());
+//
+//        // remove course from saved schedule
+//        removeScheduleItem(courses.get(0));
+//        System.out.println("\nremove " + courses.get(0) + " from user schedule: " + curr_user.getSchedule());
 
         logout();
         System.out.println("\nLogged out: " + curr_user);
@@ -148,7 +159,7 @@ class Main {
         System.out.println("\nLogged in: " + curr_user);
 
         // reload previously saved schedule
-        System.out.println(curr_user.getSchedule());
+        System.out.println(curr_user.getSchedules());
 
         dm.close();
 

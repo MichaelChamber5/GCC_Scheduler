@@ -4,12 +4,28 @@ import java.util.*;
 
 public class Schedule {
 
-    private List<ScheduleItem> items;
+    private int sched_id;
+    private String name;
     private int credit_count;
+    private List<ScheduleItem> items;
 
-    public Schedule() {
-        items = new ArrayList<>();
+    public Schedule(int sched_id, String name) {
+        this.sched_id = sched_id;
+        this.name = name;
         credit_count = 0;
+        items = new ArrayList<>();
+    }
+
+    public int getID() {
+        return sched_id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getCreditCount() {
+        return credit_count;
     }
 
     public void setScheduleItems(List<ScheduleItem> items) {
@@ -41,11 +57,12 @@ public class Schedule {
         }
         return courses;
     }
-//
-    public int getCreditCount() {
-        return credit_count;
-    }
 
+    /**
+     * Add item to schedule.
+     * @param item
+     * @return
+     */
     public boolean addScheduleItem(ScheduleItem item) {
         if(safeToAdd(item))
         {
@@ -61,7 +78,11 @@ public class Schedule {
             System.out.println("ERROR: overlapping schedule items");
             return false;
     }
-//
+
+    /**
+     * Remove item from schedule.
+     * @param item
+     */
     public void removeScheduleItem(ScheduleItem item) {
         //if the item is a course item, reduce to credit count
         if(item instanceof CourseItem)
@@ -69,12 +90,6 @@ public class Schedule {
             credit_count -= ((CourseItem) item).getCredits();
         }
         items.remove(item);
-    }
-
-    @Override
-    public String toString() {
-        // [Software Engineering, Chapel, ...]
-        return "" + items;
     }
 
     public boolean safeToAdd(ScheduleItem otherItem)
@@ -95,6 +110,16 @@ public class Schedule {
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         int minute = calendar.get(Calendar.MINUTE);
         return hour * 100 + minute;
+    }
+
+    @Override
+    public String toString() {
+        // [Software Engineering, Chapel, ...]
+        return name + ": " + items;
+    }
+
+    public boolean equals(Schedule other) {
+        return this.sched_id == other.sched_id;
     }
 
 }

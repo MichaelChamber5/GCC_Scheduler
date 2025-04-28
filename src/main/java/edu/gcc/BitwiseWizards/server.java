@@ -16,11 +16,11 @@ import java.util.Date;
 
 public class server {
     // This DatabaseManager handles all database operations.
-    private static DatabaseManager dbm;
+    private static NewDatabaseManager dbm;
 
     public static void main(String[] args) {
         // Initialize the database manager.
-        dbm = new DatabaseManager();
+        dbm = new NewDatabaseManager();
         // Set the port to listen on.
         port(4567);
 
@@ -90,8 +90,10 @@ public class server {
             if (userId != -1) {
                 // Create a new user instance and retrieve their schedule.
                 User user = new User(userId, username, password);
-                List<ScheduleItem> items = dbm.getUserSchedule(userId);
-                user.setSchedule(items);
+                // TODO: update code logic
+//                List<ScheduleItem> items = dbm.getUserSchedule(userId);
+//                user.createNewSchedule();
+//                user.setSchedule(items);
                 // Save the user in the session.
                 req.session().attribute("user", user);
                 // Redirect to the calendar view.
@@ -115,9 +117,11 @@ public class server {
             if (user == null) {
                 halt(401, "Not logged in");
             }
-            List<ScheduleItem> schedule = dbm.getUserSchedule(user.getId());
+            // TODO: update code logic
+//            List<ScheduleItem> schedule = dbm.getUserSchedule(user.getId());
             Map<String, Object> model = new HashMap<>();
-            model.put("schedule", schedule);
+            // TODO: update code logic
+//            model.put("schedule", schedule);
             return new ModelAndView(model, "calendar-snippet.ftl");
         }, freeMarkerEngine);
 
@@ -130,14 +134,16 @@ public class server {
                 return "Unauthorized";
             }
             // Retrieve course IDs and then fetch each corresponding course.
-            List<Integer> ids = dbm.getUserCourseIds(user.getId());
+            // TODO: update code logic
+//            List<Integer> ids = dbm.getUserCourseIds(user.getId());
             List<CourseItem> schedule = new ArrayList<>();
-            for (Integer courseId : ids) {
-                CourseItem c = dbm.getCourseByID(courseId);
-                if (c != null) {
-                    schedule.add(c);
-                }
-            }
+            // TODO: update code logic
+//            for (Integer courseId : ids) {
+//                CourseItem c = dbm.getCourseByID(courseId);
+//                if (c != null) {
+//                    schedule.add(c);
+//                }
+//            }
             res.type("application/json");
             return new Gson().toJson(schedule);
         });
@@ -166,23 +172,25 @@ public class server {
             }
 
             // Check the current schedule for any conflicting courses.
-            List<ScheduleItem> currentSchedule = dbm.getUserSchedule(user.getId());
-            for (ScheduleItem scheduledItem : currentSchedule) {
-                if (scheduledItem instanceof CourseItem) {
-                    CourseItem scheduledCourse = (CourseItem) scheduledItem;
-                    if (newCourse.conflicts(scheduledCourse)) {
-                        res.status(409);
-                        return new Gson().toJson(Collections.singletonMap("error",
-                                "Course " + newCourse.getName() + " conflicts with " +
-                                        scheduledCourse.getName() + ". Please remove the conflicting course."));
-                    }
-                }
-            }
+            // TODO: update code logic
+//            List<ScheduleItem> currentSchedule = dbm.getUserSchedule(user.getId());
+//            for (ScheduleItem scheduledItem : currentSchedule) {
+//                if (scheduledItem instanceof CourseItem) {
+//                    CourseItem scheduledCourse = (CourseItem) scheduledItem;
+//                    if (newCourse.conflicts(scheduledCourse)) {
+//                        res.status(409);
+//                        return new Gson().toJson(Collections.singletonMap("error",
+//                                "Course " + newCourse.getName() + " conflicts with " +
+//                                        scheduledCourse.getName() + ". Please remove the conflicting course."));
+//                    }
+//                }
+//            }
 
 
 
             // If no conflicts, insert the course into the user's schedule.
-            dbm.insertUserCourse(user.getId(), courseId);
+            // TODO: update code logic
+//            dbm.insertUserCourse(user.getId(), courseId);
             res.type("application/json");
             return new Gson().toJson(Collections.singletonMap("success", true));
         });
@@ -194,7 +202,8 @@ public class server {
                 halt(401, "Not logged in");
             }
             int itemId = Integer.parseInt(req.queryParams("scheduleItemId"));
-            dbm.deleteUserCourse(user.getId(), itemId);
+            // TODO: update code logic
+//            dbm.deleteUserCourse(user.getId(), itemId);
             return "Removed";
         });
 
@@ -253,12 +262,13 @@ public class server {
                 }
 
                 // Mark courses as being on the user's schedule if applicable.
-                List<Integer> userIds = dbm.getUserCourseIds(currUser.getId());
-                Set<Integer> userSet = new HashSet<>(userIds);
-                for (CourseItem c : results) {
-                    boolean onSch = userSet.contains(c.getId());
-                    c.setOnSchedule(onSch);
-                }
+                // TODO: update code logic
+//                List<Integer> userIds = dbm.getUserCourseIds(currUser.getId());
+//                Set<Integer> userSet = new HashSet<>(userIds);
+//                for (CourseItem c : results) {
+//                    boolean onSch = userSet.contains(c.getId());
+//                    c.setOnSchedule(onSch);
+//                }
 
                 Gson gson = new GsonBuilder().create();
                 res.type("application/json");
