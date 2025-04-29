@@ -427,7 +427,7 @@ const base=getCurrentMonday().add(dayLetterToIndex[d], 'days');
 const [s,e]=t;
 const start=base.clone().hour(Math.floor(s/100)).minute(s%100);
 const end  =base.clone().hour(Math.floor(e/100)).minute(e%100);
-events.push({title:item.name,start:start.toDate(),end:end.toDate(),id:item.id});
+events.push({title:item.name,start:start.toDate(),end:end.toDate(),id:item.id,type:item.type});
             });
             return events;
         }
@@ -491,10 +491,19 @@ return (
                                     {evts.map((ev,j)=>
 <div key={j} className="event-overlay">
                                             {ev.title}
-                                            <button className="remove-button" onClick={e=>{
-e.stopPropagation();
-window.removeCourseGlobal(ev.id);
-}}>x</button>
+                                            <button
+                                                  className="remove-button"
+                                                  onClick={e => {
+                                                    e.stopPropagation();
+                                                    if (ev.type === 'personal') {
+                                                      window.removeItemGlobal(ev.id);
+                                                    } else {
+                                                      window.removeCourseGlobal(ev.id);
+                                                    }
+                                                  }}
+                                                >
+                                                  x
+                                                </button>
                                         </div>
                                     )}
                                 </div>
