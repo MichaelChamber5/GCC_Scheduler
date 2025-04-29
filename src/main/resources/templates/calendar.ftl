@@ -68,6 +68,7 @@
     <div class="top-bar">
         <button class="logout-button" onclick="handleLogout()">Logout</button>
         <button class="back-button" onclick="location.href='/schedules'">All Schedules</button>
+        <button id="addItemBtn" class="back-button" onclick="openAddItemModal()">Add Personal Item</button>
         <h3>Scheduler Navigation Bar</h3>
     </div>
 
@@ -109,6 +110,22 @@
         </div>
     </div>
 
+    <div id="addItemModal" class="modal">
+          <div class="modal-content">
+            <span class="close" onclick="closeAddItemModal()">&times;</span>
+            <h3>Add Personal Item</h3>
+            <label>Name:</label><br>
+            <input id="itemNameInput" type="text" placeholder="e.g. Doctor’s appt"><br><br>
+            <label>Days (e.g. MWF):</label><br>
+            <input id="itemDaysInput" type="text" placeholder="e.g. MWR"><br><br>
+            <label>Start Time (HHMM):</label><br>
+            <input id="itemStartInput" type="text" placeholder="0930"><br><br>
+            <label>End Time (HHMM):</label><br>
+            <input id="itemEndInput"   type="text" placeholder="1030"><br><br>
+            <button id="createItemBtn">Create</button>
+          </div>
+        </div>
+
     <div id="errorModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeErrorModal()">&times;</span>
@@ -132,18 +149,78 @@ const $ = sel => document.querySelector(sel);
 
 window.handleLogout = () => location.href = '/login';
 
-/* -----  SEMESTER TOGGLE  ----- */
-window.currentSemester = $('#fall-btn').dataset.semester;
-document.querySelectorAll('.semester-btn').forEach(btn => {
-btn.onclick = () => {
-document.querySelectorAll('.semester-btn').forEach(b => b.classList.remove('active'));
-btn.classList.add('active');
-window.currentSemester = btn.dataset.semester;
-performSearch();
-window.refreshCalendar?.();
-updateScheduleTable();
-};
+window.openAddItemModal  = () => $('#addItemModal').style.display = 'block';
+window.closeAddItemModal = () => $('#addItemModal').style.display = 'none';
+
+// ↓↓↓ CREATE PERSONAL ITEM ↓↓↓
+      $('#createItemBtn').onclick = () => {
+        const name  = $('#itemNameInput').value.trim();
+        const days  = $('#itemDaysInput').value.trim().split('');
+        const start = parseInt($('#itemStartInput').value, 10);
+        const end   = parseInt($('#itemEndInput').value, 10);
+        if (!name || days.length===0 || isNaN(start) || isNaN(end)) {
+          return showErrorModal('Please fill out all fields.');
+        }
+
+        const meetingTimes = {};
+        days.forEach(d => meetingTimes[d] = [ start, end ]);
+
+        const params = new URLSearchParams({
+          schedId:      window.currentSchedId,
+          name,
+          meetingTimes: JSON.stringify(meetingTimes)
         });
+
+        fetch('/add-item', { method: 'POST', body: params })
+          .then(async r => {
+            const payload = await r.json();
+            if (!r.ok) throw payload;
+            closeAddItemModal();
+            window.refreshCalendar?.();
+            updateScheduleTable();
+          })
+          .catch(err => showErrorModal(err.error || 'Error adding personal item'));
+      };
+
+       // ↓↓↓ REMOVE PERSONAL ITEM (GLOBAL) ↓↓↓
+            window.removeItemGlobal = id => {
+              const params = new URLSearchParams({
+                schedId: window.currentSchedId,
+                itemId:  id
+              });
+              fetch('/remove-item', { method:'POST', body: params })
+                .then(async r => {
+                  const payload = await r.json();
+                  if (!r.ok) throw payload;
+                  window.refreshCalendar?.();
+                  updateScheduleTable();
+                })
+                .catch(err => showErrorModal(err.error || 'Error removing item'));
+            };
+
+        /* -----  SEMESTER TOGGLE  ----- */
+        // 1) Initialize to Fall by default:
+        window.currentSemester = $('#fall-btn').dataset.semester;
+
+        // 2) Wire up both buttons in one place:
+        document.querySelectorAll('.semester-btn').forEach(btn => {
+          btn.onclick = () => {
+            // a) Toggle the 'active' class
+            document.querySelectorAll('.semester-btn')
+              .forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // b) Update the global semester
+            window.currentSemester = btn.dataset.semester;
+
+            // c) Refresh everything
+            performSearch();
+            updateScheduleTable();
+            window.refreshCalendar?.();
+          };
+        });
+
+
 
         /* ------------------  SEARCH  ------------------ */
         window.performSearch = () => {
@@ -303,10 +380,18 @@ if(e.target=== $('#advancedSearchModal')) closeModal();
 
         /* -----  SCHEDULE TABLE ----- */
         function updateScheduleTable(){
-fetch('/api/schedule?schedId='+encodeURIComponent(window.currentSchedId))
+fetch(
+        '/api/schedule'
+        + '?schedId='  + encodeURIComponent(window.currentSchedId)
+        + '&semester=' + encodeURIComponent(window.currentSemester)
+      )
 .then(r=>r.json())
 .then(data=>{
-const rows = data.map(c=>{
+const filtered = data.filter(i =>
+            i.type === 'personal'
+            || i.semester.toLowerCase().endsWith(window.currentSemester.toLowerCase())
+          );
+          const rows = filtered.map(c=>{
 const profs = c.professors?.map(p=>p.name).join(', ')||'None';
 return `<tr>
 <td>${c.name}</td><td>${profs}</td><td>${c.location}</td>
@@ -350,10 +435,18 @@ events.push({title:item.name,start:start.toDate(),end:end.toDate(),id:item.id});
         function Calendar(){
 const [events,setEvents]=React.useState([]);
 const load=()=>{
-fetch('/api/schedule?schedId='+encodeURIComponent(window.currentSchedId))
+fetch(
+         '/api/schedule'
+         + '?schedId='  + encodeURIComponent(window.currentSchedId)
+         + '&semester=' + encodeURIComponent(window.currentSemester)
+       )
 .then(r=>r.json())
 .then(data=>{
-const filtered=data.filter(i=>i.semester?.toLowerCase().endsWith(window.currentSemester.toLowerCase()));
+// keep every personal item, plus only courses matching currentSemester
+           const filtered = data.filter(i =>
+             i.type === 'personal'
+             || i.semester.toLowerCase().endsWith(window.currentSemester.toLowerCase())
+           );
 setEvents(filtered.flatMap(mapScheduleItemToEvents));
 });
             };
