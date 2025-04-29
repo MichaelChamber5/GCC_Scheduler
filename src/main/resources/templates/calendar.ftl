@@ -240,7 +240,23 @@ updateScheduleTable();
 })
 .catch(err=>showErrorModal(err.error||'Remove failed'));
         }
-        window.removeCourseGlobal=id=>removeCourse(id,{textContent:'',dataset:{added:'true'}});
+
+window.removeCourseGlobal = id => {
+// try to find the actual sidebar button for this course
+const sidebarBtn = document.querySelector(
+`.course-action-btn[data-course-id="${id}"]`
+);
+
+if (sidebarBtn) {
+// flip it immediately in the UI
+sidebarBtn.textContent = 'Add';
+sidebarBtn.dataset.added = 'false';
+}
+  removeCourse(
+    id,
+    sidebarBtn || { dataset: { added: 'true' }, textContent: '' }
+  );
+};
 
         /* -----  MODALS ----- */
         window.openModal = ()=> $('#advancedSearchModal').style.display='block';
@@ -255,26 +271,29 @@ $('#errorModal').style.display='block';
         window.closeCourseInfoModal = ()=> $('#courseInfoModal').style.display='none';
         window.onclick = e => { if(e.target==$('#advancedSearchModal')) closeModal(); };
 
-/* -----  SCHEDULE TABLE ----- */
+function fmt(x){if(x==null)return'—';let h=Math.floor(x/100),m=x%100,ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+(m<10?'0':'')+m+' '+ap;}
+
+
+
+
+/* ---------- SCHEDULE TABLE ---------- */
 function updateScheduleTable(){
-fetch('/api/schedule?schedId='+encodeURIComponent(window.currentSchedId))
-.then(r=>r.json())
-.then(data=>{
-const rows=data.map(c=>{
-const profs=c.professors?.map(p=>p.name).join(', ')||'None';
-return `<tr>
-<td>${c.name}</td><td>${profs}</td><td>${c.location}</td>
-<td>${c.credits}</td><td>${c.courseNumber}</td>
-<td>${c.section}</td><td>${c.description||''}</td>
-</tr>`;
-                  }).join('');
-                  $('#scheduleDetailsTable').innerHTML=`
-<thead><tr>
+fetch('/api/schedule?schedId='+encodeURIComponent(window.currentSchedId)).then(r=>r.json()).then(d=>{
+$('#scheduleDetailsTable').innerHTML=`<thead><tr>
 <th>Course Name</th><th>Professor(s)</th><th>Location</th>
-<th>Credits</th><th>Course Code</th><th>Section</th><th>Description</th>
-</tr></thead><tbody>${rows}</tbody>`;
-              });
-        }
+<th>Credits</th><th>Course Code</th><th>Time</th><th>Description</th>
+</tr></thead><tbody>`+
+d.map(c=>`<tr>
+<td>${c.name}</td>
+     <td>${c.professors?.map(p=>p.name).join(', ')||'None'}</td>
+     <td>${c.location}</td>
+     <td>${c.credits}</td>
+     <td>${c.courseNumber}</td>
+     <td>${fmt(c.startTime)} - ${fmt(c.endTime)}</td>
+     <td>${c.description||''}</td>
+   </tr>`).join('')+'</tbody>';
+ });
+}
 
         /* ------------------  INIT  ------------------ */
         performSearch();
