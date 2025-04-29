@@ -421,6 +421,13 @@ return `<tr>
           const start = base.clone().hour( Math.floor(s/100) ).minute(s%100);
           const end   = base.clone().hour( Math.floor(e/100) ).minute(e%100);
           events.push({ title:item.name, start:start.toDate(), end:end.toDate(), id:item.id });
+          events.push({
+          title : item.name,
+          start : start.toDate(),
+          end   : end.toDate(),
+          id    : item.id,
+          type  : item.type            //  ← course | personal  (server already sends it)
+          });
         });
         return events;
       }
@@ -506,6 +513,10 @@ return `<tr>
                           onClick={e => {
                             e.stopPropagation();
                             window.removeCourseGlobal(ev.id);
+                            if (ev.type === 'course')
+                                window.removeCourseGlobal(ev.id);
+                            else
+                                window.removeItemGlobal(ev.id);
                           }}
                         >×</button>
                       </div>
