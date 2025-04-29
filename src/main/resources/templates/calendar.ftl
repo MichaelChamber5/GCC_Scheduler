@@ -24,6 +24,7 @@
 .calendar-table{width:100%;height:100%;border-collapse:collapse;table-layout:fixed}
 .calendar-table th,.calendar-table td{border:1px solid #ccc;padding:4px;font-size:12px;text-align:center}
 .calendar-table th{background:#eee}
+
 /* ----------  CALENDAR GRID ---------- */
 .calendar-container{max-width:1200px;margin:0 auto;border:1px solid #999;height:57vh;overflow-y:auto;background:#fff}
 .calendar-grid{display:flex;border-top:2px solid #333;border-left:2px solid #333}
@@ -34,6 +35,7 @@
 .slot-label{position:relative;z-index:2}
 .event-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,102,204,.8);display:flex;align-items:center;justify-content:center;font-size:10px;color:#333;z-index:1}
 .remove-button{margin-left:8px;background:transparent;border:none;color:#333;font-weight:bold;cursor:pointer;pointer-events:auto}
+
 .course-info-btn {
   background: none;
   border: none;
@@ -47,10 +49,25 @@
   color: #1976D2;    /* subtle hover color change */
 }
 
+
 /* ----------  MODALS ---------- */
 .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,.5)}
 .modal-content{background:#fff;margin:10% auto;padding:20px;border-radius:8px;width:40%;box-shadow:0 5px 15px rgba(0,0,0,.3)}
 .close{float:right;font-size:20px;font-weight:bold;cursor:pointer}
+
+/* ----------  LOADING SPINNER ---------- */
+.spinner{
+width:48px;height:48px;
+border:6px solid #ccc;
+border-top-color:#000;
+border-radius:50%;
+animation:spin .8s linear infinite;
+position:absolute;left:50%;top:50%;
+transform:translate(-50%,-50%);
+z-index:200;
+}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg);}}
+.hidden{display:none;}
 </style>
 
 
@@ -84,7 +101,9 @@
             </div>
             <input type="text" class="search-input" placeholder="Search for classes…">
             <button class="advanced-search-btn" onclick="openModal()">Advanced Search</button>
+
             <div id="sidebar-container"></div>
+            <div id="loadingSpinner" class="spinner hidden"></div>
         </div>
 
         <!-- ----------  CALENDAR + TABLE ---------- -->
@@ -145,12 +164,12 @@
 
     <!-- ----------  PAGE SCRIPT ---------- -->
     <script>
-<#noparse>
+    <#noparse>
     document.addEventListener('DOMContentLoaded', () => {
-/* ------------------  HELPER ------------------ */
-const $ = sel => document.querySelector(sel);
 
-window.handleLogout = () => location.href = '/login';
+/* ------------------  HELPERS ------------------ */
+const $ = sel => document.querySelector(sel);
+window.handleLogout = () => location.href='/login';
 
 // -- open/close
 window.openAddItemModal  = () => $('#addItemModal').style.display = 'block';
@@ -205,32 +224,36 @@ window.removeItemGlobal = id => {
 
 /* -----  SEMESTER TOGGLE  ----- */
 window.currentSemester = $('#fall-btn').dataset.semester;
-document.querySelectorAll('.semester-btn').forEach(btn => {
-btn.onclick = () => {
-document.querySelectorAll('.semester-btn').forEach(b => b.classList.remove('active'));
+document.querySelectorAll('.semester-btn').forEach(btn=>{
+btn.onclick=()=>{
+document.querySelectorAll('.semester-btn').forEach(b=>b.classList.remove('active'));
 btn.classList.add('active');
-window.currentSemester = btn.dataset.semester;
+window.currentSemester=btn.dataset.semester;
 performSearch();
 window.refreshCalendar?.();
 updateScheduleTable();
 };
         });
 
-        /* ------------------  SEARCH  ------------------ */
-        window.performSearch = () => {
-const query = $('.search-input').value.trim();
-if (!query) { $('#sidebar-container').innerHTML = ''; return; }
+        /* ------------------  SEARCH ------------------ */
+        window.performSearch = () =>{
+const spinner = $('#loadingSpinner');
+const query   = $('.search-input').value.trim();
+if(!query){ $('#sidebar-container').innerHTML=''; return; }
 
-let url = '/search?q=' + encodeURIComponent(query) +
-'&semester=' + encodeURIComponent(window.currentSemester) +
-'&schedId='  + encodeURIComponent(window.currentSchedId);
+spinner.classList.remove('hidden');
 
-const dept  = $('#deptInput') ?.value.trim(); if (dept)  url += '&dept='  + encodeURIComponent(dept);
-const days  = $('#daysInput') ?.value.trim(); if (days)  url += '&days='  + encodeURIComponent(days);
-const start = $('#startInput')?.value.trim(); if (start) url += '&start=' + encodeURIComponent(start);
-const end   = $('#endInput')  ?.value.trim(); if (end)   url += '&end='   + encodeURIComponent(end);
+let url = '/search?q='+encodeURIComponent(query)+
+'&semester='+encodeURIComponent(window.currentSemester)+
+'&schedId='+encodeURIComponent(window.currentSchedId);
+
+const dept  = $('#deptInput')?.value.trim(); if(dept)  url+='&dept='+encodeURIComponent(dept);
+const days  = $('#daysInput')?.value.trim(); if(days)  url+='&days='+encodeURIComponent(days);
+const start = $('#startInput')?.value.trim();  if(start) url+='&start='+encodeURIComponent(start);
+const end   = $('#endInput') ?.value.trim();  if(end)   url+='&end='+encodeURIComponent(end);
 
 fetch(url)
+
 .then(r => r.json())
 .then(list => {
 let html = list.length
@@ -275,8 +298,11 @@ let html = list.length
                   attachCourseInfoButtons();
               })
 .catch(err => console.error('Search error',err));
+
+.finally(()=>spinner.classList.add('hidden'));
+
         };
-        $('.search-input').addEventListener('keydown', e => e.key==='Enter'&&performSearch());
+        $('.search-input').addEventListener('keydown',e=>e.key==='Enter'&&performSearch());
 
         /* -----  ADD / REMOVE COURSE  ----- */
         function attachCourseActionButtons(){
@@ -286,25 +312,53 @@ btn.onclick=()=> btn.dataset.added==='true'
 : addCourse   (btn.dataset.courseId,btn);
 });
         }
-        function attachCourseInfoButtons(){
-          document.querySelectorAll('.course-info-btn').forEach(btn=>{
-            btn.onclick=()=>{
-              const c = JSON.parse(decodeURIComponent(btn.dataset.courseInfo));
 
-              // ── 1) group days by identical times ──
-              let timesHtml = '';
-              if (c.meetingTimes) {
-                const groups = {};
-                Object.entries(c.meetingTimes).forEach(([day, [start, end]]) => {
-                  const key = `${start}-${end}`;
-                  (groups[key] = groups[key] || []).push(day);
-                });
-                // formatter to 12-hour
-                const fmt = i => {
-                  const h24 = Math.floor(i/100);
-                  const h12 = (h24 % 12) === 0 ? 12 : (h24 % 12);
-                  const m   = i % 100;
-                  return `${h12}:${String(m).padStart(2,'0')}`;
+        /* -----  INFO MODAL (with deduped times) ----- */
+        function attachCourseInfoButtons(){
+// 1) Utility to format 24h integer (e.g. 1330) → "1:30"
+const fmt = i => {
+  const h24 = Math.floor(i/100);
+  const h12 = (h24 % 12) === 0 ? 12 : (h24 % 12);
+  const m   = i % 100;
+  return `${h12}:${String(m).padStart(2,'0')}`;
+};
+
+document.querySelectorAll('.course-info-btn').forEach(btn => {
+  btn.onclick = () => {
+    const c = JSON.parse(decodeURIComponent(btn.dataset.courseInfo));
+
+    // ── 2) build a "Days HH:MM–HH:MM" string ──
+    let timesString = '—';
+    if (c.meetingTimes && Object.keys(c.meetingTimes).length) {
+      // group days by identical [start,end]
+      const groups = {};
+      Object.entries(c.meetingTimes).forEach(([day, [start, end]]) => {
+        const key = `${start}-${end}`;
+        (groups[key] = groups[key] || []).push(day);
+      });
+      // format each group: "MTW 9:00–10:15"
+      timesString = Object.entries(groups)
+        .map(([key, days]) => {
+          const [s, e] = key.split('-').map(Number);
+          return `${days.join('')} ${fmt(s)}–${fmt(e)}`;
+        })
+        .join(', ');
+    }
+
+    // ── 3) render the full modal with all fields ──
+    $('#courseInfoModalContent').innerHTML = `
+      <h3>${c.name} (${c.courseNumber})</h3>
+      <p><b>Credits:</b> ${c.credits}</p>
+      <p><b>Location:</b> ${c.location}</p>
+      <p><b>Section:</b> ${c.section}</p>
+      <p><b>Meeting Times:</b> ${timesString}</p>
+      <p><b>Description:</b> ${c.description || 'No description'}</p>
+      <p><b>Professor(s):</b> ${c.professors?.map(p => p.name).join(', ') || 'None'}</p>
+    `;
+    // 4) show the modal
+    $('#courseInfoModal').style.display = 'block';
+  };
+});
                 };
                 // build final string like "MWF 12:00–12:50, R 2:00–2:50"
                 timesHtml = Object.entries(groups)
@@ -345,36 +399,54 @@ return j;
 .then(() => {
 btn.textContent   = '-';
 btn.dataset.added = 'true';
+
 window.refreshCalendar?.();
 updateScheduleTable();
 })
-.catch(err => {
-showErrorModal(err.error || 'Error adding class');
-});
-}
+.catch(err=>showErrorModal(err.error||'Error adding class'));
+        }
         function removeCourse(courseId,btn){
-const params = new URLSearchParams({scheduleItemId:courseId,schedId:window.currentSchedId});
+const params=new URLSearchParams({scheduleItemId:courseId,schedId:window.currentSchedId});
             fetch('/remove-course',{method:'POST',body:params})
 .then(r=>r.json())
+
 .then(()=>{btn.textContent='+';btn.dataset.added='false';window.refreshCalendar?.();updateScheduleTable();})
+
 .catch(err=>showErrorModal(err.error||'Remove failed'));
         }
-        window.removeCourseGlobal=id=>removeCourse(id,{textContent:'',dataset:{added:'true'}});
+
+        window.removeCourseGlobal = id => {
+const sidebarBtn = document.querySelector(`.course-action-btn[data-course-id="${id}"]`);
+if (sidebarBtn) {
+sidebarBtn.textContent = 'Add';
+sidebarBtn.dataset.added = 'false';
+}
+            removeCourse(id, sidebarBtn || { dataset: { added: 'true' }, textContent: '' });
+        };
 
         /* -----  MODALS ----- */
         window.openModal = ()=> $('#advancedSearchModal').style.display='block';
         window.closeModal= ()=> $('#advancedSearchModal').style.display='none';
         $('#applyFiltersBtn').onclick=()=>{closeModal();performSearch();};
-        function showErrorModal(msg){$('#errorModalMessage').textContent=msg;$('#errorModal').style.display='block';}
-window.closeErrorModal=()=>$('#errorModal').style.display='none';
-window.closeCourseInfoModal=()=>$('#courseInfoModal').style.display='none';
-window.onclick=e=>{
-if(e.target=== $('#advancedSearchModal')) closeModal();
-};
 
 
+        function showErrorModal(msg){
+$('#errorModalMessage').textContent=msg;
+$('#errorModal').style.display='block';
+}
+        window.closeErrorModal = ()=> $('#errorModal').style.display='none';
+        window.closeCourseInfoModal = ()=> $('#courseInfoModal').style.display='none';
+        window.onclick = e => { if(e.target==$('#advancedSearchModal')) closeModal(); };
 
-        /* -----  SCHEDULE TABLE ----- */
+function fmt(x){
+if(x==null) return '—';
+let h=Math.floor(x/100), m=x%100, ap=h>=12?'PM':'AM';
+h=h%12||12;
+return h+':'+(m<10?'0':'')+m+' '+ap;
+}
+
+        /* ---------- SCHEDULE TABLE ---------- */
+
         function updateScheduleTable(){
 fetch(
   '/api/schedule'
@@ -383,105 +455,138 @@ fetch(
 )
 
 .then(r=>r.json())
-.then(data=>{
-const rows = data.map(c=>{
-const profs = c.professors?.map(p=>p.name).join(', ')||'None';
-return `<tr>
-<td>${c.name}</td><td>${profs}</td><td>${c.location}</td>
-                               <td>${c.credits}</td><td>${c.courseNumber}</td>
-                               <td>${c.section}</td><td>${c.description||''}</td>
-                              </tr>`;
-                  }).join('');
-                  $('#scheduleDetailsTable').innerHTML = `
-                      <thead><tr>
-                          <th>Course Name</th><th>Professor(s)</th><th>Location</th>
-                          <th>Credits</th><th>Course Code</th><th>Section</th><th>Description</th>
-                      </tr></thead><tbody>${rows}</tbody>`;
+.then(d=>{
+$('#scheduleDetailsTable').innerHTML = `
+<thead>
+<tr>
+<th>Course Name</th>
+<th>Professor(s)</th>
+<th>Location</th>
+<th>Credits</th>
+<th>Course Code</th>
+<th>Time</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+` + d.map(c=>{
+const times = Object.values(c.meetingTimes||{})
+.map(([s,e])=>`${fmt(s)} – ${fmt(e)}`);
+                      const unique = [...new Set(times)];
+                      const timeStr = unique.join(', ')||'—';
+                      return `
+                        <tr>
+                          <td>${c.name}</td>
+                          <td>${c.professors?.map(p=>p.name).join(', ')||'None'}</td>
+                          <td>${c.location}</td>
+                          <td>${c.credits}</td>
+                          <td>${c.courseNumber}</td>
+                          <td>${timeStr}</td>
+                          <td>${c.description||''}</td>
+                        </tr>
+                      `;
+                  }).join('')+`
+                    </tbody>
+                  `;
               });
         }
 
         /* ------------------  INIT  ------------------ */
         performSearch();
         updateScheduleTable();
+
     });
-</#noparse>
+    </#noparse>
     </script>
 
     <!-- ----------  REACT CALENDAR ---------- -->
     <script type="text/babel">
-      window.refreshCalendar = null;
-      const dayLetterToIndex = { M:0, T:1, W:2, R:3, F:4 };
-      const getCurrentMonday = () =>
-        moment().startOf('week').add(1,'days');
 
-      function mapScheduleItemToEvents(item){
-        const events = [];
-        Object.entries(item.meetingTimes||{}).forEach(([d, [s,e]]) => {
-          const base  = getCurrentMonday().add(dayLetterToIndex[d], 'days');
-          const start = base.clone().hour( Math.floor(s/100) ).minute(s%100);
-          const end   = base.clone().hour( Math.floor(e/100) ).minute(e%100);
-          events.push({ title:item.name, start:start.toDate(), end:end.toDate(), id:item.id });
-          events.push({
-          title : item.name,
-          start : start.toDate(),
-          end   : end.toDate(),
-          id    : item.id,
-          type  : item.type            //  ← course | personal  (server already sends it)
-          });
-        });
-        return events;
-      }
+        window.refreshCalendar=null;
+        const dayLetterToIndex={M:0,T:1,W:2,R:3,F:4};
+        const getCurrentMonday=()=>moment().startOf('week').add(1,'days');
 
-      function Calendar(){
-        const [events, setEvents] = React.useState([]);
-
-        const load = () => {
-          fetch(
-            '/api/schedule'
-            + '?schedId='  + encodeURIComponent(window.currentSchedId)
-            + '&semester=' + encodeURIComponent(window.currentSemester)
-          )
-          .then(r => r.json())
-          .then(data => {
-            // server now tags every item (course or personal) with a .semester field,
-            // so we can just turn them all into events:
-            setEvents(data.flatMap(mapScheduleItemToEvents));
-          });
+        const mapScheduleItemToEvents=item=>{
+const evts=[];
+Object.entries(item.meetingTimes||{}).forEach(([d,t])=>{
+const base=getCurrentMonday().add(dayLetterToIndex[d],'days');
+const [s,e]=t;
+const start=base.clone().hour(Math.floor(s/100)).minute(s%100);
+const end  =base.clone().hour(Math.floor(e/100)).minute(e%100);
+evts.push({title:item.name,start:start.toDate(),end:end.toDate(),id:item.id});
+            });
+            return evts;
         };
 
-        React.useEffect(load, []);
-        React.useEffect(() => {
-          window.refreshCalendar = load;
-          return () => { window.refreshCalendar = null; };
-        }, []);
+        function Calendar(){
+const [events,setEvents]=React.useState([]);
+const load=()=>{
+fetch('/api/schedule?schedId='+encodeURIComponent(window.currentSchedId))
+.then(r=>r.json())
+.then(data=>{
+const filtered=data.filter(i=>i.semester?.toLowerCase().endsWith(window.currentSemester.toLowerCase()));
+setEvents(filtered.flatMap(mapScheduleItemToEvents));
+});
+            };
+            React.useEffect(load,[]);
+            React.useEffect(()=>{window.refreshCalendar=load;return()=>window.refreshCalendar=null;},[]);
 
-        const monday = getCurrentMonday();
-        const days   = [0,1,2,3,4].map(i => monday.clone().add(i,'days').toDate());
-        const step   = d => (['Tue','Thu'].includes(moment(d).format('ddd')) ? 90 : 60);
+            const monday=getCurrentMonday();
+            const days=[0,1,2,3,4].map(i=>monday.clone().add(i,'days').toDate());
+            const step=d=>(['Tue','Thu'].includes(moment(d).format('ddd'))?90:60);
 
-        return (
-          <div className="calendar-grid">
-            {days.map((d,i) =>
-              <DayColumn
-                key={i}
-                day={d}
-                startHour={8}
-                endHour={21}
-                stepMinutes={step(d)}
-                events={events.filter(e => moment(e.start).isSame(d,'day'))}
-              />
-            )}
-          </div>
-        );
-      }
+            return(
+                <div className="calendar-grid">
+                    {days.map((d,i)=>
+<DayColumn key={i} day={d} startHour={8} endHour={21} stepMinutes={step(d)}
+                                   events={events.filter(e=>moment(e.start).isSame(d,'day'))}/>
+                    )}
+                </div>
+            );
+        }
 
-      function DayColumn({day, startHour, endHour, stepMinutes, events}){
-        const slots = [];
-        let cur = moment(day).hour(startHour).minute(0);
-        const end = moment(day).hour(endHour).minute(0);
-        while(cur.isBefore(end)){
-          slots.push({ t:cur.clone(), step:stepMinutes });
-          cur.add(stepMinutes,'minutes');
+        function DayColumn({day,startHour,endHour,stepMinutes,events}){
+const slots=[];
+let cur=moment(day).hour(startHour).minute(0);
+const end=moment(day).hour(endHour).minute(0);
+while(cur.isBefore(end)){
+slots.push({t:cur.clone(),step:stepMinutes});
+                cur.add(stepMinutes,'minutes');
+            }
+            slots.push({t:end.clone(),step:stepMinutes,type:'night'});
+
+            const overlaps=(ev,slot)=>{
+if(slot.type==='night') return moment(ev.start).isSameOrAfter(slot.t);
+const slotEnd=slot.t.clone().add(slot.step,'minutes');
+return moment(ev.start).isBefore(slotEnd)&&moment(ev.end).isAfter(slot.t);
+};
+
+            return(
+                <div className="day-column">
+                    <div className="day-header">{moment(day).format('dddd, MMM Do')}</div>
+                    <div className="time-slots">
+                        {slots.map((s,i)=>{
+const label=s.t.format('h:mm A');
+const evts=events.filter(ev=>overlaps(ev,s));
+return(
+<div key={i} className="time-slot">
+                                    <div className="slot-label">{label}</div>
+                                    {evts.map((ev,j)=>
+<div key={j} className="event-overlay">
+                                            {ev.title}
+                                            <button className="remove-button" onClick={e=>{
+e.stopPropagation();
+window.removeCourseGlobal(ev.id);
+}}>x</button>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+
         }
         slots.push({ t:end.clone(), step:stepMinutes, type:'night' });
 
@@ -533,6 +638,7 @@ return `<tr>
         <Calendar/>,
         document.getElementById('react-calendar-container')
       );
+
     </script>
 
 </body>
