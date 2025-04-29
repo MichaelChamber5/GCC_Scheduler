@@ -335,6 +335,17 @@ public class server {
             }
         });
 
+        post("/account/delete", (rq, rs) -> {
+            User user = rq.session().attribute("user");
+            if (user != null) {
+                dbm.deleteUser(user.getId());
+                rq.session().invalidate();
+            }
+            rs.redirect("/register");   // or "/login"
+            return null;
+        }, fm);
+
+
         /* --------------  SEARCH -------------- */
         get("/search", (rq, rs) -> {
             try{

@@ -39,6 +39,21 @@ margin: 0;
     line-height: 1;
   }
 
+/* Delete‐Account button styling */
+.delete-account-button {
+  background-color: #e53935;    /* nice red */
+  color: white;                 /* white text */
+  border: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-left: auto;            /* push it to the right in a flex container */
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+.delete-account-button:hover {
+  background-color: #d32f2f;    /* slightly darker on hover */
+}
 /* Logout button styling */
 .logout-button {
 background-color: #4CAF50;
@@ -83,6 +98,23 @@ border-radius: 4px;
 .schedule-item a:hover {
 background-color: #ddd;
 }
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.schedule-item a {
+  flex: 1;
+  margin-right: 8px;
+}
+
+.schedule-item .delete-form {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
 /* Add-schedule form styling */
 .add-schedule-form {
 margin-top: 20px;
@@ -123,7 +155,16 @@ color: #666;
 <body>
 <div class="top-bar">
     <button class="logout-button" onclick="window.location.href='/login'">Logout</button>
+
     <h3>My Schedules</h3>
+    <form
+          method="post"
+          action="/account/delete"
+          style="margin-left: auto;"
+          onsubmit="return confirm('This will permanently delete your account and all schedules. Are you sure?');"
+        >
+          <button type="submit" class="delete-account-button">Delete Account</button>
+        </form>
   </div>
 
   <div class="main-container">

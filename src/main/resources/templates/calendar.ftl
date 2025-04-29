@@ -380,32 +380,49 @@ if(e.target=== $('#advancedSearchModal')) closeModal();
 
         /* -----  SCHEDULE TABLE ----- */
         function updateScheduleTable(){
-fetch(
-        '/api/schedule'
-        + '?schedId='  + encodeURIComponent(window.currentSchedId)
-        + '&semester=' + encodeURIComponent(window.currentSemester)
-      )
-.then(r=>r.json())
-.then(data=>{
-const filtered = data.filter(i =>
-            i.type === 'personal'
-            || i.semester.toLowerCase().endsWith(window.currentSemester.toLowerCase())
-          );
-          const rows = filtered.map(c=>{
-const profs = c.professors?.map(p=>p.name).join(', ')||'None';
-return `<tr>
-<td>${c.name}</td><td>${profs}</td><td>${c.location}</td>
-                               <td>${c.credits}</td><td>${c.courseNumber}</td>
-                               <td>${c.section}</td><td>${c.description||''}</td>
-                              </tr>`;
-                  }).join('');
-                  $('#scheduleDetailsTable').innerHTML = `
-                      <thead><tr>
-                          <th>Course Name</th><th>Professor(s)</th><th>Location</th>
-                          <th>Credits</th><th>Course Code</th><th>Section</th><th>Description</th>
-                      </tr></thead><tbody>${rows}</tbody>`;
-              });
+          fetch(
+            '/api/schedule'
+            + '?schedId='  + encodeURIComponent(window.currentSchedId)
+            + '&semester=' + encodeURIComponent(window.currentSemester)
+          )
+          .then(r => r.json())
+          .then(data => {
+            // 1) Inject semester on every personal item
+            data.forEach(item => {
+              if (item.type === 'personal') {
+                item.semester = window.currentSemester;
+              }
+            });
+
+            // 2) Only keep items matching the active semester
+            const filtered = data.filter(item =>
+              item.semester.toLowerCase() === window.currentSemester.toLowerCase()
+            );
+
+            // 3) Build your rows
+            const rows = filtered.map(c => {
+              const profs = c.professors?.map(p => p.name).join(', ') || 'None';
+              return `
+                <tr>
+                  <td>${c.name}</td>
+                  <td>${profs}</td>
+                  <td>${c.location}</td>
+                  <td>${c.credits ?? ''}</td>
+                  <td>${c.courseNumber}</td>
+                  <td>${c.section}</td>
+                  <td>${c.description || ''}</td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('scheduleDetailsTable').innerHTML = `
+              <thead><tr>
+                <th>Course Name</th><th>Professor(s)</th><th>Location</th>
+                <th>Credits</th><th>Course Code</th><th>Section</th><th>Description</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>`;
+          });
         }
+
 
         /* ------------------  INIT  ------------------ */
         performSearch();
@@ -436,19 +453,28 @@ events.push({title:item.name,start:start.toDate(),end:end.toDate(),id:item.id,ty
 const [events,setEvents]=React.useState([]);
 const load=()=>{
 fetch(
-         '/api/schedule'
-         + '?schedId='  + encodeURIComponent(window.currentSchedId)
-         + '&semester=' + encodeURIComponent(window.currentSemester)
-       )
-.then(r=>r.json())
-.then(data=>{
-// keep every personal item, plus only courses matching currentSemester
-           const filtered = data.filter(i =>
-             i.type === 'personal'
-             || i.semester.toLowerCase().endsWith(window.currentSemester.toLowerCase())
-           );
-setEvents(filtered.flatMap(mapScheduleItemToEvents));
+  '/api/schedule'
+  + '?schedId='  + encodeURIComponent(window.currentSchedId)
+  + '&semester=' + encodeURIComponent(window.currentSemester)
+)
+.then(r => r.json())
+.then(data => {
+  // 1) Tag each personal item with the current semester
+  data.forEach(i => {
+    if (i.type === 'personal') {
+      i.semester = window.currentSemester;
+    }
+  });
+
+  // 2) Only keep items whose semester exactly matches
+  const filtered = data.filter(i =>
+    i.semester.toLowerCase() === window.currentSemester.toLowerCase()
+  );
+
+  setEvents(filtered.flatMap(mapScheduleItemToEvents));
 });
+
+
             };
             React.useEffect(load,[]);
             React.useEffect(()=>{window.refreshCalendar=load;return()=>window.refreshCalendar=null;},[]);
