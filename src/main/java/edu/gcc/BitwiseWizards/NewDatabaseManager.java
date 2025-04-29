@@ -1582,125 +1582,125 @@ public class NewDatabaseManager {
     // ############################################################################
 
     // TODO: comment out method
-    public static void main(String[] args) {
-
-        NewDatabaseManager dm = new NewDatabaseManager();
-
-        try {
-            dm.dropTables();
-            dm.createTables();
-        } catch (SQLException e) {
-            System.err.println("[RESET TABLES FOR TESTING]");
-        }
-
-        System.out.println("\n" + dm.getCourseCount() + " courses loaded from JSON");
-
-        String email1 = "example_1@gcc.edu";
-        String email2 = "example_2@gcc.edu";
-        String password = "password";
-
-        // add example users to db
-        dm.insertUser(email1, password);
-        dm.insertUser(email2, password);
-
-        // test login (1)
-        System.out.println("\nTEST LOGIN (1)");
-        System.out.println("get " + email1 + " (correct password): " + dm.getUserID(email1, password));
-        System.out.println("get " + email1 + " (incorrect password): " + dm.getUserID(email1, "bad password"));
-
-        // test login (2)
-        System.out.println("\nTEST LOGIN (2)");
-        System.out.println("get " + email2 + " (correct password): " + dm.getUserID(email2, password));
-        System.out.println("get " + email2 + " (incorrect password): " + dm.getUserID(email2, "bad password"));
-
-        // test login (3)
-        System.out.println("\nTEST LOGIN (3)");
-        System.out.println("invalid email: " + dm.getUserID("bad email", password));
-
-        // get info - SOFTWARE ENGINEERING (db calls)
-        System.out.println("\nTEST COURSE INFO (1)");
-        System.out.println("course: " + dm.getCourseByID(899));
-        System.out.println("course faculty: " + dm.getCourseFaculty(899));
-        System.out.println("course meeting times: " + dm.getCourseMeetingTimes(899));
-
-        // get info - SOFTWARE ENGINEERING (class calls)
-        System.out.println("\nTEST COURSE INFO (1.5)");
-        CourseItem course = dm.getCourseByID(899);
-        System.out.println("course: " + course);
-        System.out.println("course faculty: " + course.getProfessors());
-        System.out.println("course meeting times: " + course.getMeetingTimes());
-
-        // get info - MECHANICAL SYSTEMS LAB (multiple professors)
-        System.out.println("\nTEST COURSE INFO (2)");
-        System.out.println("course: " + dm.getCourseByID(424));
-        System.out.println("course faculty: " + dm.getCourseFaculty(424));
-        System.out.println("course meeting times: " + dm.getCourseMeetingTimes(424));
-
-        // "login" as user 1
-        int user_id = dm.getUserID(email1, password);
-        System.out.println("\n[logged in as  " + email1 + " / " + user_id + "]");
-
-        // test get all schedules
-        System.out.println("\nTEST GET ALL SCHEDULES (1)");
-        System.out.println(dm.getAllUserSchedules(user_id));
-
-        // test adding schedules
-        System.out.println("\nTEST ADD SCHEDULE (1)");
-        System.out.println(dm.getAllUserSchedules(user_id));
-        dm.insertUserSchedule(user_id, "EX1");
-        System.out.println(dm.getAllUserSchedules(user_id));
-        dm.insertUserSchedule(user_id, "EX2");
-        System.out.println(dm.getAllUserSchedules(user_id));
-        dm.insertUserSchedule(user_id, "EX3");
-        System.out.println(dm.getAllUserSchedules(user_id));
-
-        // test deleting schedule
-        System.out.println("\nTEST DELETE SCHEDULE (1)");
-        System.out.println(dm.getAllUserSchedules(user_id));
-        dm.deleteUserSchedule(user_id, dm.getScheduleID(user_id, "EX3"));
-        System.out.println(dm.getAllUserSchedules(user_id));
-
-        int sched_id = dm.getScheduleID(user_id, "EX1");
-
-        // add courses to user schedule
-        System.out.println("\nTEST ADDING COURSES TO SCHEDULE (1)");
-        System.out.println(dm.getAllUserSchedules(user_id));
-        dm.addCourseToSchedule(sched_id, 899); // SOFTWARE ENGINEERING
-        System.out.println(dm.getAllUserSchedules(user_id));
-        dm.addCourseToSchedule(sched_id, 424); // MECHANICAL SYSTEMS LAB
-        System.out.println(dm.getAllUserSchedules(user_id));
-
-        // remove course from user schedule
-        System.out.println("\nTEST REMOVING COURSE FROM SCHEDULE (1)");
-        System.out.println(dm.getAllUserSchedules(user_id));
-        dm.removeCourseFromSchedule(sched_id, 424); // MECHANICAL SYSTEMS LAB
-        System.out.println(dm.getAllUserSchedules(user_id));
-
-        // add personal items to user schedule
-        System.out.println("\nTEST ADDING USER PERSONAL ITEMS (1)");
-        System.out.println(dm.getAllUserSchedules(user_id));
-        Map<Character, List<Integer>> meetingTimes = new HashMap<>();
-        meetingTimes.put(Character.valueOf('W'), new ArrayList<>(Arrays.asList(1100, 1145)));
-        dm.addPersonalItemToSchedule(sched_id, "Chapel", meetingTimes);
-        System.out.println(dm.getAllUserSchedules(user_id));
-        meetingTimes.clear();
-        meetingTimes.put(Character.valueOf('M'), new ArrayList<>(Arrays.asList(1100, 1145)));
-        meetingTimes.put(Character.valueOf('F'), new ArrayList<>(Arrays.asList(1100, 1145)));
-        dm.addPersonalItemToSchedule(sched_id, "Lunch", meetingTimes);
-        System.out.println(dm.getAllUserSchedules(user_id));
-
-        // get info - "Lunch" (db calls)
-        System.out.println("\nTEST PERSONAL ITEM INFO (1)");
-        int pitem_id = dm.getPersonalItemID(user_id, "Lunch");
-        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
-        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
-
-        // get info - "Lunch" (db calls)
-        System.out.println("\nTEST PERSONAL ITEM INFO (2)");
-        pitem_id = dm.getPersonalItemID(user_id, "Chapel");
-        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
-        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
-
+//    public static void main(String[] args) {
+//
+//        NewDatabaseManager dm = new NewDatabaseManager();
+//
+//        try {
+//            dm.dropTables();
+//            dm.createTables();
+//        } catch (SQLException e) {
+//            System.err.println("[RESET TABLES FOR TESTING]");
+//        }
+//
+//        System.out.println("\n" + dm.getCourseCount() + " courses loaded from JSON");
+//
+//        String email1 = "example_1@gcc.edu";
+//        String email2 = "example_2@gcc.edu";
+//        String password = "password";
+//
+//        // add example users to db
+//        dm.insertUser(email1, password);
+//        dm.insertUser(email2, password);
+//
+//        // test login (1)
+//        System.out.println("\nTEST LOGIN (1)");
+//        System.out.println("get " + email1 + " (correct password): " + dm.getUserID(email1, password));
+//        System.out.println("get " + email1 + " (incorrect password): " + dm.getUserID(email1, "bad password"));
+//
+//        // test login (2)
+//        System.out.println("\nTEST LOGIN (2)");
+//        System.out.println("get " + email2 + " (correct password): " + dm.getUserID(email2, password));
+//        System.out.println("get " + email2 + " (incorrect password): " + dm.getUserID(email2, "bad password"));
+//
+//        // test login (3)
+//        System.out.println("\nTEST LOGIN (3)");
+//        System.out.println("invalid email: " + dm.getUserID("bad email", password));
+//
+//        // get info - SOFTWARE ENGINEERING (db calls)
+//        System.out.println("\nTEST COURSE INFO (1)");
+//        System.out.println("course: " + dm.getCourseByID(899));
+//        System.out.println("course faculty: " + dm.getCourseFaculty(899));
+//        System.out.println("course meeting times: " + dm.getCourseMeetingTimes(899));
+//
+//        // get info - SOFTWARE ENGINEERING (class calls)
+//        System.out.println("\nTEST COURSE INFO (1.5)");
+//        CourseItem course = dm.getCourseByID(899);
+//        System.out.println("course: " + course);
+//        System.out.println("course faculty: " + course.getProfessors());
+//        System.out.println("course meeting times: " + course.getMeetingTimes());
+//
+//        // get info - MECHANICAL SYSTEMS LAB (multiple professors)
+//        System.out.println("\nTEST COURSE INFO (2)");
+//        System.out.println("course: " + dm.getCourseByID(424));
+//        System.out.println("course faculty: " + dm.getCourseFaculty(424));
+//        System.out.println("course meeting times: " + dm.getCourseMeetingTimes(424));
+//
+//        // "login" as user 1
+//        int user_id = dm.getUserID(email1, password);
+//        System.out.println("\n[logged in as  " + email1 + " / " + user_id + "]");
+//
+//        // test get all schedules
+//        System.out.println("\nTEST GET ALL SCHEDULES (1)");
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//
+//        // test adding schedules
+//        System.out.println("\nTEST ADD SCHEDULE (1)");
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//        dm.insertUserSchedule(user_id, "EX1");
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//        dm.insertUserSchedule(user_id, "EX2");
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//        dm.insertUserSchedule(user_id, "EX3");
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//
+//        // test deleting schedule
+//        System.out.println("\nTEST DELETE SCHEDULE (1)");
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//        dm.deleteUserSchedule(user_id, dm.getScheduleID(user_id, "EX3"));
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//
+//        int sched_id = dm.getScheduleID(user_id, "EX1");
+//
+//        // add courses to user schedule
+//        System.out.println("\nTEST ADDING COURSES TO SCHEDULE (1)");
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//        dm.addCourseToSchedule(sched_id, 899); // SOFTWARE ENGINEERING
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//        dm.addCourseToSchedule(sched_id, 424); // MECHANICAL SYSTEMS LAB
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//
+//        // remove course from user schedule
+//        System.out.println("\nTEST REMOVING COURSE FROM SCHEDULE (1)");
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//        dm.removeCourseFromSchedule(sched_id, 424); // MECHANICAL SYSTEMS LAB
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//
+//        // add personal items to user schedule
+//        System.out.println("\nTEST ADDING USER PERSONAL ITEMS (1)");
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//        Map<Character, List<Integer>> meetingTimes = new HashMap<>();
+//        meetingTimes.put(Character.valueOf('W'), new ArrayList<>(Arrays.asList(1100, 1145)));
+//        dm.addPersonalItemToSchedule(sched_id, "Chapel", meetingTimes);
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//        meetingTimes.clear();
+//        meetingTimes.put(Character.valueOf('M'), new ArrayList<>(Arrays.asList(1100, 1145)));
+//        meetingTimes.put(Character.valueOf('F'), new ArrayList<>(Arrays.asList(1100, 1145)));
+//        dm.addPersonalItemToSchedule(sched_id, "Lunch", meetingTimes);
+//        System.out.println(dm.getAllUserSchedules(user_id));
+//
+//        // get info - "Lunch" (db calls)
+//        System.out.println("\nTEST PERSONAL ITEM INFO (1)");
+//        int pitem_id = dm.getPersonalItemID(user_id, "Lunch");
+//        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
+//        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
+//
+//        // get info - "Lunch" (db calls)
+//        System.out.println("\nTEST PERSONAL ITEM INFO (2)");
+//        pitem_id = dm.getPersonalItemID(user_id, "Chapel");
+//        System.out.println("item: " + dm.getPersonalItemByID(pitem_id));
+//        System.out.println("item meeting times: " + dm.getPersonalItemMeetingTimes(pitem_id));
+//
 //        // remove personal item from user schedule
 //        System.out.println("\nTEST REMOVING USER PERSONAL ITEM (1)");
 //        System.out.println(dm.getAllUserSchedules(user_id));
@@ -1713,9 +1713,9 @@ public class NewDatabaseManager {
 //        System.out.println(dm.getUserID(email1, password));
 //        System.out.println(dm.getAllUserSchedules(user_id));
 //        System.out.println(dm.getScheduleCourses(sched_id));
-
-        dm.close();
-
-    }
+//
+//        dm.close();
+//
+//    }
 
 }
