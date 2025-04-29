@@ -66,13 +66,13 @@ public class User {
     @Override
     public String toString() {
         String s = "";
-        s = s + email + "\n";
+        s = s + email;
         if (schedules.isEmpty()) {
-            s = s + "[none]";
+            s = s + "\n[none]";
         }
         else {
             for (Schedule schedule : schedules) {
-                s = s + schedule + "\n";
+                s = s + "\n" + schedule;
             }
         }
         return s;

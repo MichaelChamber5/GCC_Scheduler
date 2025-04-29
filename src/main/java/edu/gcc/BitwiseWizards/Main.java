@@ -1,5 +1,6 @@
 //package edu.gcc.BitwiseWizards;
 //
+//import java.sql.SQLException;
 //import java.util.*;
 //
 //class Main {
@@ -69,14 +70,18 @@
 //     * @param sched_name
 //     */
 //    public static void createNewSchedule(String sched_name) {
-//        dm.insertUserSchedule(curr_user.getId(), sched_name);
-//        int sched_id = dm.getScheduleID(curr_user.getId(), sched_name);
-//        if (sched_id < 0) {
-//            System.out.println("Failed to create new schedule: ...");
+//        if (curr_user != null) {
+//            dm.insertUserSchedule(curr_user.getId(), sched_name);
+//            int sched_id = dm.getScheduleID(curr_user.getId(), sched_name);
+//            if (sched_id < 0) {
+//                System.out.println("Failed to create new schedule: DB issue");
+//            } else {
+//                curr_user.setSchedules(dm.getAllUserSchedules(curr_user.getId()));
+//                setCurrentSchedule(sched_id);
+//            }
 //        }
 //        else {
-//            curr_user.setSchedules(dm.getAllUserSchedules(curr_user.getId()));
-//            setCurrentSchedule(sched_id);
+//            System.err.println("Failed to create new schedule: curr_user is null.");
 //        }
 //    }
 //
@@ -85,10 +90,15 @@
 //     * @param sched_id
 //     */
 //    public static void setCurrentSchedule(int sched_id) {
-//        curr_schedule = dm.getSchduleByID(curr_user.getId(), sched_id);
-//        if (curr_schedule == null) {
-//            System.err.println("Failed to set current schedule: user does not have schedule with " +
-//                    "specified id.");
+//        if (curr_user != null) {
+//            curr_schedule = dm.getSchduleByID(curr_user.getId(), sched_id);
+//            if (curr_schedule == null) {
+//                System.err.println("Failed to set current schedule: user does not have a schedule with " +
+//                        "the specified id.");
+//            }
+//        }
+//        else {
+//            System.err.println("Failed to set current schedule: curr_user is null.");
 //        }
 //    }
 //
@@ -140,21 +150,37 @@
 //
 //        // create / initialize database
 //        dm = new NewDatabaseManager();
-//        System.out.println("\nInitially curr_user is " + curr_user + ".\n");
+//        try {
+//            dm.dropTables();
+//            dm.createTables();
+//        } catch (SQLException e) {
+//            System.err.println("[RESET TABLES FOR TESTING]");
+//        }
+//
+//        System.out.println("\nInitially curr_user is " + curr_user + ".");
 //
 //        String email = "example@gcc.edu";
 //        String password = "password";
 //
 //        // create user account
+//        System.out.println("\nTEST CREATE USER (1)");
 //        createUser(email, password);
 //        System.out.println("Created user: " + curr_user);
-//        System.out.println(curr_user.getSchedules());
 //
-//        createNewSchedule("EX1");
-//        System.out.println(curr_user.getSchedules());
-//        System.out.println(curr_schedule);
+//        String sched1_name = "EX1";
+//        String sched2_name = "EX2";
+//
+//        // create new schedules
+//        System.out.println("\nTEST CREATE SCHEDULES (1)");
+//        createNewSchedule(sched1_name);
+//        createNewSchedule(sched2_name);
+//        // set current schedule back to sched1
+//        setCurrentSchedule(dm.getScheduleID(curr_user.getId(), sched1_name));
+//        System.out.println("curr_user schedules: " + curr_user.getSchedules());
+//        System.out.println("curr_schedule: " + curr_schedule);
 //
 //        // create / initialize search
+//        System.out.println("\nTEST SEARCH (1)");
 //        String keyword = "Accounting";
 //        Search mySearch = new Search(dm);
 //        // mySearch.search(keyword, curr_user);
@@ -162,50 +188,57 @@
 //        System.out.println("RESULTS:");
 //        System.out.println(courses);
 //
+//        // add courses to curr_schedule
+//        System.out.println("\nTEST ADD COURSE TO USER SCHEDULE (1)");
 //        addScheduleItem(courses.get(0));
-//        System.out.println("\nadd " + courses.get(0) + " to user schedule: " + curr_user.getSchedules());
-//
+//        System.out.println("add " + courses.get(0) + " to user schedule: " + curr_user.getSchedules());
 //        addScheduleItem(courses.get(1));
-//        System.out.println("\nadd " + courses.get(1) + " to user schedule: " + curr_user.getSchedules());
+//        System.out.println("add " + courses.get(1) + " to user schedule: " + curr_user.getSchedules());
+//        addScheduleItem(courses.get(2));
+//        System.out.println("add " + courses.get(2) + " to user schedule: " + curr_user.getSchedules());
 //
-//        removeScheduleItem(courses.get(1));
-//        System.out.println("\nremove " + courses.get(1) + " from user schedule: " + curr_user.getSchedules());
+//        // remove course from curr_schedule
+//        System.out.println("\nTEST REMOVING COURSE FROM USER SCHEDULE (1)");
+//        removeScheduleItem(courses.get(2));
+//        System.out.println("remove " + courses.get(2) + " from user schedule: " + curr_user.getSchedules());
 //
-//        // create new schedule item
+//        // add personal item to curr_schedule
+//        System.out.println("\nTEST ADD SCHEDULE ITEM TO USER SCHEDULE (1)");
+//        // create personal item
 //        Map<Character, List<Integer>> meetingTimes = new HashMap<>();
 //        meetingTimes.put(Character.valueOf('W'), new ArrayList<>(Arrays.asList(1100, 1145)));
 //        ScheduleItem item = new ScheduleItem(-1, "Chapel", meetingTimes);
-//
-//        // add it to user schedule
+//        // add it to schedule
 //        addScheduleItem(item);
-//        System.out.println("\nadd " + item + " to user schedule: " + curr_user.getSchedules());
+//        System.out.println("add " + item + " to user schedule: " + curr_user.getSchedules());
 //
+//        // reload saved schedules
+//        System.out.println("\nTEST RELOAD SAVED SCHEDULES (1)");
 //        logout();
-//        System.out.println("\nLogged out: " + curr_user);
-//
+//        System.out.println("logged out: " + curr_user);
 //        login(email, password);
-//        System.out.println("\nLogged in: " + curr_user);
+//        System.out.println("logged in: " + curr_user);
 //
-//        System.out.println(curr_user.getSchedules());
-//        setCurrentSchedule(curr_user.getSchedules().getFirst().getID());
-//        System.out.println(curr_schedule);
+//        // set curr_schedule
+//        System.out.println("\nTEST SET CURRENT SCHEDULE (1)");
+//        setCurrentSchedule(curr_user.getSchedules().get(0).getID());
+//        System.out.println("curr_schedule: " + curr_schedule);
 //
-//        // remove pitem from saved schedule
+//        // remove items from curr_schedule
+//        System.out.println("\nTEST REMOVE SCHEDULE ITEMS (2)");
+//        // remove personal item
 //        removeScheduleItem(item);
-//        System.out.println("\nremove " + item + " from user schedule: " + curr_user.getSchedules());
-//
-//        // remove course from saved schedule
+//        System.out.println("remove " + item + " from user schedule: " + curr_user.getSchedules());
+//        // remove course
 //        removeScheduleItem(courses.get(0));
-//        System.out.println("\nremove " + courses.get(0) + " from user schedule: " + curr_user.getSchedules());
+//        System.out.println("remove " + courses.get(0) + " from user schedule: " + curr_user.getSchedules());
 //
+//        // reload saved schedules
+//        System.out.println("\nTEST RELOAD SAVED SCHEDULES (2)");
 //        logout();
-//        System.out.println("\nLogged out: " + curr_user);
-//
+//        System.out.println("logged out: " + curr_user);
 //        login(email, password);
-//        System.out.println("\nLogged in: " + curr_user);
-//
-//        // reload previously saved schedule
-//        System.out.println(curr_user.getSchedules());
+//        System.out.println("logged in: " + curr_user);
 //
 //        dm.close();
 //
