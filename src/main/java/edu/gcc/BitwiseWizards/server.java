@@ -3,6 +3,9 @@ package edu.gcc.BitwiseWizards;
 import static spark.Spark.*;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import com.google.gson.GsonBuilder;
 import freemarker.template.Configuration;
 import freemarker.template.Version;
@@ -105,6 +108,27 @@ public class server {
             return null;
         });
 
+        // DELETE A SCHEDULE
+        post("/delete-schedule", (rq, rs) -> {
+            User user = rq.session().attribute("user");
+            if (user == null) {
+                rs.redirect("/login");
+                return null;
+            }
+
+            // parse the submitted schedule ID
+            int schedId = Integer.parseInt(rq.queryParams("schedId"));
+            System.out.println("DEBUG /delete-schedule  schedId=" + schedId);
+
+            // remove all courses & personal items then the schedule itself
+            dbm.deleteUserSchedule(user.getId(), schedId);
+
+            // back to the list view
+            rs.redirect("/schedules");
+            return null;
+        });
+
+
         /* ------------------------------------------------------------------ */
         /*  SINGLE SCHEDULE PAGE                               */
         /* ------------------------------------------------------------------ */
@@ -145,25 +169,63 @@ public class server {
         /*  API ENDPOINTS                                                     */
         /* ------------------------------------------------------------------ */
         get("/api/schedule", (rq, rs) -> {
-            try{
+            try {
                 User u = rq.session().attribute("user");
-                if (u==null){ rs.status(401); return "unauth"; }
+                if (u == null) {
+                    rs.status(401);
+                    return "unauth";
+                }
 
                 int sid = Integer.parseInt(rq.queryParams("schedId"));
-                System.out.println("DEBUG /api/schedule sid=" + sid);
+                String sem = Optional.ofNullable(rq.queryParams("semester")).orElse("");
+                System.out.println("DEBUG /api/schedule sid=" + sid + " sem=" + sem);
 
                 List<ScheduleItem> all = new ArrayList<>();
-                all.addAll(dbm.getScheduleCourses(sid));
-                all.addAll(dbm.getSchedulePersonalItems(sid));
+                all.addAll(dbm.getScheduleCourses(sid));         // these are CourseItem instances
+                all.addAll(dbm.getSchedulePersonalItems(sid));   // these are ScheduleItem
+
+                List<Map<String, Object>> out = new ArrayList<>();
+                for (ScheduleItem si : all) {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", si.getId());
+                    m.put("name", si.getName());
+                    m.put("meetingTimes", si.getMeetingTimes());
+                    m.put("semester", sem);
+                    m.put("type", si instanceof CourseItem ? "course" : "personal");
+
+
+                    if (si instanceof CourseItem) {
+                        CourseItem c = (CourseItem) si;
+                        m.put("credits", c.getCredits());
+                        m.put("location", c.getLocation());
+                        m.put("courseNumber", c.getCourseNumber());
+                        m.put("section", c.getSection());
+                        m.put("description", c.getDescription());
+                        m.put("professors", c.getProfessors());
+                    } else {
+                        // personal items don’t have those fields
+                        m.put("credits", null);
+                        m.put("location", "NA");
+                        m.put("courseNumber", "NA");
+                        m.put("section", "NA");
+                        m.put("description", "NA");
+                        m.put("professors", Collections.emptyList());
+                    }
+
+                    out.add(m);
+                }
 
                 rs.type("application/json");
-                return new GsonBuilder().create().toJson(all);
+                return new GsonBuilder().create().toJson(out);
 
-            }catch(Exception ex){
+            }
+            catch (Exception ex) {
                 System.out.println("DEBUG ERROR /api/schedule"); ex.printStackTrace();
-                rs.status(500); return "server error";
+                rs.status(500);
+                return "server error";
             }
         });
+
 
 
         post("/add-course", (rq, rs) -> {
@@ -227,6 +289,57 @@ public class server {
                 rs.status(500);
                 return new Gson().toJson(Collections.singletonMap("error","remove failed"));
             }
+        });
+
+        // 1) Add Personal Item
+        post("/add-item", (rq, rs) -> {
+            User u = rq.session().attribute("user");
+            if (u == null) halt(401);
+
+            int sid      = Integer.parseInt(rq.queryParams("schedId"));
+            String name  = rq.queryParams("name");
+            String mtRaw = rq.queryParams("meetingTimes");
+
+            // parse the JSON string into our Map<Character,List<Integer>>
+            JsonObject mtJson = JsonParser.parseString(mtRaw).getAsJsonObject();
+            Map<Character, List<Integer>> meetingTimes = new HashMap<>();
+            for (var entry : mtJson.entrySet()) {
+                char day = entry.getKey().charAt(0);
+                JsonArray arr = entry.getValue().getAsJsonArray();
+                meetingTimes.put(day, List.of(arr.get(0).getAsInt(), arr.get(1).getAsInt()));
+            }
+
+            // conflict detection
+            List<ScheduleItem> existing = new ArrayList<>();
+            existing.addAll(dbm.getScheduleCourses(sid));
+            existing.addAll(dbm.getSchedulePersonalItems(sid));
+            ScheduleItem candidate = new ScheduleItem(name, meetingTimes);
+            candidate.setName(name);
+            candidate.setMeetingTimes(meetingTimes);
+            for (ScheduleItem si: existing) {
+                if (si.conflicts(candidate)) {
+                    rs.status(409);
+                    return new Gson().toJson(Map.of("error", "Conflicts with “" + si.getName() + "”"));
+                }
+            }
+
+            // persist and return new ID
+            int newId = dbm.addPersonalItemToSchedule(sid, name, meetingTimes);
+            rs.type("application/json");
+            return new Gson().toJson(Map.of("success", true, "itemId", newId));
+        });
+
+// 2) Remove Personal Item
+        post("/remove-item", (rq, rs) -> {
+            User u = rq.session().attribute("user");
+            if (u == null) halt(401);
+
+            int sid    = Integer.parseInt(rq.queryParams("schedId"));
+            int itemId = Integer.parseInt(rq.queryParams("itemId"));
+
+            dbm.removePersonalItemFromSchedule(sid, itemId);
+            rs.type("application/json");
+            return new Gson().toJson(Map.of("success", true));
         });
 
         /* --------------  SEARCH -------------- */

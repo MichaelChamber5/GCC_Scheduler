@@ -53,6 +53,7 @@
 .close{float:right;font-size:20px;font-weight:bold;cursor:pointer}
 </style>
 
+
 <!-- Libraries -->
 <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
@@ -68,6 +69,7 @@
     <div class="top-bar">
         <button class="logout-button" onclick="handleLogout()">Logout</button>
         <button class="back-button" onclick="location.href='/schedules'">All Schedules</button>
+        <button id="addItemBtn" class="back-button" onclick="openAddItemModal()">Add Personal Item</button>
         <h3>Scheduler Navigation Bar</h3>
     </div>
 
@@ -109,6 +111,24 @@
         </div>
     </div>
 
+    <!-- Add Personal Item Modal -->
+    <div id="addItemModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeAddItemModal()">&times;</span>
+        <h3>Add Personal Item</h3>
+        <label>Name:</label><br>
+        <input id="itemNameInput" type="text" placeholder="e.g. Doctor’s appt"><br><br>
+        <label>Days (e.g. MWF):</label><br>
+        <input id="itemDaysInput" type="text" placeholder="e.g. MWR"><br><br>
+        <label>Start Time (HHMM):</label><br>
+        <input id="itemStartInput" type="text" placeholder="0930"><br><br>
+        <label>End Time (HHMM):</label><br>
+        <input id="itemEndInput" type="text" placeholder="1030"><br><br>
+        <button id="createItemBtn">Create</button>
+      </div>
+    </div>
+
+
     <div id="errorModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeErrorModal()">&times;</span>
@@ -131,6 +151,57 @@
 const $ = sel => document.querySelector(sel);
 
 window.handleLogout = () => location.href = '/login';
+
+// -- open/close
+window.openAddItemModal  = () => $('#addItemModal').style.display = 'block';
+window.closeAddItemModal = () => $('#addItemModal').style.display = 'none';
+
+// -- create handler
+$('#createItemBtn').onclick = () => {
+  const name  = $('#itemNameInput').value.trim();
+  const days  = $('#itemDaysInput').value.trim().split('');
+  const start = parseInt($('#itemStartInput').value, 10);
+  const end   = parseInt($('#itemEndInput').value, 10);
+  if (!name || days.length===0 || isNaN(start) || isNaN(end)) {
+    return showErrorModal('Please fill out all fields.');
+  }
+
+  // build the same meetingTimes shape as your ScheduleItem
+  const meetingTimes = {};
+  days.forEach(d => meetingTimes[d] = [ start, end ]);
+
+  const params = new URLSearchParams({
+    schedId:        window.currentSchedId,
+    name,
+    meetingTimes:   JSON.stringify(meetingTimes)
+  });
+
+  fetch('/add-item', { method: 'POST', body: params })
+    .then(async r => {
+      const payload = await r.json();
+      if (!r.ok) throw payload;
+      closeAddItemModal();
+      window.refreshCalendar?.();
+      updateScheduleTable();
+    })
+    .catch(err => showErrorModal(err.error || 'Error adding personal item'));
+};
+
+// -- global remove for personal items
+window.removeItemGlobal = id => {
+  const params = new URLSearchParams({
+    schedId:    window.currentSchedId,
+    itemId:     id
+  });
+  fetch('/remove-item',{method:'POST',body:params})
+    .then(async r => {
+      const payload = await r.json();
+      if (!r.ok) throw payload;
+      window.refreshCalendar?.();
+      updateScheduleTable();
+    })
+    .catch(err => showErrorModal(err.error || 'Error removing item'));
+};
 
 /* -----  SEMESTER TOGGLE  ----- */
 window.currentSemester = $('#fall-btn').dataset.semester;
@@ -301,9 +372,16 @@ window.onclick=e=>{
 if(e.target=== $('#advancedSearchModal')) closeModal();
 };
 
+
+
         /* -----  SCHEDULE TABLE ----- */
         function updateScheduleTable(){
-fetch('/api/schedule?schedId='+encodeURIComponent(window.currentSchedId))
+fetch(
+  '/api/schedule'
+  + '?schedId='   + encodeURIComponent(window.currentSchedId)
+  + '&semester='  + encodeURIComponent(window.currentSemester)
+)
+
 .then(r=>r.json())
 .then(data=>{
 const rows = data.map(c=>{
@@ -331,89 +409,120 @@ return `<tr>
 
     <!-- ----------  REACT CALENDAR ---------- -->
     <script type="text/babel">
-        window.refreshCalendar=null;
-        const dayLetterToIndex={M:0,T:1,W:2,R:3,F:4};
-        const getCurrentMonday=()=>moment().startOf('week').add(1,'days');
+      window.refreshCalendar = null;
+      const dayLetterToIndex = { M:0, T:1, W:2, R:3, F:4 };
+      const getCurrentMonday = () =>
+        moment().startOf('week').add(1,'days');
 
-        function mapScheduleItemToEvents(item){
-const events=[];
-Object.entries(item.meetingTimes||{}).forEach(([d,t])=>{
-const base=getCurrentMonday().add(dayLetterToIndex[d], 'days');
-const [s,e]=t;
-const start=base.clone().hour(Math.floor(s/100)).minute(s%100);
-const end  =base.clone().hour(Math.floor(e/100)).minute(e%100);
-events.push({title:item.name,start:start.toDate(),end:end.toDate(),id:item.id});
-            });
-            return events;
+      function mapScheduleItemToEvents(item){
+        const events = [];
+        Object.entries(item.meetingTimes||{}).forEach(([d, [s,e]]) => {
+          const base  = getCurrentMonday().add(dayLetterToIndex[d], 'days');
+          const start = base.clone().hour( Math.floor(s/100) ).minute(s%100);
+          const end   = base.clone().hour( Math.floor(e/100) ).minute(e%100);
+          events.push({ title:item.name, start:start.toDate(), end:end.toDate(), id:item.id });
+        });
+        return events;
+      }
+
+      function Calendar(){
+        const [events, setEvents] = React.useState([]);
+
+        const load = () => {
+          fetch(
+            '/api/schedule'
+            + '?schedId='  + encodeURIComponent(window.currentSchedId)
+            + '&semester=' + encodeURIComponent(window.currentSemester)
+          )
+          .then(r => r.json())
+          .then(data => {
+            // server now tags every item (course or personal) with a .semester field,
+            // so we can just turn them all into events:
+            setEvents(data.flatMap(mapScheduleItemToEvents));
+          });
+        };
+
+        React.useEffect(load, []);
+        React.useEffect(() => {
+          window.refreshCalendar = load;
+          return () => { window.refreshCalendar = null; };
+        }, []);
+
+        const monday = getCurrentMonday();
+        const days   = [0,1,2,3,4].map(i => monday.clone().add(i,'days').toDate());
+        const step   = d => (['Tue','Thu'].includes(moment(d).format('ddd')) ? 90 : 60);
+
+        return (
+          <div className="calendar-grid">
+            {days.map((d,i) =>
+              <DayColumn
+                key={i}
+                day={d}
+                startHour={8}
+                endHour={21}
+                stepMinutes={step(d)}
+                events={events.filter(e => moment(e.start).isSame(d,'day'))}
+              />
+            )}
+          </div>
+        );
+      }
+
+      function DayColumn({day, startHour, endHour, stepMinutes, events}){
+        const slots = [];
+        let cur = moment(day).hour(startHour).minute(0);
+        const end = moment(day).hour(endHour).minute(0);
+        while(cur.isBefore(end)){
+          slots.push({ t:cur.clone(), step:stepMinutes });
+          cur.add(stepMinutes,'minutes');
         }
+        slots.push({ t:end.clone(), step:stepMinutes, type:'night' });
 
-        function Calendar(){
-const [events,setEvents]=React.useState([]);
-const load=()=>{
-fetch('/api/schedule?schedId='+encodeURIComponent(window.currentSchedId))
-.then(r=>r.json())
-.then(data=>{
-const filtered=data.filter(i=>i.semester?.toLowerCase().endsWith(window.currentSemester.toLowerCase()));
-setEvents(filtered.flatMap(mapScheduleItemToEvents));
-});
-            };
-            React.useEffect(load,[]);
-            React.useEffect(()=>{window.refreshCalendar=load;return()=>window.refreshCalendar=null;},[]);
+        const overlaps = (ev, slot) => {
+          if(slot.type==='night')
+            return moment(ev.start).isSameOrAfter(slot.t);
+          const slotEnd = slot.t.clone().add(slot.step,'minutes');
+          return moment(ev.start).isBefore(slotEnd)
+              && moment(ev.end).isAfter(slot.t);
+        };
 
-            const monday=getCurrentMonday();
-            const days=[0,1,2,3,4].map(i=>monday.clone().add(i,'days').toDate());
-            const step=(d)=>(['Tue','Thu'].includes(moment(d).format('ddd'))?90:60);
+        return (
+          <div className="day-column">
+            <div className="day-header">
+              {moment(day).format('dddd, MMM Do')}
+            </div>
+            <div className="time-slots">
+              {slots.map((s,i) => {
+                const label = s.t.format('h:mm A');
+                const evts  = events.filter(ev => overlaps(ev,s));
+                return (
+                  <div key={i} className="time-slot">
+                    <div className="slot-label">{label}</div>
+                    {evts.map((ev,j) =>
+                      <div key={j} className="event-overlay">
+                        {ev.title}
+                        <button
+                          className="remove-button"
+                          onClick={e => {
+                            e.stopPropagation();
+                            window.removeCourseGlobal(ev.id);
+                          }}
+                        >×</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
 
-            return (
-                <div className="calendar-grid">
-                    {days.map((d,i)=><DayColumn key={i} day={d} startHour={8} endHour={21} stepMinutes={step(d)}
-                                                events={events.filter(e=>moment(e.start).isSame(d,'day'))}/>)}
-                </div>
-            );
-        }
-
-        function DayColumn({day,startHour,endHour,stepMinutes,events}){
-const slots=[];
-let cur=moment(day).hour(startHour).minute(0);
-const end=moment(day).hour(endHour).minute(0);
-while(cur.isBefore(end)){slots.push({t:cur.clone(),step:stepMinutes});cur.add(stepMinutes,'minutes');}
-            slots.push({t:end.clone(),step:stepMinutes,type:'night'});
-
-            const overlaps=(ev,slot)=>{
-if(slot.type==='night') return moment(ev.start).isSameOrAfter(slot.t);
-const slotEnd=slot.t.clone().add(slot.step,'minutes');
-return moment(ev.start).isBefore(slotEnd)&&moment(ev.end).isAfter(slot.t);
-};
-
-            return (
-                <div className="day-column">
-                    <div className="day-header">{moment(day).format('dddd, MMM Do')}</div>
-                    <div className="time-slots">
-                        {slots.map((s,i)=>{
-const label=s.t.format('h:mm A');
-const evts=events.filter(ev=>overlaps(ev,s));
-return (
-<div key={i} className="time-slot">
-                                    <div className="slot-label">{label}</div>
-                                    {evts.map((ev,j)=>
-<div key={j} className="event-overlay">
-                                            {ev.title}
-                                            <button className="remove-button" onClick={e=>{
-e.stopPropagation();
-window.removeCourseGlobal(ev.id);
-}}>x</button>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            );
-        }
-
-        ReactDOM.render(<Calendar/>,document.getElementById('react-calendar-container'));
-
+      ReactDOM.render(
+        <Calendar/>,
+        document.getElementById('react-calendar-container')
+      );
     </script>
+
 </body>
 </html>
