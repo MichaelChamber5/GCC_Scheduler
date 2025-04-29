@@ -34,7 +34,19 @@
 .slot-label{position:relative;z-index:2}
 .event-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,102,204,.8);display:flex;align-items:center;justify-content:center;font-size:10px;color:#333;z-index:1}
 .remove-button{margin-left:8px;background:transparent;border:none;color:#333;font-weight:bold;cursor:pointer;pointer-events:auto}
-.course-info-btn{margin-left:8px;padding:4px 8px;background:#2196F3;color:#fff;border:none;font-size:12px;cursor:pointer}
+.course-info-btn {
+  background: none;
+  border: none;
+  color: #2196F3;    /* keeps the blue color on the “ℹ️” */
+  padding: 0;
+  font-size: 1.2em;  /* tweak as you like */
+  line-height: 1;
+  cursor: pointer;
+}
+.course-info-btn:hover {
+  color: #1976D2;    /* subtle hover color change */
+}
+
 /* ----------  MODALS ---------- */
 .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,.5)}
 .modal-content{background:#fff;margin:10% auto;padding:20px;border-radius:8px;width:40%;box-shadow:0 5px 15px rgba(0,0,0,.3)}
@@ -151,16 +163,42 @@ fetch(url)
 .then(r => r.json())
 .then(list => {
 let html = list.length
-? list.map(c => `
-<div class="sidebar-course-item">
-<span>${c.name} (${c.courseNumber})</span>
-                                <button class="course-action-btn"
-                                        data-course-id="${c.id}"
-                                        data-added="${c.onSchedule}">${c.onSchedule ? 'Remove':'Add'}</button>
-                                <button class="course-info-btn"
-                                        data-course-info="${encodeURIComponent(JSON.stringify(c))}">Info</button>
-                            </div><hr>`).join('')
-                      : '<p>No courses found.</p>';
+   ? list.map(c => {
+       // build a "Day HH:MM–HH:MM" string for each meetingTime entry
+       let times = '';
+       if (c.meetingTimes) {
+         // 1) group days by identical [start,end]
+         const groups = {};
+         Object.entries(c.meetingTimes).forEach(([day, [start, end]]) => {
+           const key = `${start}-${end}`;
+           (groups[key] = groups[key] || []).push(day);
+         });
+         // 2) for each group, join the days together and format the time once
+         times = Object.entries(groups)
+           .map(([key, days]) => {
+             const [s, e] = key.split('-').map(Number);
+             const fmt = i => {
+               const h24 = Math.floor(i/100);
+               const h12 = (h24 % 12) === 0 ? 12 : (h24 % 12);
+               const m   = i % 100;
+               return `${h12}:${String(m).padStart(2,'0')}`;
+             };
+             return `${days.join('')} ${fmt(s)}–${fmt(e)}`;
+           })
+           .join(', ');
+       }
+       // inject times into the span
+       return `
+     <div class="sidebar-course-item">
+       <span>${c.name} (${c.courseNumber})${times ? ` <small>— ${times}</small>` : ''}</span>
+       <button class="course-action-btn"
+               data-course-id="${c.id}"
+               data-added="${c.onSchedule}">${c.onSchedule ? '-':'+'}</button>
+       <button class="course-info-btn"
+               data-course-info="${encodeURIComponent(JSON.stringify(c))}">ℹ️</button>
+     </div><hr>`;
+     }).join('')
+   : '<p>No courses found.</p>';
                   $('#sidebar-container').innerHTML = html;
                   attachCourseActionButtons();
                   attachCourseInfoButtons();
@@ -178,19 +216,50 @@ btn.onclick=()=> btn.dataset.added==='true'
 });
         }
         function attachCourseInfoButtons(){
-document.querySelectorAll('.course-info-btn').forEach(btn=>{
-btn.onclick=()=>{
-const c = JSON.parse(decodeURIComponent(btn.dataset.courseInfo));
-$('#courseInfoModalContent').innerHTML = `
-<h3>${c.name} (${c.courseNumber})</h3>
-                        <p><b>Credits:</b> ${c.credits}</p>
-                        <p><b>Location:</b> ${c.location}</p>
-                        <p><b>Section:</b> ${c.section}</p>
-                        <p><b>Description:</b> ${c.description||'No description'}</p>
-                        <p><b>Professor(s):</b> ${c.professors?.map(p=>p.name).join(', ')||'None'}</p>`;
-                    $('#courseInfoModal').style.display='block';
+          document.querySelectorAll('.course-info-btn').forEach(btn=>{
+            btn.onclick=()=>{
+              const c = JSON.parse(decodeURIComponent(btn.dataset.courseInfo));
+
+              // ── 1) group days by identical times ──
+              let timesHtml = '';
+              if (c.meetingTimes) {
+                const groups = {};
+                Object.entries(c.meetingTimes).forEach(([day, [start, end]]) => {
+                  const key = `${start}-${end}`;
+                  (groups[key] = groups[key] || []).push(day);
+                });
+                // formatter to 12-hour
+                const fmt = i => {
+                  const h24 = Math.floor(i/100);
+                  const h12 = (h24 % 12) === 0 ? 12 : (h24 % 12);
+                  const m   = i % 100;
+                  return `${h12}:${String(m).padStart(2,'0')}`;
                 };
-            });
+                // build final string like "MWF 12:00–12:50, R 2:00–2:50"
+                timesHtml = Object.entries(groups)
+                  .map(([key, days]) => {
+                    const [s,e] = key.split('-').map(Number);
+                    return `${days.join('')} ${fmt(s)}–${fmt(e)}`;
+                  })
+                  .join(', ');
+              }
+
+              // ── 2) inject into modal HTML ──
+              $('#courseInfoModalContent').innerHTML = `
+                <h3>${c.name} (${c.courseNumber})</h3>
+                <p><b>Credits:</b> ${c.credits}</p>
+                <p><b>Location:</b> ${c.location}</p>
+                <p><b>Section:</b> ${c.section}</p>
+                <p><b>Description:</b> ${c.description||'No description'}</p>
+                ${ timesHtml
+                    ? `<p><b>Meeting Times:</b> ${timesHtml}</p>`
+                    : ''
+                }
+                <p><b>Professor(s):</b> ${c.professors?.map(p=>p.name).join(', ')||'None'}</p>`;
+
+              $('#courseInfoModal').style.display='block';
+            };
+          });
         }
 
 function addCourse(courseId, btn) {
@@ -203,7 +272,7 @@ if (!r.ok) throw j;
 return j;
 })
 .then(() => {
-btn.textContent   = 'Remove';
+btn.textContent   = '-';
 btn.dataset.added = 'true';
 window.refreshCalendar?.();
 updateScheduleTable();
@@ -216,7 +285,7 @@ showErrorModal(err.error || 'Error adding class');
 const params = new URLSearchParams({scheduleItemId:courseId,schedId:window.currentSchedId});
             fetch('/remove-course',{method:'POST',body:params})
 .then(r=>r.json())
-.then(()=>{btn.textContent='Add';btn.dataset.added='false';window.refreshCalendar?.();updateScheduleTable();})
+.then(()=>{btn.textContent='+';btn.dataset.added='false';window.refreshCalendar?.();updateScheduleTable();})
 .catch(err=>showErrorModal(err.error||'Remove failed'));
         }
         window.removeCourseGlobal=id=>removeCourse(id,{textContent:'',dataset:{added:'true'}});
