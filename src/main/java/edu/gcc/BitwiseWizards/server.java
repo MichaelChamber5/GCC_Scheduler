@@ -1,312 +1,267 @@
 package edu.gcc.BitwiseWizards;
 
 import static spark.Spark.*;
-//
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import spark.ModelAndView;
-import spark.template.freemarker.FreeMarkerEngine;
 import freemarker.template.Configuration;
 import freemarker.template.Version;
-import java.sql.*;
+import spark.ModelAndView;
+import spark.template.freemarker.FreeMarkerEngine;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.Date;
 
 public class server {
-    // This DatabaseManager handles all database operations.
+
     private static NewDatabaseManager dbm;
 
     public static void main(String[] args) {
-        // Initialize the database manager.
-        dbm = new NewDatabaseManager();
-        // Set the port to listen on.
+
+        dbm = new NewDatabaseManager();       // ctor prints its own messages
         port(4567);
-
-
         staticFileLocation("/public");
-        // Configure FreeMarker template engine.
-        Configuration freeMarkerConfiguration = new Configuration(new Version(2, 3, 31));
-        freeMarkerConfiguration.setClassForTemplateLoading(server.class, "/templates");
-        FreeMarkerEngine freeMarkerEngine = new FreeMarkerEngine(freeMarkerConfiguration);
 
-        // Redirect requests to "/" to the login page.
-        get("/", (req, res) -> {
-            res.redirect("/login");
+        Configuration cfg = new Configuration(new Version(2, 3, 31));
+        cfg.setClassForTemplateLoading(server.class, "/templates");
+        FreeMarkerEngine fm = new FreeMarkerEngine(cfg);
+
+        /* ------------------------------------------------------------------ */
+        /*  LOGIN / REGISTER                                                  */
+        /* ------------------------------------------------------------------ */
+        get("/", (rq, rs) -> { rs.redirect("/login"); return null; });
+
+        get("/login",    (rq, rs) -> new ModelAndView(new HashMap<>(), "login.ftl"), fm);
+        get("/register", (rq, rs) -> new ModelAndView(new HashMap<>(), "register.ftl"), fm);
+
+        post("/register", (rq, rs) -> {
+            String u = rq.queryParams("username");
+            String p = rq.queryParams("confirmPassword");
+            System.out.println("DEBUG register  user=" + u);
+            if (u==null||p==null||u.isEmpty()||p.isEmpty()) { rs.redirect("/register?error=missing"); return null; }
+            int id = dbm.insertUser(u, p);
+            System.out.println("DEBUG register  id=" + id);
+            rs.redirect(id==-1?"/register?error=fail":"/login");
             return null;
         });
 
-        // Display the registration page.
-        get("/register", (req, res) -> {
-
-            Map<String, Object> model = new HashMap<>();
-            return new ModelAndView(model, "register.ftl");
-        }, freeMarkerEngine);
-      
-        // Process registration form submissions.
-
-        post("/register", (req, res) -> {
-            String username = req.queryParams("username");
-            String password = req.queryParams("confirmPassword");
-
-            // Check if the username or password is missing.
-
-            if (username == null || username.isEmpty() || password == null || password.isEmpty()) {
-                res.redirect("/register?error=Missing+username+or+password");
+        post("/login", (rq, rs) -> {
+            String u = rq.queryParams("username");
+            String p = Optional.ofNullable(rq.queryParams("confirmPassword"))
+                    .orElse(rq.queryParams("password"));
+            System.out.println("DEBUG login  u=" + u + "  p=" + p);
+            if (u==null||p==null||u.trim().isEmpty()||p.trim().isEmpty()){
+                rs.redirect("/login?error=Missing+credentials");
                 return null;
             }
-
-            // Insert the new user into the database.
-            int userId = dbm.insertUser(username, password);
-            if (userId != -1) {
-                // Registration succeeded; redirect to the login page.
-                res.redirect("/login");
-            } else {
-                // Registration failed; redirect back with an error message.
-                res.redirect("/register?error=Registration+failed");
-            }
+            int id = dbm.getUserID(u, p);
+            System.out.println("DEBUG login  id=" + id);
+            if (id>0){ rq.session().attribute("user", new User(id,u,p)); rs.redirect("/schedules"); }
+            else     { rs.redirect("/login?error=invalid"); }
             return null;
         });
 
-        // Display the login page.
-        get("/login", (req, res) -> {
-            Map<String, Object> model = new HashMap<>();
-            return new ModelAndView(model, "login.ftl");
-        }, freeMarkerEngine);
+        /* ------------------------------------------------------------------ */
+        /*  SCHEDULE LIST PAGE                                                */
+        /* ------------------------------------------------------------------ */
+        get("/schedules", (rq, rs) -> {
+            User user = rq.session().attribute("user");
+            if (user==null){ rs.redirect("/login"); return null; }
 
-        // Process login form submissions.
-        post("/login", (req, res) -> {
-            String username = req.queryParams("username");
-            String password = req.queryParams("confirmPassword");
-            // Validate credentials are provided.
-            if (username == null || username.trim().isEmpty() ||
-                    password == null || password.trim().isEmpty()) {
-                res.redirect("/login?error=Missing+credentials");
-                return null;
-            }
-            // Verify user credentials against the database.
-            int userId = dbm.getUserID(username, password);
-            if (userId != -1) {
-                // Create a new user instance and retrieve their schedule.
-                User user = new User(userId, username, password);
-                // TODO: update code logic
-//                List<ScheduleItem> items = dbm.getUserSchedule(userId);
-//                user.createNewSchedule();
-//                user.setSchedule(items);
-                // Save the user in the session.
-                req.session().attribute("user", user);
-                // Redirect to the calendar view.
-                res.redirect("/calendar");
-            } else {
-                // If credentials are incorrect, redirect back with an error.
+            List<Schedule> list = dbm.getAllUserSchedules(user.getId());
+            System.out.println("DEBUG /schedules list size=" + list.size());
 
-                res.redirect("/login?error=Invalid+username+or+password");
-            }
+            Map<String,Object> model = new HashMap<>();
+            model.put("user", user);
+            model.put("schedules", list);
+            return new ModelAndView(model, "schedules.ftl");
+        }, fm);
+
+        post("/schedules", (rq, rs) -> {
+            User u = rq.session().attribute("user");
+            if (u==null){ rs.redirect("/login"); return null; }
+            String name = rq.queryParams("schedName");
+            System.out.println("DEBUG create schedule '" + name + "'");
+            if (name!=null && !name.trim().isEmpty())
+                dbm.insertUserSchedule(u.getId(), name.trim());
+            rs.redirect("/schedules");
             return null;
         });
 
-        // Render the main calendar page.
-        get("/calendar", (req, res) -> {
-            return new ModelAndView(null, "calendar.ftl");
-        }, freeMarkerEngine);
-
-        // Render a snippet of the calendar for asynchronous updates.
-        get("/calendar-snippet", (req, res) -> {
-            User user = req.session().attribute("user");
-            if (user == null) {
-                halt(401, "Not logged in");
-            }
-            // TODO: update code logic
-//            List<ScheduleItem> schedule = dbm.getUserSchedule(user.getId());
-            Map<String, Object> model = new HashMap<>();
-            // TODO: update code logic
-//            model.put("schedule", schedule);
-            return new ModelAndView(model, "calendar-snippet.ftl");
-        }, freeMarkerEngine);
-
-        // API endpoint to return the user's schedule in JSON format.
-        get("/api/schedule", (req, res) -> {
-
-            User user = req.session().attribute("user");
-            if (user == null) {
-                res.status(401);
-                return "Unauthorized";
-            }
-            // Retrieve course IDs and then fetch each corresponding course.
-            // TODO: update code logic
-//            List<Integer> ids = dbm.getUserCourseIds(user.getId());
-            List<CourseItem> schedule = new ArrayList<>();
-            // TODO: update code logic
-//            for (Integer courseId : ids) {
-//                CourseItem c = dbm.getCourseByID(courseId);
-//                if (c != null) {
-//                    schedule.add(c);
-//                }
-//            }
-            res.type("application/json");
-            return new Gson().toJson(schedule);
-        });
-
-        // API endpoint to return all courses in JSON.
-        get("/api/courses", (req, res) -> {
-            List<CourseItem> courses = dbm.getAllCourses();
-            String json = new Gson().toJson(courses);
-            res.type("application/json");
-            return json;
-        });
-
-        // Endpoint to add a course to the user's schedule.
-        post("/add-course", (req, res) -> {
-            User user = req.session().attribute("user");
-            if (user == null) {
-                halt(401, "Not logged in");
-            }
-            int courseId = Integer.parseInt(req.queryParams("courseId"));
-
-            // Fetch the course to be added.
-            CourseItem newCourse = dbm.getCourseByID(courseId);
-            if(newCourse == null){
-                res.status(404);
-                return new Gson().toJson(Collections.singletonMap("error", "Course not found"));
-            }
-
-            // Check the current schedule for any conflicting courses.
-            // TODO: update code logic
-//            List<ScheduleItem> currentSchedule = dbm.getUserSchedule(user.getId());
-//            for (ScheduleItem scheduledItem : currentSchedule) {
-//                if (scheduledItem instanceof CourseItem) {
-//                    CourseItem scheduledCourse = (CourseItem) scheduledItem;
-//                    if (newCourse.conflicts(scheduledCourse)) {
-//                        res.status(409);
-//                        return new Gson().toJson(Collections.singletonMap("error",
-//                                "Course " + newCourse.getName() + " conflicts with " +
-//                                        scheduledCourse.getName() + ". Please remove the conflicting course."));
-//                    }
-//                }
-//            }
-
-
-
-            // If no conflicts, insert the course into the user's schedule.
-            // TODO: update code logic
-//            dbm.insertUserCourse(user.getId(), courseId);
-            res.type("application/json");
-            return new Gson().toJson(Collections.singletonMap("success", true));
-        });
-
-        // Endpoint to remove a course from the user's schedule.
-        post("/remove-course", (req, res) -> {
-            User user = req.session().attribute("user");
-            if (user == null) {
-                halt(401, "Not logged in");
-            }
-            int itemId = Integer.parseInt(req.queryParams("scheduleItemId"));
-            // TODO: update code logic
-//            dbm.deleteUserCourse(user.getId(), itemId);
-            return "Removed";
-        });
-
-        // Search endpoint with support for advanced filtering.
-        get("/search", (req, res) -> {
+        /* ------------------------------------------------------------------ */
+        /*  SINGLE SCHEDULE PAGE                               */
+        /* ------------------------------------------------------------------ */
+        get("/schedules/:schedId", (rq, rs) -> {
             try {
-                User currUser = req.session().attribute("user");
-                if (currUser == null) {
-                    res.status(401);
-                    return "Not logged in";
+                User user = rq.session().attribute("user");
+                if (user==null){ rs.redirect("/login"); return null; }
+
+                int sid = Integer.parseInt(rq.params(":schedId"));
+                System.out.println("DEBUG /schedules/:schedId  sid=" + sid);
+
+                Schedule sched = dbm.getSchduleByID(user.getId(), sid);
+                System.out.println("DEBUG   scheduleObj=" + sched);
+
+                if (sched==null){ halt(404,"Schedule not found"); }
+
+                List<CourseItem>  courses = dbm.getScheduleCourses(sid);
+                List<ScheduleItem>personal = dbm.getSchedulePersonalItems(sid);
+                System.out.println("DEBUG   courseCount=" + courses.size() +
+                        "  personalCount=" + personal.size());
+
+                Map<String,Object> model = new HashMap<>();
+                model.put("user", user);
+                model.put("scheduleName", sched.getName());
+                model.put("schedId", sid);
+                // send list only if you still need it server-side
+                model.put("schedule", new ArrayList<ScheduleItem>(){{ addAll(courses); addAll(personal); }});
+                return new ModelAndView(model, "calendar.ftl");
+
+            } catch (Exception e){
+                System.out.println("DEBUG ERROR in /schedules/:schedId");
+                e.printStackTrace();
+                throw e;   // Spark will render the 500 page
+            }
+        }, fm);
+
+        /* ------------------------------------------------------------------ */
+        /*  API ENDPOINTS                                                     */
+        /* ------------------------------------------------------------------ */
+        get("/api/schedule", (rq, rs) -> {
+            try{
+                User u = rq.session().attribute("user");
+                if (u==null){ rs.status(401); return "unauth"; }
+
+                int sid = Integer.parseInt(rq.queryParams("schedId"));
+                System.out.println("DEBUG /api/schedule sid=" + sid);
+
+                List<ScheduleItem> all = new ArrayList<>();
+                all.addAll(dbm.getScheduleCourses(sid));
+                all.addAll(dbm.getSchedulePersonalItems(sid));
+
+                rs.type("application/json");
+                return new GsonBuilder().create().toJson(all);
+
+            }catch(Exception ex){
+                System.out.println("DEBUG ERROR /api/schedule"); ex.printStackTrace();
+                rs.status(500); return "server error";
+            }
+        });
+
+
+        post("/add-course", (rq, rs) -> {
+            try {
+                User u = rq.session().attribute("user");
+                if (u == null) { halt(401); }
+
+                int sid = Integer.parseInt(rq.queryParams("schedId"));
+                int cid = Integer.parseInt(rq.queryParams("courseId"));
+                System.out.println("DEBUG /add-course sid=" + sid + " cid=" + cid);
+
+                // the candidate course we want to add
+                CourseItem newCourse = dbm.getCourseByID(cid);
+                if (newCourse == null) {
+                    rs.status(404);
+                    return new Gson().toJson(Map.of("error", "Course not found"));
                 }
 
-                // Retrieve basic search parameters.
-                String keyword = Optional.ofNullable(req.queryParams("q")).orElse("");
-                String semester = Optional.ofNullable(req.queryParams("semester")).orElse("");
+                //checks for conflicts
+                List<ScheduleItem> existing = new ArrayList<>();
+                existing.addAll(dbm.getScheduleCourses(sid));
+                existing.addAll(dbm.getSchedulePersonalItems(sid));
 
-                // Retrieve advanced filter parameters.
-                String dept = req.queryParams("dept");
-                String daysParam = req.queryParams("days");
-                String startTimeStr = req.queryParams("start");
-                String endTimeStr   = req.queryParams("end");
-
-                System.out.println("DEBUG: Search -> keyword='" + keyword + "', semester='" + semester +
-                        "', dept='" + dept + "', days='" + daysParam +
-                        "', start='" + startTimeStr + "', end='" + endTimeStr + "'");
-
-                // Perform an initial search based on the keyword and semester.
-                Search searchInstance = new Search(dbm);
-                ArrayList<CourseItem> results = searchInstance.search(keyword, semester);
-
-                System.out.println("DEBUG: Initial search results count: " + results.size());
-
-                // Convert the days filter string into a list of valid day characters.
-                List<Character> daysList = new ArrayList<>();
-                if (daysParam != null && !daysParam.trim().isEmpty()) {
-                    for (char c : daysParam.toUpperCase().toCharArray()) {
-                        if ("MTWRF".indexOf(c) >= 0) {
-                            daysList.add(c);
-                        }
+                for (ScheduleItem si : existing) {
+                    if (si.conflicts(newCourse)) {                      // <-- your method
+                        System.out.println("DEBUG   conflict with item " + si.getId());
+                        rs.status(409);  // 409 = Conflict
+                        return new Gson().toJson(
+                                Map.of("error", "Course conflicts with " + si.getName()));
                     }
                 }
 
-                // Parse the start and end time strings into Date objects.
-                Date startDate = parseTime(startTimeStr);
-                Date endDate   = parseTime(endTimeStr);
+                // no conflict was found
+                dbm.addCourseToSchedule(sid, cid);
+                rs.type("application/json");
+                return new Gson().toJson(Map.of("success", true));
 
-                // Determine if advanced filtering should be applied.
-                boolean useFilter = (dept != null && !dept.trim().isEmpty()) ||
-                        (!daysList.isEmpty()) ||
-                        (startDate != null) ||
-                        (endDate != null);
+            } catch (Exception ex) {
+                System.out.println("DEBUG ERROR /add-course"); ex.printStackTrace();
+                rs.status(500);
+                return new Gson().toJson(Map.of("error", "Server error while adding"));
+            }
+        });
 
-                if (useFilter) {
-                    List<CourseItem> filtered = searchInstance.filter(dept, daysList, startDate, endDate);
-                    results = new ArrayList<>(filtered);
+        post("/remove-course", (rq, rs) -> {
+            try{
+                User u = rq.session().attribute("user");
+                if (u==null){ halt(401); }
+
+                int sid = Integer.parseInt(rq.queryParams("schedId"));
+                int itemId = Integer.parseInt(rq.queryParams("scheduleItemId"));
+                System.out.println("DEBUG /remove-course sid="+sid+" itemId="+itemId);
+
+                dbm.removeCourseFromSchedule(sid,itemId);
+
+                rs.type("application/json");
+                return new Gson().toJson(Collections.singletonMap("success", true));
+
+            }catch(Exception ex){
+                System.out.println("DEBUG ERROR /remove-course"); ex.printStackTrace();
+                rs.status(500);
+                return new Gson().toJson(Collections.singletonMap("error","remove failed"));
+            }
+        });
+
+        /* --------------  SEARCH -------------- */
+        get("/search", (rq, rs) -> {
+            try{
+                User u = rq.session().attribute("user");
+                if (u==null){ rs.status(401); return "unauth"; }
+
+                String q        = Optional.ofNullable(rq.queryParams("q")).orElse("");
+                String semester = Optional.ofNullable(rq.queryParams("semester")).orElse("");
+                int sid = -1;
+                try{ sid=Integer.parseInt(rq.queryParams("schedId")); }catch(Exception ignored){}
+                System.out.println("DEBUG /search q='"+q+"' sem="+semester+" sid="+sid);
+
+                Search search = new Search(dbm);
+                List<CourseItem> results = search.search(q, semester);
+
+                // parse and apply filters
+                String deptParam = Optional.ofNullable(rq.queryParams("dept")).orElse("");
+                String daysParam = Optional.ofNullable(rq.queryParams("days")).orElse("");
+                List<Character> daysList = new ArrayList<>();
+                for(char c : daysParam.toCharArray()){
+                    daysList.add(c);
                 }
+                Date startDate = parseTime(rq.queryParams("start"));
+                Date endDate   = parseTime(rq.queryParams("end"));
 
-                // Mark courses as being on the user's schedule if applicable.
-                // TODO: update code logic
-//                List<Integer> userIds = dbm.getUserCourseIds(currUser.getId());
-//                Set<Integer> userSet = new HashSet<>(userIds);
-//                for (CourseItem c : results) {
-//                    boolean onSch = userSet.contains(c.getId());
-//                    c.setOnSchedule(onSch);
-//                }
+                // filter the search results
+                results = search.filter(deptParam, daysList, startDate, endDate);
 
-                Gson gson = new GsonBuilder().create();
-                res.type("application/json");
-                return gson.toJson(results);
 
-            } catch (Exception e) {
-                e.printStackTrace();
-                res.status(500);
-                return "Server error: " + e.getMessage();
+
+                Set<Integer> existing = (sid>0)? new HashSet<>(dbm.getScheduleCourseIds(sid)) : Collections.emptySet();
+                results.forEach(c -> c.setOnSchedule(existing.contains(c.getId())));
+
+                rs.type("application/json");
+                return new GsonBuilder().create().toJson(results);
+
+            }catch(Exception ex){
+                System.out.println("DEBUG ERROR /search"); ex.printStackTrace();
+                rs.status(500); return "server error";
             }
         });
     }
 
-    /**
-     * Helper method to parse a string like "930" or "1330" into a Date object with that hour and minute.
-     * Returns null if the input is empty or invalid.
-     */
-    private static Date parseTime(String timeStr) {
-        if (timeStr == null || timeStr.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            String trimmed = timeStr.trim();
-            if (trimmed.length() < 3) {
-                return null;
-            }
-            // Pad the string with a leading zero if needed
-            while (trimmed.length() < 4) {
-                trimmed = "0" + trimmed;
-            }
-            String hh = trimmed.substring(0, 2);
-            String mm = trimmed.substring(2);
-            String hhmm = hh + ":" + mm;
-            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
-            return sdf.parse(hhmm);
-        } catch (ParseException e) {
-            System.err.println("parseTime error: " + e.getMessage());
-            return null;
-        }
+
+    private static Date parseTime(String s){
+        if (s==null||s.trim().isEmpty()) return null;
+        try{
+            while(s.length()<4) s="0"+s;
+            return new SimpleDateFormat("HH:mm").parse(s.substring(0,2)+":"+s.substring(2));
+        }catch(ParseException e){ return null; }
     }
 }
