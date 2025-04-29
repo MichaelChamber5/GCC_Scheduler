@@ -201,15 +201,25 @@ btn.onclick=()=> btn.dataset.added==='true'
 : addCourse   (btn.dataset.courseId,btn);
 });
         }
+
+        /* -----  INFO MODAL (with deduped times) ----- */
         function attachCourseInfoButtons(){
 document.querySelectorAll('.course-info-btn').forEach(btn=>{
 btn.onclick=()=>{
 const c = JSON.parse(decodeURIComponent(btn.dataset.courseInfo));
-$('#courseInfoModalContent').innerHTML=`
-<h3>${c.name} (${c.courseNumber})</h3>
+
+// build deduped time string
+const times = [...new Set(
+Object.values(c.meetingTimes || {})
+.map(([s,e]) => `${fmt(s)} – ${fmt(e)}`)
+                    )].join(', ') || '—';
+
+                    $('#courseInfoModalContent').innerHTML=`
+                        <h3>${c.name} (${c.courseNumber})</h3>
                         <p><b>Credits:</b> ${c.credits}</p>
                         <p><b>Location:</b> ${c.location}</p>
                         <p><b>Section:</b> ${c.section}</p>
+                        <p><b>Meeting Times:</b> ${times}</p>
                         <p><b>Description:</b> ${c.description||'No description'}</p>
                         <p><b>Professor(s):</b> ${c.professors?.map(p=>p.name).join(', ')||'None'}</p>
                     `;
@@ -245,18 +255,12 @@ updateScheduleTable();
         }
 
         window.removeCourseGlobal = id => {
-// try to find the actual sidebar button for this course
-const sidebarBtn = document.querySelector(
-`.course-action-btn[data-course-id="${id}"]`
-);
+const sidebarBtn = document.querySelector(`.course-action-btn[data-course-id="${id}"]`);
 if (sidebarBtn) {
 sidebarBtn.textContent = 'Add';
 sidebarBtn.dataset.added = 'false';
 }
-            removeCourse(
-                id,
-                sidebarBtn || { dataset: { added: 'true' }, textContent: '' }
-            );
+            removeCourse(id, sidebarBtn || { dataset: { added: 'true' }, textContent: '' });
         };
 
         /* -----  MODALS ----- */
@@ -274,9 +278,9 @@ $('#errorModal').style.display='block';
 
 function fmt(x){
 if(x==null) return '—';
-let h = Math.floor(x/100), m = x % 100, ap = h >= 12 ? 'PM' : 'AM';
-h = h % 12 || 12;
-return h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap;
+let h=Math.floor(x/100), m=x%100, ap=h>=12?'PM':'AM';
+h=h%12||12;
+return h+':'+(m<10?'0':'')+m+' '+ap;
 }
 
         /* ---------- SCHEDULE TABLE ---------- */
@@ -297,13 +301,11 @@ $('#scheduleDetailsTable').innerHTML = `
 </tr>
 </thead>
 <tbody>
-` + d.map(c => {
-// collect and dedupe times so repeated slots appear only once
-const times = Object.values(c.meetingTimes || {})
-.map(([s,e]) => `${fmt(s)} – ${fmt(e)}`);
-                      const uniqueTimes = [...new Set(times)];
-                      const timeStr = uniqueTimes.join(', ') || '—';
-
+` + d.map(c=>{
+const times = Object.values(c.meetingTimes||{})
+.map(([s,e])=>`${fmt(s)} – ${fmt(e)}`);
+                      const unique = [...new Set(times)];
+                      const timeStr = unique.join(', ')||'—';
                       return `
                         <tr>
                           <td>${c.name}</td>
@@ -315,7 +317,7 @@ const times = Object.values(c.meetingTimes || {})
                           <td>${c.description||''}</td>
                         </tr>
                       `;
-                  }).join('') + `
+                  }).join('')+`
                     </tbody>
                   `;
               });
