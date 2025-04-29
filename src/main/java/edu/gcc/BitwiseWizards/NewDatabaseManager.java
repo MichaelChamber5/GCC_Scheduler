@@ -1371,19 +1371,10 @@ public class NewDatabaseManager {
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, sched_id);
             pstmt.setString(2, pitem_name);
-//            ResultSet rs = pstmt.executeQuery();
-//            if (rs.next()) {
-//                return rs.getInt("pitem_id");
-//            }
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("pitem_id");
-                }
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("pitem_id");
             }
-//            catch (Exception e) {
-//                System.err.println("ERROR: failed to get pitem id: pitem not found");
-//                System.err.println(e.getMessage());
-//            }
         } catch (SQLException e) {
             System.err.println("ERROR: failed to get pitem id: " + e.getMessage());
         }
@@ -1417,7 +1408,7 @@ public class NewDatabaseManager {
     }
 
     /**
-     * remove personal item from user's schedule
+     * Remove personal item from the specified schedule
      * @param sched_id
      * @param pitem_id
      */
@@ -1434,9 +1425,9 @@ public class NewDatabaseManager {
     }
 
     /**
-     * TODO
+     * Get personal items associated with the given schedule.
      * @param sched_id
-     * @return ArrayList of personal items associated with the given schedule.
+     * @return
      */
     protected ArrayList<ScheduleItem> getSchedulePersonalItems(int sched_id) {
         ArrayList<ScheduleItem> scheduleItems = new ArrayList<>();
@@ -1581,7 +1572,6 @@ public class NewDatabaseManager {
     // EXAMPLE USAGE/ TESTING
     // ############################################################################
 
-    // TODO: comment out method
 //    public static void main(String[] args) {
 //
 //        NewDatabaseManager dm = new NewDatabaseManager();
