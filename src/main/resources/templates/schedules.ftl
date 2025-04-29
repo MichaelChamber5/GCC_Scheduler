@@ -27,6 +27,18 @@ box-sizing: border-box;
 flex-grow: 1;
 margin: 0;
 }
+
+.delete-button {
+    background: none;
+    border: none;
+    color: red;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 8px;
+    line-height: 1;
+  }
+
 /* Logout button styling */
 .logout-button {
 background-color: #4CAF50;
@@ -124,10 +136,20 @@ color: #666;
           <#list schedules as sched>
             <div class="schedule-item">
               <a href="/schedules/${sched.ID}">${sched.name}</a>
+              <form
+                class="delete-form"
+                method="post"
+                action="/schedules/${sched.ID}/delete"
+                style="display:inline;"
+                onsubmit="return confirm('Are you sure you want to delete this schedule?');"
+              >
+                <button type="submit" class="delete-button">×</button>
+              </form>
             </div>
           </#list>
         </#if>
       </div>
+
 
       <form class="add-schedule-form" method="post" action="/schedules">
         <input type="text" name="schedName" placeholder="New schedule name" required />

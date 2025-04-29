@@ -140,6 +140,22 @@ public class server {
             }
         }, fm);
 
+        // DELETE SCHEDULE
+        post("/schedules/:schedId/delete", (rq, rs) -> {
+            User u = rq.session().attribute("user");
+            if (u == null) {
+                rs.redirect("/login");
+                return null;
+            }
+
+            int sid = Integer.parseInt(rq.params(":schedId"));
+            // make sure this schedule really belongs to the user
+            dbm.deleteUserSchedule(u.getId(), sid);
+
+            rs.redirect("/schedules");
+            return null;
+        }, fm);
+
         /* ------------------------------------------------------------------ */
         /*  API ENDPOINTS                                                     */
         /* ------------------------------------------------------------------ */
