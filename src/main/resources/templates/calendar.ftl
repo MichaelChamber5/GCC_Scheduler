@@ -35,7 +35,20 @@
 .slot-label{position:relative;z-index:2}
 .event-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,102,204,.8);display:flex;align-items:center;justify-content:center;font-size:10px;color:#333;z-index:1}
 .remove-button{margin-left:8px;background:transparent;border:none;color:#333;font-weight:bold;cursor:pointer;pointer-events:auto}
-.course-info-btn{margin-left:8px;padding:4px 8px;background:#2196F3;color:#fff;border:none;font-size:12px;cursor:pointer}
+
+.course-info-btn {
+  background: none;
+  border: none;
+  color: #2196F3;    /* keeps the blue color on the “ℹ️” */
+  padding: 0;
+  font-size: 1.2em;  /* tweak as you like */
+  line-height: 1;
+  cursor: pointer;
+}
+.course-info-btn:hover {
+  color: #1976D2;    /* subtle hover color change */
+}
+
 
 /* ----------  MODALS ---------- */
 .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,.5)}
@@ -57,6 +70,7 @@ z-index:200;
 .hidden{display:none;}
 </style>
 
+
 <!-- Libraries -->
 <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
@@ -72,6 +86,7 @@ z-index:200;
     <div class="top-bar">
         <button class="logout-button" onclick="handleLogout()">Logout</button>
         <button class="back-button" onclick="location.href='/schedules'">All Schedules</button>
+        <button id="addItemBtn" class="back-button" onclick="openAddItemModal()">Add Personal Item</button>
         <h3>Scheduler Navigation Bar</h3>
     </div>
 
@@ -115,6 +130,24 @@ z-index:200;
         </div>
     </div>
 
+    <!-- Add Personal Item Modal -->
+    <div id="addItemModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeAddItemModal()">&times;</span>
+        <h3>Add Personal Item</h3>
+        <label>Name:</label><br>
+        <input id="itemNameInput" type="text" placeholder="e.g. Doctor’s appt"><br><br>
+        <label>Days (e.g. MWF):</label><br>
+        <input id="itemDaysInput" type="text" placeholder="e.g. MWR"><br><br>
+        <label>Start Time (HHMM):</label><br>
+        <input id="itemStartInput" type="text" placeholder="0930"><br><br>
+        <label>End Time (HHMM):</label><br>
+        <input id="itemEndInput" type="text" placeholder="1030"><br><br>
+        <button id="createItemBtn">Create</button>
+      </div>
+    </div>
+
+
     <div id="errorModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeErrorModal()">&times;</span>
@@ -137,6 +170,57 @@ z-index:200;
 /* ------------------  HELPERS ------------------ */
 const $ = sel => document.querySelector(sel);
 window.handleLogout = () => location.href='/login';
+
+// -- open/close
+window.openAddItemModal  = () => $('#addItemModal').style.display = 'block';
+window.closeAddItemModal = () => $('#addItemModal').style.display = 'none';
+
+// -- create handler
+$('#createItemBtn').onclick = () => {
+  const name  = $('#itemNameInput').value.trim();
+  const days  = $('#itemDaysInput').value.trim().split('');
+  const start = parseInt($('#itemStartInput').value, 10);
+  const end   = parseInt($('#itemEndInput').value, 10);
+  if (!name || days.length===0 || isNaN(start) || isNaN(end)) {
+    return showErrorModal('Please fill out all fields.');
+  }
+
+  // build the same meetingTimes shape as your ScheduleItem
+  const meetingTimes = {};
+  days.forEach(d => meetingTimes[d] = [ start, end ]);
+
+  const params = new URLSearchParams({
+    schedId:        window.currentSchedId,
+    name,
+    meetingTimes:   JSON.stringify(meetingTimes)
+  });
+
+  fetch('/add-item', { method: 'POST', body: params })
+    .then(async r => {
+      const payload = await r.json();
+      if (!r.ok) throw payload;
+      closeAddItemModal();
+      window.refreshCalendar?.();
+      updateScheduleTable();
+    })
+    .catch(err => showErrorModal(err.error || 'Error adding personal item'));
+};
+
+// -- global remove for personal items
+window.removeItemGlobal = id => {
+  const params = new URLSearchParams({
+    schedId:    window.currentSchedId,
+    itemId:     id
+  });
+  fetch('/remove-item',{method:'POST',body:params})
+    .then(async r => {
+      const payload = await r.json();
+      if (!r.ok) throw payload;
+      window.refreshCalendar?.();
+      updateScheduleTable();
+    })
+    .catch(err => showErrorModal(err.error || 'Error removing item'));
+};
 
 /* -----  SEMESTER TOGGLE  ----- */
 window.currentSemester = $('#fall-btn').dataset.semester;
@@ -169,27 +253,54 @@ const start = $('#startInput')?.value.trim();  if(start) url+='&start='+encodeUR
 const end   = $('#endInput') ?.value.trim();  if(end)   url+='&end='+encodeURIComponent(end);
 
 fetch(url)
-.then(r=>r.json())
-.then(list=>{
-const html = list.length
-? list.map(c=>`
-<div class="sidebar-course-item">
-<span>${c.name} (${c.courseNumber})</span>
-                          <button class="course-action-btn" data-course-id="${c.id}" data-added="${c.onSchedule}">
-                            ${c.onSchedule?'Remove':'Add'}
-                          </button>
-                          <button class="course-info-btn" data-course-info="${encodeURIComponent(JSON.stringify(c))}">
-                            Info
-                          </button>
-                        </div><hr>`).join('')
-                      : '<p>No courses found.</p>';
 
-                    $('#sidebar-container').innerHTML = html;
-                    attachCourseActionButtons();
-                    attachCourseInfoButtons();
-                })
-.catch(err=>console.error('Search error',err))
+.then(r => r.json())
+.then(list => {
+let html = list.length
+   ? list.map(c => {
+       // build a "Day HH:MM–HH:MM" string for each meetingTime entry
+       let times = '';
+       if (c.meetingTimes) {
+         // 1) group days by identical [start,end]
+         const groups = {};
+         Object.entries(c.meetingTimes).forEach(([day, [start, end]]) => {
+           const key = `${start}-${end}`;
+           (groups[key] = groups[key] || []).push(day);
+         });
+         // 2) for each group, join the days together and format the time once
+         times = Object.entries(groups)
+           .map(([key, days]) => {
+             const [s, e] = key.split('-').map(Number);
+             const fmt = i => {
+               const h24 = Math.floor(i/100);
+               const h12 = (h24 % 12) === 0 ? 12 : (h24 % 12);
+               const m   = i % 100;
+               return `${h12}:${String(m).padStart(2,'0')}`;
+             };
+             return `${days.join('')} ${fmt(s)}–${fmt(e)}`;
+           })
+           .join(', ');
+       }
+       // inject times into the span
+       return `
+     <div class="sidebar-course-item">
+       <span>${c.name} (${c.courseNumber})${times ? ` <small>— ${times}</small>` : ''}</span>
+       <button class="course-action-btn"
+               data-course-id="${c.id}"
+               data-added="${c.onSchedule}">${c.onSchedule ? '-':'+'}</button>
+       <button class="course-info-btn"
+               data-course-info="${encodeURIComponent(JSON.stringify(c))}">ℹ️</button>
+     </div><hr>`;
+     }).join('')
+   : '<p>No courses found.</p>';
+                  $('#sidebar-container').innerHTML = html;
+                  attachCourseActionButtons();
+                  attachCourseInfoButtons();
+              })
+.catch(err => console.error('Search error',err));
+
 .finally(()=>spinner.classList.add('hidden'));
+
         };
         $('.search-input').addEventListener('keydown',e=>e.key==='Enter'&&performSearch());
 
@@ -204,38 +315,91 @@ btn.onclick=()=> btn.dataset.added==='true'
 
         /* -----  INFO MODAL (with deduped times) ----- */
         function attachCourseInfoButtons(){
-document.querySelectorAll('.course-info-btn').forEach(btn=>{
-btn.onclick=()=>{
-const c = JSON.parse(decodeURIComponent(btn.dataset.courseInfo));
+// 1) Utility to format 24h integer (e.g. 1330) → "1:30"
+const fmt = i => {
+  const h24 = Math.floor(i/100);
+  const h12 = (h24 % 12) === 0 ? 12 : (h24 % 12);
+  const m   = i % 100;
+  return `${h12}:${String(m).padStart(2,'0')}`;
+};
 
-// build deduped time string
-const times = [...new Set(
-Object.values(c.meetingTimes || {})
-.map(([s,e]) => `${fmt(s)} – ${fmt(e)}`)
-                    )].join(', ') || '—';
+document.querySelectorAll('.course-info-btn').forEach(btn => {
+  btn.onclick = () => {
+    const c = JSON.parse(decodeURIComponent(btn.dataset.courseInfo));
 
-                    $('#courseInfoModalContent').innerHTML=`
-                        <h3>${c.name} (${c.courseNumber})</h3>
-                        <p><b>Credits:</b> ${c.credits}</p>
-                        <p><b>Location:</b> ${c.location}</p>
-                        <p><b>Section:</b> ${c.section}</p>
-                        <p><b>Meeting Times:</b> ${times}</p>
-                        <p><b>Description:</b> ${c.description||'No description'}</p>
-                        <p><b>Professor(s):</b> ${c.professors?.map(p=>p.name).join(', ')||'None'}</p>
-                    `;
-                    $('#courseInfoModal').style.display='block';
+    // ── 2) build a "Days HH:MM–HH:MM" string ──
+    let timesString = '—';
+    if (c.meetingTimes && Object.keys(c.meetingTimes).length) {
+      // group days by identical [start,end]
+      const groups = {};
+      Object.entries(c.meetingTimes).forEach(([day, [start, end]]) => {
+        const key = `${start}-${end}`;
+        (groups[key] = groups[key] || []).push(day);
+      });
+      // format each group: "MTW 9:00–10:15"
+      timesString = Object.entries(groups)
+        .map(([key, days]) => {
+          const [s, e] = key.split('-').map(Number);
+          return `${days.join('')} ${fmt(s)}–${fmt(e)}`;
+        })
+        .join(', ');
+    }
+
+    // ── 3) render the full modal with all fields ──
+    $('#courseInfoModalContent').innerHTML = `
+      <h3>${c.name} (${c.courseNumber})</h3>
+      <p><b>Credits:</b> ${c.credits}</p>
+      <p><b>Location:</b> ${c.location}</p>
+      <p><b>Section:</b> ${c.section}</p>
+      <p><b>Meeting Times:</b> ${timesString}</p>
+      <p><b>Description:</b> ${c.description || 'No description'}</p>
+      <p><b>Professor(s):</b> ${c.professors?.map(p => p.name).join(', ') || 'None'}</p>
+    `;
+    // 4) show the modal
+    $('#courseInfoModal').style.display = 'block';
+  };
+});
                 };
-            });
+                // build final string like "MWF 12:00–12:50, R 2:00–2:50"
+                timesHtml = Object.entries(groups)
+                  .map(([key, days]) => {
+                    const [s,e] = key.split('-').map(Number);
+                    return `${days.join('')} ${fmt(s)}–${fmt(e)}`;
+                  })
+                  .join(', ');
+              }
+
+              // ── 2) inject into modal HTML ──
+              $('#courseInfoModalContent').innerHTML = `
+                <h3>${c.name} (${c.courseNumber})</h3>
+                <p><b>Credits:</b> ${c.credits}</p>
+                <p><b>Location:</b> ${c.location}</p>
+                <p><b>Section:</b> ${c.section}</p>
+                <p><b>Description:</b> ${c.description||'No description'}</p>
+                ${ timesHtml
+                    ? `<p><b>Meeting Times:</b> ${timesHtml}</p>`
+                    : ''
+                }
+                <p><b>Professor(s):</b> ${c.professors?.map(p=>p.name).join(', ')||'None'}</p>`;
+
+              $('#courseInfoModal').style.display='block';
+            };
+          });
         }
 
-        function addCourse(courseId,btn){
-const params=new URLSearchParams({courseId,schedId:window.currentSchedId});
-            fetch('/add-course',{method:'POST',body:params})
-.then(r=>r.json().then(j=>({ok:r.ok,json:j})))
-.then(({ok,json})=>{
-if(!ok) throw json;
-btn.textContent='Remove';
-btn.dataset.added='true';
+function addCourse(courseId, btn) {
+const params = new URLSearchParams({ courseId, schedId: window.currentSchedId });
+
+    fetch('/add-course', { method: 'POST', body: params })
+.then(async r => {
+const j = await r.json();
+if (!r.ok) throw j;
+return j;
+})
+.then(() => {
+btn.textContent   = '-';
+btn.dataset.added = 'true';
+
 window.refreshCalendar?.();
 updateScheduleTable();
 })
@@ -245,12 +409,9 @@ updateScheduleTable();
 const params=new URLSearchParams({scheduleItemId:courseId,schedId:window.currentSchedId});
             fetch('/remove-course',{method:'POST',body:params})
 .then(r=>r.json())
-.then(()=>{
-btn.textContent='Add';
-btn.dataset.added='false';
-window.refreshCalendar?.();
-updateScheduleTable();
-})
+
+.then(()=>{btn.textContent='+';btn.dataset.added='false';window.refreshCalendar?.();updateScheduleTable();})
+
 .catch(err=>showErrorModal(err.error||'Remove failed'));
         }
 
@@ -268,6 +429,7 @@ sidebarBtn.dataset.added = 'false';
         window.closeModal= ()=> $('#advancedSearchModal').style.display='none';
         $('#applyFiltersBtn').onclick=()=>{closeModal();performSearch();};
 
+
         function showErrorModal(msg){
 $('#errorModalMessage').textContent=msg;
 $('#errorModal').style.display='block';
@@ -284,8 +446,14 @@ return h+':'+(m<10?'0':'')+m+' '+ap;
 }
 
         /* ---------- SCHEDULE TABLE ---------- */
+
         function updateScheduleTable(){
-fetch('/api/schedule?schedId='+encodeURIComponent(window.currentSchedId))
+fetch(
+  '/api/schedule'
+  + '?schedId='   + encodeURIComponent(window.currentSchedId)
+  + '&semester='  + encodeURIComponent(window.currentSemester)
+)
+
 .then(r=>r.json())
 .then(d=>{
 $('#scheduleDetailsTable').innerHTML = `
@@ -333,6 +501,7 @@ const times = Object.values(c.meetingTimes||{})
 
     <!-- ----------  REACT CALENDAR ---------- -->
     <script type="text/babel">
+
         window.refreshCalendar=null;
         const dayLetterToIndex={M:0,T:1,W:2,R:3,F:4};
         const getCurrentMonday=()=>moment().startOf('week').add(1,'days');
@@ -417,9 +586,60 @@ window.removeCourseGlobal(ev.id);
                     </div>
                 </div>
             );
-        }
 
-        ReactDOM.render(<Calendar/>,document.getElementById('react-calendar-container'));
+        }
+        slots.push({ t:end.clone(), step:stepMinutes, type:'night' });
+
+        const overlaps = (ev, slot) => {
+          if(slot.type==='night')
+            return moment(ev.start).isSameOrAfter(slot.t);
+          const slotEnd = slot.t.clone().add(slot.step,'minutes');
+          return moment(ev.start).isBefore(slotEnd)
+              && moment(ev.end).isAfter(slot.t);
+        };
+
+        return (
+          <div className="day-column">
+            <div className="day-header">
+              {moment(day).format('dddd, MMM Do')}
+            </div>
+            <div className="time-slots">
+              {slots.map((s,i) => {
+                const label = s.t.format('h:mm A');
+                const evts  = events.filter(ev => overlaps(ev,s));
+                return (
+                  <div key={i} className="time-slot">
+                    <div className="slot-label">{label}</div>
+                    {evts.map((ev,j) =>
+                      <div key={j} className="event-overlay">
+                        {ev.title}
+                        <button
+                          className="remove-button"
+                          onClick={e => {
+                            e.stopPropagation();
+                            window.removeCourseGlobal(ev.id);
+                            if (ev.type === 'course')
+                                window.removeCourseGlobal(ev.id);
+                            else
+                                window.removeItemGlobal(ev.id);
+                          }}
+                        >×</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      ReactDOM.render(
+        <Calendar/>,
+        document.getElementById('react-calendar-container')
+      );
+
     </script>
+
 </body>
 </html>

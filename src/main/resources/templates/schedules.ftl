@@ -122,10 +122,20 @@ color: #666;
           <p>No schedules yet. Create one below!</p>
         <#else>
           <#list schedules as sched>
-            <div class="schedule-item">
-              <a href="/schedules/${sched.ID}">${sched.name}</a>
-            </div>
-          </#list>
+                  <div class="schedule-item">
+                    <a href="/schedules/${sched.ID}">${sched.name}</a>
+                    <!-- Delete button/form -->
+                      <form method="post" action="/delete-schedule"
+                              style="display:inline"
+                              onsubmit="return confirm('Are you sure you want to delete this entire schedule?');">
+                      <input type="hidden" name="schedId" value="${sched.ID}">
+                      <button type="submit"
+                              style="background:transparent;border:none;color:#c00;cursor:pointer;"
+                              title="Delete this schedule"
+                      >✖</button>
+                    </form>
+                  </div>
+                </#list>
         </#if>
       </div>
 

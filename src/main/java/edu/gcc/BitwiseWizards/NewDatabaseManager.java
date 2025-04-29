@@ -3,6 +3,7 @@ package edu.gcc.BitwiseWizards;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+
 import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
@@ -54,7 +55,7 @@ public class NewDatabaseManager {
      */
     private void initializeDatabase() {
         try {
-            dropTables();
+            //dropTables();
             createTables();
             populateTables();
             System.out.println("Successfully initialized database.");
@@ -1036,6 +1037,30 @@ public class NewDatabaseManager {
             System.err.println("Failed to update user email: " + e.getMessage());
         }
     }
+
+    /** Returns just the user_id for this email, or -1 if not found. */
+    protected int getUserIDByEmail(String email) {
+        String sql = "SELECT user_id FROM users WHERE user_email = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, email);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt("user_id");
+        } catch (SQLException e) {
+            System.err.println("Error in getUserIDByEmail: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    protected String getPasswordHashByEmail(String email) throws SQLException {
+        String sql = "SELECT user_password FROM users WHERE user_email = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, email);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getString("user_password");
+        }
+        return null;
+    }
+
 
     /**
      * TODO

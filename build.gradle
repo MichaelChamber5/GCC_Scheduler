@@ -39,6 +39,10 @@ dependencies {
     //pdf File reader of course catalog
     implementation 'org.apache.pdfbox:pdfbox:2.0.29'
 
+    //for password hashing
+    implementation 'org.mindrot:jbcrypt:0.4'
+
+
 
 }
 

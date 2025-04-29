@@ -27,8 +27,8 @@ e.preventDefault();
         return (
             <form action="/register" method="post" onSubmit={handleSubmit}>
                 <div>
-                    <label htmlFor="username">Username: </label>
-                    <input type="text" id="username" name="username" required />
+                    <label htmlFor="username">Email: </label>
+                    <input type="text" id="user" name="user" required />
                 </div>
                 <div>
                     <label htmlFor="password">Password: </label>
@@ -64,4 +64,3 @@ e.preventDefault();
 <p>Already have an account? <a href="/login">Login here</a>.</p>
 </body>
 </html>
-<!-- this comment was strictly added to I can commit -->
