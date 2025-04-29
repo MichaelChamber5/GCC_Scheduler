@@ -45,8 +45,8 @@
 /* ----------  LOADING SPINNER ---------- */
 .spinner{
 width:48px;height:48px;
-border:6px solid #ccc;        /* <-- fixed */
-border-top-color:#000;        /* <-- fixed */
+border:6px solid #ccc;
+border-top-color:#000;
 border-radius:50%;
 animation:spin .8s linear infinite;
 position:absolute;left:50%;top:50%;
@@ -131,7 +131,7 @@ z-index:200;
 
     <!-- ----------  PAGE SCRIPT ---------- -->
     <script>
-<#noparse>
+    <#noparse>
     document.addEventListener('DOMContentLoaded', () => {
 
 /* ------------------  HELPERS ------------------ */
@@ -165,8 +165,8 @@ let url = '/search?q='+encodeURIComponent(query)+
 
 const dept  = $('#deptInput')?.value.trim(); if(dept)  url+='&dept='+encodeURIComponent(dept);
 const days  = $('#daysInput')?.value.trim(); if(days)  url+='&days='+encodeURIComponent(days);
-const start = $('#startInput')?.value.trim(); if(start)url+='&start='+encodeURIComponent(start);
-const end   = $('#endInput') ?.value.trim(); if(end)   url+='&end='+encodeURIComponent(end);
+const start = $('#startInput')?.value.trim();  if(start) url+='&start='+encodeURIComponent(start);
+const end   = $('#endInput') ?.value.trim();  if(end)   url+='&end='+encodeURIComponent(end);
 
 fetch(url)
 .then(r=>r.json())
@@ -175,19 +175,21 @@ const html = list.length
 ? list.map(c=>`
 <div class="sidebar-course-item">
 <span>${c.name} (${c.courseNumber})</span>
-    <button class="course-action-btn" data-course-id="${c.id}" data-added="${c.onSchedule}">
-        ${c.onSchedule?'Remove':'Add'}
-    </button>
-    <button class="course-info-btn" data-course-info="${encodeURIComponent(JSON.stringify(c))}">Info</button>
-</div><hr>`).join('')
+                          <button class="course-action-btn" data-course-id="${c.id}" data-added="${c.onSchedule}">
+                            ${c.onSchedule?'Remove':'Add'}
+                          </button>
+                          <button class="course-info-btn" data-course-info="${encodeURIComponent(JSON.stringify(c))}">
+                            Info
+                          </button>
+                        </div><hr>`).join('')
                       : '<p>No courses found.</p>';
 
-                  $('#sidebar-container').innerHTML = html;
-                  attachCourseActionButtons();
-                  attachCourseInfoButtons();
-              })
+                    $('#sidebar-container').innerHTML = html;
+                    attachCourseActionButtons();
+                    attachCourseInfoButtons();
+                })
 .catch(err=>console.error('Search error',err))
-.finally(()=>spinner.classList.add('hidden'));   /* <-- chain fixed */
+.finally(()=>spinner.classList.add('hidden'));
         };
         $('.search-input').addEventListener('keydown',e=>e.key==='Enter'&&performSearch());
 
@@ -205,11 +207,12 @@ btn.onclick=()=>{
 const c = JSON.parse(decodeURIComponent(btn.dataset.courseInfo));
 $('#courseInfoModalContent').innerHTML=`
 <h3>${c.name} (${c.courseNumber})</h3>
-<p><b>Credits:</b> ${c.credits}</p>
-<p><b>Location:</b> ${c.location}</p>
-<p><b>Section:</b> ${c.section}</p>
-<p><b>Description:</b> ${c.description||'No description'}</p>
-<p><b>Professor(s):</b> ${c.professors?.map(p=>p.name).join(', ')||'None'}</p>`;
+                        <p><b>Credits:</b> ${c.credits}</p>
+                        <p><b>Location:</b> ${c.location}</p>
+                        <p><b>Section:</b> ${c.section}</p>
+                        <p><b>Description:</b> ${c.description||'No description'}</p>
+                        <p><b>Professor(s):</b> ${c.professors?.map(p=>p.name).join(', ')||'None'}</p>
+                    `;
                     $('#courseInfoModal').style.display='block';
                 };
             });
@@ -241,22 +244,20 @@ updateScheduleTable();
 .catch(err=>showErrorModal(err.error||'Remove failed'));
         }
 
-window.removeCourseGlobal = id => {
+        window.removeCourseGlobal = id => {
 // try to find the actual sidebar button for this course
 const sidebarBtn = document.querySelector(
 `.course-action-btn[data-course-id="${id}"]`
 );
-
 if (sidebarBtn) {
-// flip it immediately in the UI
 sidebarBtn.textContent = 'Add';
 sidebarBtn.dataset.added = 'false';
 }
-  removeCourse(
-    id,
-    sidebarBtn || { dataset: { added: 'true' }, textContent: '' }
-  );
-};
+            removeCourse(
+                id,
+                sidebarBtn || { dataset: { added: 'true' }, textContent: '' }
+            );
+        };
 
         /* -----  MODALS ----- */
         window.openModal = ()=> $('#advancedSearchModal').style.display='block';
@@ -271,35 +272,61 @@ $('#errorModal').style.display='block';
         window.closeCourseInfoModal = ()=> $('#courseInfoModal').style.display='none';
         window.onclick = e => { if(e.target==$('#advancedSearchModal')) closeModal(); };
 
-function fmt(x){if(x==null)return'—';let h=Math.floor(x/100),m=x%100,ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+(m<10?'0':'')+m+' '+ap;}
-
-
-
-
-/* ---------- SCHEDULE TABLE ---------- */
-function updateScheduleTable(){
-fetch('/api/schedule?schedId='+encodeURIComponent(window.currentSchedId)).then(r=>r.json()).then(d=>{
-$('#scheduleDetailsTable').innerHTML=`<thead><tr>
-<th>Course Name</th><th>Professor(s)</th><th>Location</th>
-<th>Credits</th><th>Course Code</th><th>Time</th><th>Description</th>
-</tr></thead><tbody>`+
-d.map(c=>`<tr>
-<td>${c.name}</td>
-     <td>${c.professors?.map(p=>p.name).join(', ')||'None'}</td>
-     <td>${c.location}</td>
-     <td>${c.credits}</td>
-     <td>${c.courseNumber}</td>
-     <td>${fmt(c.startTime)} - ${fmt(c.endTime)}</td>
-     <td>${c.description||''}</td>
-   </tr>`).join('')+'</tbody>';
- });
+function fmt(x){
+if(x==null) return '—';
+let h = Math.floor(x/100), m = x % 100, ap = h >= 12 ? 'PM' : 'AM';
+h = h % 12 || 12;
+return h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap;
 }
+
+        /* ---------- SCHEDULE TABLE ---------- */
+        function updateScheduleTable(){
+fetch('/api/schedule?schedId='+encodeURIComponent(window.currentSchedId))
+.then(r=>r.json())
+.then(d=>{
+$('#scheduleDetailsTable').innerHTML = `
+<thead>
+<tr>
+<th>Course Name</th>
+<th>Professor(s)</th>
+<th>Location</th>
+<th>Credits</th>
+<th>Course Code</th>
+<th>Time</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+` + d.map(c => {
+// collect and dedupe times so repeated slots appear only once
+const times = Object.values(c.meetingTimes || {})
+.map(([s,e]) => `${fmt(s)} – ${fmt(e)}`);
+                      const uniqueTimes = [...new Set(times)];
+                      const timeStr = uniqueTimes.join(', ') || '—';
+
+                      return `
+                        <tr>
+                          <td>${c.name}</td>
+                          <td>${c.professors?.map(p=>p.name).join(', ')||'None'}</td>
+                          <td>${c.location}</td>
+                          <td>${c.credits}</td>
+                          <td>${c.courseNumber}</td>
+                          <td>${timeStr}</td>
+                          <td>${c.description||''}</td>
+                        </tr>
+                      `;
+                  }).join('') + `
+                    </tbody>
+                  `;
+              });
+        }
 
         /* ------------------  INIT  ------------------ */
         performSearch();
         updateScheduleTable();
+
     });
-</#noparse>
+    </#noparse>
     </script>
 
     <!-- ----------  REACT CALENDAR ---------- -->
@@ -341,7 +368,8 @@ setEvents(filtered.flatMap(mapScheduleItemToEvents));
                 <div className="calendar-grid">
                     {days.map((d,i)=>
 <DayColumn key={i} day={d} startHour={8} endHour={21} stepMinutes={step(d)}
-                                   events={events.filter(e=>moment(e.start).isSame(d,'day'))}/>)}
+                                   events={events.filter(e=>moment(e.start).isSame(d,'day'))}/>
+                    )}
                 </div>
             );
         }
