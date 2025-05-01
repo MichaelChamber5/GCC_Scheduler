@@ -94,7 +94,7 @@
                 <button id="spring-btn" class="semester-btn"        data-semester="2024_Spring">Spring</button>
             </div>
             <input type="text" class="search-input" placeholder="Search for classes…">
-            <button class="advanced-search-btn" onclick="openModal()">Advanced Search</button>
+            <button type="button" class="advanced-search-btn" onclick="openModal()">Advanced Search</button>
             <div id="sidebar-container"></div>
         </div>
 
@@ -114,13 +114,30 @@
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
             <h3>Advanced Search Options</h3>
-            <label>Department Code:</label><br><input id="deptInput"  placeholder="e.g. COMP"><br><br>
             <label>Days (e.g., MWF):</label><br><input id="daysInput" placeholder="Enter days"><br><br>
             <label>Start Time (0930):</label><br><input id="startInput" placeholder="0930"><br><br>
             <label>End Time (1500):</label><br><input id="endInput"   placeholder="1500"><br><br>
             <button id="applyFiltersBtn">Apply Filters</button>
         </div>
     </div>
+    <script>
+      // simply show/hide the modal
+      function openModal() {
+        document.getElementById('advancedSearchModal').style.display = 'block';
+      }
+      function closeModal() {
+        document.getElementById('advancedSearchModal').style.display = 'none';
+      }
+
+      // wire up the Apply button as soon as the DOM is ready
+      document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('applyFiltersBtn')
+                .addEventListener('click', () => {
+          closeModal();      // hide it
+          performSearch();   // run your search with the new filters
+        });
+      });
+    </script>
 
     <div id="addItemModal" class="modal">
           <div class="modal-content">
@@ -251,7 +268,30 @@ const end   = $('#endInput')  ?.value.trim(); if (end)   url += '&end='   + enco
 fetch(url)
 .then(r => r.json())
 .then(list => {
-let html = list.length
+
+// 1) read filters
+      const daysFilter  = ($('#daysInput').value.trim() || '').toUpperCase().split('');
+      const startFilter = parseInt($('#startInput').value,10) || null;
+      const endFilter   = parseInt($('#endInput').value,10)   || null;
+
+      // 2) filter
+      const filtered = list.filter(c => {
+        const mt = c.meetingTimes || {};
+
+        if (daysFilter.length) {
+          const courseDays = Object.keys(mt);
+          if (!courseDays.every(d => daysFilter.includes(d))) return false;
+        }
+        if (startFilter || endFilter) {
+          for (const [day,[s,e]] of Object.entries(mt)) {
+            if (startFilter && s < startFilter) return false;
+            if (endFilter   && e > endFilter)   return false;
+          }
+        }
+        return true;
+      });
+
+let html = filtered.length
    ? list.map(c => {
        // build a "Day HH:MM–HH:MM" string for each meetingTime entry
        let times = '';
