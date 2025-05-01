@@ -439,4 +439,5 @@ public class server {
             return new SimpleDateFormat("HH:mm").parse(s.substring(0,2)+":"+s.substring(2));
         }catch(ParseException e){ return null; }
     }
+    //
 }
