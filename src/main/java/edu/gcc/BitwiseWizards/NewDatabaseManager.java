@@ -1505,6 +1505,111 @@ public class NewDatabaseManager {
         return null;
     }
 
+    /**
+     * Return one export‐ready record per row you want to print
+     * (courses filtered by semester + every personal item)
+     */
+    protected List<Map<String,Object>> getExportRows(int schedId, String semester) {
+        List<Map<String,Object>> rows = new ArrayList<>();
+
+        // A) Courses
+        String sqlCourses = """
+      SELECT c.course_name AS name,
+             c.credits              AS credits,
+             c.location,
+             c.semester,
+             group_concat(f.faculty_name, ', ') AS profs,
+             group_concat(ts.day, '')        AS days,
+             min(ts.start)                   AS start,
+             max(ts.end)                     AS end
+      FROM user_courses uc
+      JOIN courses c ON c.course_id = uc.course_id
+      LEFT JOIN course_faculty cf ON cf.course_id = c.course_id
+      LEFT JOIN faculty f         ON f.faculty_id = cf.faculty_id
+      LEFT JOIN course_time_slots cts ON cts.course_id = c.course_id
+      LEFT JOIN time_slots ts        ON ts.time_id   = cts.time_id
+      WHERE uc.sched_id = ? AND c.semester = ?
+      GROUP BY uc.course_id
+    """;
+        try (PreparedStatement ps = connection.prepareStatement(sqlCourses)) {
+            ps.setInt(1, schedId);
+            ps.setString(2, semester);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String,Object> m = new HashMap<>();
+                    m.put("name",       rs.getString("name"));
+                    m.put("credits", rs.getInt("credits"));
+                    m.put("location",   rs.getString("location"));
+                    m.put("professors", rs.getString("profs"));
+                    m.put("days",       rs.getString("days"));
+                    m.put("start",      rs.getInt("start"));
+                    m.put("end",        rs.getInt("end"));
+                    rows.add(m);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // B) Personal items (always include, no semester)
+        String sqlItems = """
+      SELECT upi.pitem_name     AS name,
+             0                        AS credits,
+             ''                  AS location,
+             ''                  AS professors,
+             group_concat(ts.day, '') AS days,
+             min(ts.start)       AS start,
+             max(ts.end)         AS end
+      FROM user_personal_items upi
+      LEFT JOIN pitem_time_slots pts ON pts.pitem_id = upi.pitem_id
+      LEFT JOIN time_slots ts         ON ts.time_id   = pts.time_id
+      WHERE upi.sched_id = ?
+      GROUP BY upi.pitem_id
+    """;
+        try (PreparedStatement ps = connection.prepareStatement(sqlItems)) {
+            ps.setInt(1, schedId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String,Object> m = new HashMap<>();
+                    m.put("name",       rs.getString("name"));
+                    m.put("credits",    rs.getInt   ("credits"));
+                    m.put("location",   rs.getString("location"));
+                    m.put("professors", rs.getString("professors"));
+                    m.put("days",       rs.getString("days"));
+                    m.put("start",      rs.getInt("start"));
+                    m.put("end",        rs.getInt("end"));
+                    rows.add(m);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return rows;
+    }
+
+    /**
+     * Resolve the user’s email address for a given schedule ID.
+     */
+    protected String getEmailBySchedule(int schedId) {
+        String sql = """
+    SELECT u.user_email
+    FROM user_schedules us
+    JOIN users u ON u.user_id = us.user_id
+    WHERE us.sched_id = ?
+  """;
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, schedId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString("user_email");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+
 
     // ############################################################################
     // SEARCH METHODS

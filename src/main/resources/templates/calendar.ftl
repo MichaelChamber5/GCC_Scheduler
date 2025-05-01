@@ -69,7 +69,19 @@
         <button class="logout-button" onclick="handleLogout()">Logout</button>
         <button class="back-button" onclick="location.href='/schedules'">All Schedules</button>
         <button id="addItemBtn" class="back-button" onclick="openAddItemModal()">Add Personal Item</button>
+        <button class="back-button"
+                  onclick="
+                    window.location =
+                      '/exportPage?schedId=' + encodeURIComponent(window.currentSchedId)
+                     + '&semester='  + encodeURIComponent(window.currentSemester)
+                  ">
+            Export to PDF
+          </button>
         <h3>Scheduler Navigation Bar</h3>
+        <div id="credits-display"
+               style="margin-left:auto;color:#fff;font-weight:bold;font-size:16px;">
+            Total Credits: <span id="totalCredits">0</span>
+          </div>
     </div>
 
     <!-- ----------  MAIN LAYOUT ---------- -->
@@ -365,7 +377,29 @@ const params = new URLSearchParams({scheduleItemId:courseId,schedId:window.curre
 .then(()=>{btn.textContent='+';btn.dataset.added='false';window.refreshCalendar?.();updateScheduleTable();})
 .catch(err=>showErrorModal(err.error||'Remove failed'));
         }
-        window.removeCourseGlobal=id=>removeCourse(id,{textContent:'',dataset:{added:'true'}});
+        window.removeCourseGlobal = id => {
+          // hit your remove-course endpoint
+          const params = new URLSearchParams({
+            schedId: window.currentSchedId,
+            scheduleItemId: id
+          });
+          fetch('/remove-course', { method: 'POST', body: params })
+            .then(r => r.json())
+            .then(() => {
+              // 1) update calendar & table as before
+              window.refreshCalendar?.();
+              updateScheduleTable();
+
+              // 2) find the matching sidebar “+/-” button and reset it
+              const btn = document.querySelector(`.course-action-btn[data-course-id="${id}"]`);
+              if (btn) {
+                btn.textContent = '+';
+                btn.dataset.added = 'false';
+              }
+            })
+            .catch(err => showErrorModal(err.error || 'Remove failed'));
+        };
+
 
         /* -----  MODALS ----- */
         window.openModal = ()=> $('#advancedSearchModal').style.display='block';
@@ -414,6 +448,11 @@ if(e.target=== $('#advancedSearchModal')) closeModal();
                 </tr>`;
             }).join('');
 
+            const total = filtered
+                    .filter(i => i.type === 'course')
+                    .reduce((sum, c) => sum + (Number(c.credits) || 0), 0);
+                  document.getElementById('totalCredits').textContent = total;
+
             document.getElementById('scheduleDetailsTable').innerHTML = `
               <thead><tr>
                 <th>Course Name</th><th>Professor(s)</th><th>Location</th>
@@ -422,6 +461,18 @@ if(e.target=== $('#advancedSearchModal')) closeModal();
               <tbody>${rows}</tbody>`;
           });
         }
+        // fetch and show total credits
+        fetch(
+          '/api/credits'
+          + '?schedId='  + encodeURIComponent(window.currentSchedId)
+          + '&semester=' + encodeURIComponent(window.currentSemester)
+        )
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('totalCredits').textContent = data.totalCredits;
+        })
+        .catch(err => console.error('Failed to load total credits', err));
+
 
 
         /* ------------------  INIT  ------------------ */
@@ -506,7 +557,7 @@ return moment(ev.start).isBefore(slotEnd)&&moment(ev.end).isAfter(slot.t);
 
             return (
                 <div className="day-column">
-                    <div className="day-header">{moment(day).format('dddd, MMM Do')}</div>
+                    <div className="day-header">{moment(day).format('dddd')}</div>
                     <div className="time-slots">
                         {slots.map((s,i)=>{
 const label=s.t.format('h:mm A');

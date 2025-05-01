@@ -345,6 +345,47 @@ public class server {
             return null;
         }, fm);
 
+        get("/schedules/:schedId/print", (rq, rs) -> {
+            User user = rq.session().attribute("user");
+            if (user == null) { rs.redirect("/login"); return null; }
+
+            int sid = Integer.parseInt(rq.params(":schedId"));
+            // decide which semester you’re printing for
+            String semester = Optional.ofNullable(rq.queryParams("semester"))
+                    .orElse("2023_Fall");
+
+            // pull exactly what you need for the print layout:
+            List<ScheduleItem> items = dbm.getScheduleItems(sid);
+
+            Map<String,Object> model = new HashMap<>();
+            model.put("scheduleName", dbm.getSchduleByID(user.getId(), sid).getName());
+            model.put("semester", semester);
+            model.put("items", items);
+
+            return new ModelAndView(model, "calendar_print.ftl");
+        }, fm);
+
+
+        get("/exportPage", (rq, rs) -> {
+            User u   = rq.session().attribute("user");
+            int  sid = Integer.parseInt(rq.queryParams("schedId"));
+            String sem = rq.queryParams("semester");
+
+            List<Map<String,Object>> rows = dbm.getExportRows(sid, sem);
+            int totalCredits = rows.stream().mapToInt(r -> (r.get("credits") == null ? 0 : ((Number)r.get("credits")).intValue())).sum();
+            Schedule sched = dbm.getSchduleByID(u.getId(), sid);
+
+            Map<String,Object> model = new HashMap<>();
+            model.put("scheduleName", sched.getName());
+            model.put("semester",     sem);
+            model.put("items",        rows);
+            model.put("totalCredits", totalCredits);
+
+            return new ModelAndView(model, "export.ftl");
+        }, fm);
+
+
+
 
         /* --------------  SEARCH -------------- */
         get("/search", (rq, rs) -> {
