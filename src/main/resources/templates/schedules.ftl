@@ -27,6 +27,33 @@ box-sizing: border-box;
 flex-grow: 1;
 margin: 0;
 }
+
+.delete-button {
+    background: none;
+    border: none;
+    color: red;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 8px;
+    line-height: 1;
+  }
+
+/* Delete‐Account button styling */
+.delete-account-button {
+  background-color: #e53935;    /* nice red */
+  color: white;                 /* white text */
+  border: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-left: auto;            /* push it to the right in a flex container */
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+.delete-account-button:hover {
+  background-color: #d32f2f;    /* slightly darker on hover */
+}
 /* Logout button styling */
 .logout-button {
 background-color: #4CAF50;
@@ -71,6 +98,23 @@ border-radius: 4px;
 .schedule-item a:hover {
 background-color: #ddd;
 }
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.schedule-item a {
+  flex: 1;
+  margin-right: 8px;
+}
+
+.schedule-item .delete-form {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
 /* Add-schedule form styling */
 .add-schedule-form {
 margin-top: 20px;
@@ -111,7 +155,16 @@ color: #666;
 <body>
 <div class="top-bar">
     <button class="logout-button" onclick="window.location.href='/login'">Logout</button>
+
     <h3>My Schedules</h3>
+    <form
+          method="post"
+          action="/account/delete"
+          style="margin-left: auto;"
+          onsubmit="return confirm('This will permanently delete your account and all schedules. Are you sure?');"
+        >
+          <button type="submit" class="delete-account-button">Delete Account</button>
+        </form>
   </div>
 
   <div class="main-container">
@@ -122,22 +175,22 @@ color: #666;
           <p>No schedules yet. Create one below!</p>
         <#else>
           <#list schedules as sched>
-                  <div class="schedule-item">
-                    <a href="/schedules/${sched.ID}">${sched.name}</a>
-                    <!-- Delete button/form -->
-                      <form method="post" action="/delete-schedule"
-                              style="display:inline"
-                              onsubmit="return confirm('Are you sure you want to delete this entire schedule?');">
-                      <input type="hidden" name="schedId" value="${sched.ID}">
-                      <button type="submit"
-                              style="background:transparent;border:none;color:#c00;cursor:pointer;"
-                              title="Delete this schedule"
-                      >✖</button>
-                    </form>
-                  </div>
-                </#list>
+            <div class="schedule-item">
+              <a href="/schedules/${sched.ID}">${sched.name}</a>
+              <form
+                class="delete-form"
+                method="post"
+                action="/schedules/${sched.ID}/delete"
+                style="display:inline;"
+                onsubmit="return confirm('Are you sure you want to delete this schedule?');"
+              >
+                <button type="submit" class="delete-button">×</button>
+              </form>
+            </div>
+          </#list>
         </#if>
       </div>
+
 
       <form class="add-schedule-form" method="post" action="/schedules">
         <input type="text" name="schedName" placeholder="New schedule name" required />

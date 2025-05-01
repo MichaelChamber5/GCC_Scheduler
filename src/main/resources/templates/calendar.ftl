@@ -24,7 +24,6 @@
 .calendar-table{width:100%;height:100%;border-collapse:collapse;table-layout:fixed}
 .calendar-table th,.calendar-table td{border:1px solid #ccc;padding:4px;font-size:12px;text-align:center}
 .calendar-table th{background:#eee}
-
 /* ----------  CALENDAR GRID ---------- */
 .calendar-container{max-width:1200px;margin:0 auto;border:1px solid #999;height:57vh;overflow-y:auto;background:#fff}
 .calendar-grid{display:flex;border-top:2px solid #333;border-left:2px solid #333}
@@ -35,7 +34,6 @@
 .slot-label{position:relative;z-index:2}
 .event-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,102,204,.8);display:flex;align-items:center;justify-content:center;font-size:10px;color:#333;z-index:1}
 .remove-button{margin-left:8px;background:transparent;border:none;color:#333;font-weight:bold;cursor:pointer;pointer-events:auto}
-
 .course-info-btn {
   background: none;
   border: none;
@@ -49,27 +47,11 @@
   color: #1976D2;    /* subtle hover color change */
 }
 
-
 /* ----------  MODALS ---------- */
 .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,.5)}
 .modal-content{background:#fff;margin:10% auto;padding:20px;border-radius:8px;width:40%;box-shadow:0 5px 15px rgba(0,0,0,.3)}
 .close{float:right;font-size:20px;font-weight:bold;cursor:pointer}
-
-/* ----------  LOADING SPINNER ---------- */
-.spinner{
-width:48px;height:48px;
-border:6px solid #ccc;
-border-top-color:#000;
-border-radius:50%;
-animation:spin .8s linear infinite;
-position:absolute;left:50%;top:50%;
-transform:translate(-50%,-50%);
-z-index:200;
-}
-@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg);}}
-.hidden{display:none;}
 </style>
-
 
 <!-- Libraries -->
 <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
@@ -87,7 +69,19 @@ z-index:200;
         <button class="logout-button" onclick="handleLogout()">Logout</button>
         <button class="back-button" onclick="location.href='/schedules'">All Schedules</button>
         <button id="addItemBtn" class="back-button" onclick="openAddItemModal()">Add Personal Item</button>
+        <button class="back-button"
+                  onclick="
+                    window.location =
+                      '/exportPage?schedId=' + encodeURIComponent(window.currentSchedId)
+                     + '&semester='  + encodeURIComponent(window.currentSemester)
+                  ">
+            Export to PDF
+          </button>
         <h3>Scheduler Navigation Bar</h3>
+        <div id="credits-display"
+               style="margin-left:auto;color:#fff;font-weight:bold;font-size:16px;">
+            Total Credits: <span id="totalCredits">0</span>
+          </div>
     </div>
 
     <!-- ----------  MAIN LAYOUT ---------- -->
@@ -100,10 +94,8 @@ z-index:200;
                 <button id="spring-btn" class="semester-btn"        data-semester="2024_Spring">Spring</button>
             </div>
             <input type="text" class="search-input" placeholder="Search for classes…">
-            <button class="advanced-search-btn" onclick="openModal()">Advanced Search</button>
-
+            <button type="button" class="advanced-search-btn" onclick="openModal()">Advanced Search</button>
             <div id="sidebar-container"></div>
-            <div id="loadingSpinner" class="spinner hidden"></div>
         </div>
 
         <!-- ----------  CALENDAR + TABLE ---------- -->
@@ -122,31 +114,46 @@ z-index:200;
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
             <h3>Advanced Search Options</h3>
-            <label>Department Code:</label><br><input id="deptInput"  placeholder="e.g. COMP"><br><br>
             <label>Days (e.g., MWF):</label><br><input id="daysInput" placeholder="Enter days"><br><br>
             <label>Start Time (0930):</label><br><input id="startInput" placeholder="0930"><br><br>
             <label>End Time (1500):</label><br><input id="endInput"   placeholder="1500"><br><br>
             <button id="applyFiltersBtn">Apply Filters</button>
         </div>
     </div>
+    <script>
+      // simply show/hide the modal
+      function openModal() {
+        document.getElementById('advancedSearchModal').style.display = 'block';
+      }
+      function closeModal() {
+        document.getElementById('advancedSearchModal').style.display = 'none';
+      }
 
-    <!-- Add Personal Item Modal -->
+      // wire up the Apply button as soon as the DOM is ready
+      document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('applyFiltersBtn')
+                .addEventListener('click', () => {
+          closeModal();      // hide it
+          performSearch();   // run your search with the new filters
+        });
+      });
+    </script>
+
     <div id="addItemModal" class="modal">
-      <div class="modal-content">
-        <span class="close" onclick="closeAddItemModal()">&times;</span>
-        <h3>Add Personal Item</h3>
-        <label>Name:</label><br>
-        <input id="itemNameInput" type="text" placeholder="e.g. Doctor’s appt"><br><br>
-        <label>Days (e.g. MWF):</label><br>
-        <input id="itemDaysInput" type="text" placeholder="e.g. MWR"><br><br>
-        <label>Start Time (HHMM):</label><br>
-        <input id="itemStartInput" type="text" placeholder="0930"><br><br>
-        <label>End Time (HHMM):</label><br>
-        <input id="itemEndInput" type="text" placeholder="1030"><br><br>
-        <button id="createItemBtn">Create</button>
-      </div>
-    </div>
-
+          <div class="modal-content">
+            <span class="close" onclick="closeAddItemModal()">&times;</span>
+            <h3>Add Personal Item</h3>
+            <label>Name:</label><br>
+            <input id="itemNameInput" type="text" placeholder="e.g. Doctor’s appt"><br><br>
+            <label>Days (e.g. MWF):</label><br>
+            <input id="itemDaysInput" type="text" placeholder="e.g. MWR"><br><br>
+            <label>Start Time (HHMM):</label><br>
+            <input id="itemStartInput" type="text" placeholder="0930"><br><br>
+            <label>End Time (HHMM):</label><br>
+            <input id="itemEndInput"   type="text" placeholder="1030"><br><br>
+            <button id="createItemBtn">Create</button>
+          </div>
+        </div>
 
     <div id="errorModal" class="modal">
         <div class="modal-content">
@@ -164,99 +171,127 @@ z-index:200;
 
     <!-- ----------  PAGE SCRIPT ---------- -->
     <script>
-    <#noparse>
+<#noparse>
     document.addEventListener('DOMContentLoaded', () => {
-
-/* ------------------  HELPERS ------------------ */
+/* ------------------  HELPER ------------------ */
 const $ = sel => document.querySelector(sel);
-window.handleLogout = () => location.href='/login';
 
-// -- open/close
+window.handleLogout = () => location.href = '/login';
+
 window.openAddItemModal  = () => $('#addItemModal').style.display = 'block';
 window.closeAddItemModal = () => $('#addItemModal').style.display = 'none';
 
-// -- create handler
-$('#createItemBtn').onclick = () => {
-  const name  = $('#itemNameInput').value.trim();
-  const days  = $('#itemDaysInput').value.trim().split('');
-  const start = parseInt($('#itemStartInput').value, 10);
-  const end   = parseInt($('#itemEndInput').value, 10);
-  if (!name || days.length===0 || isNaN(start) || isNaN(end)) {
-    return showErrorModal('Please fill out all fields.');
-  }
+// ↓↓↓ CREATE PERSONAL ITEM ↓↓↓
+      $('#createItemBtn').onclick = () => {
+        const name  = $('#itemNameInput').value.trim();
+        const days  = $('#itemDaysInput').value.trim().split('');
+        const start = parseInt($('#itemStartInput').value, 10);
+        const end   = parseInt($('#itemEndInput').value, 10);
+        if (!name || days.length===0 || isNaN(start) || isNaN(end)) {
+          return showErrorModal('Please fill out all fields.');
+        }
 
-  // build the same meetingTimes shape as your ScheduleItem
-  const meetingTimes = {};
-  days.forEach(d => meetingTimes[d] = [ start, end ]);
+        const meetingTimes = {};
+        days.forEach(d => meetingTimes[d] = [ start, end ]);
 
-  const params = new URLSearchParams({
-    schedId:        window.currentSchedId,
-    name,
-    meetingTimes:   JSON.stringify(meetingTimes)
-  });
-
-  fetch('/add-item', { method: 'POST', body: params })
-    .then(async r => {
-      const payload = await r.json();
-      if (!r.ok) throw payload;
-      closeAddItemModal();
-      window.refreshCalendar?.();
-      updateScheduleTable();
-    })
-    .catch(err => showErrorModal(err.error || 'Error adding personal item'));
-};
-
-// -- global remove for personal items
-window.removeItemGlobal = id => {
-  const params = new URLSearchParams({
-    schedId:    window.currentSchedId,
-    itemId:     id
-  });
-  fetch('/remove-item',{method:'POST',body:params})
-    .then(async r => {
-      const payload = await r.json();
-      if (!r.ok) throw payload;
-      window.refreshCalendar?.();
-      updateScheduleTable();
-    })
-    .catch(err => showErrorModal(err.error || 'Error removing item'));
-};
-
-/* -----  SEMESTER TOGGLE  ----- */
-window.currentSemester = $('#fall-btn').dataset.semester;
-document.querySelectorAll('.semester-btn').forEach(btn=>{
-btn.onclick=()=>{
-document.querySelectorAll('.semester-btn').forEach(b=>b.classList.remove('active'));
-btn.classList.add('active');
-window.currentSemester=btn.dataset.semester;
-performSearch();
-window.refreshCalendar?.();
-updateScheduleTable();
-};
+        const params = new URLSearchParams({
+          schedId:      window.currentSchedId,
+          name,
+          meetingTimes: JSON.stringify(meetingTimes)
         });
 
-        /* ------------------  SEARCH ------------------ */
-        window.performSearch = () =>{
-const spinner = $('#loadingSpinner');
-const query   = $('.search-input').value.trim();
-if(!query){ $('#sidebar-container').innerHTML=''; return; }
+        fetch('/add-item', { method: 'POST', body: params })
+          .then(async r => {
+            const payload = await r.json();
+            if (!r.ok) throw payload;
+            closeAddItemModal();
+            window.refreshCalendar?.();
+            updateScheduleTable();
+          })
+          .catch(err => showErrorModal(err.error || 'Error adding personal item'));
+      };
 
-spinner.classList.remove('hidden');
+       // ↓↓↓ REMOVE PERSONAL ITEM (GLOBAL) ↓↓↓
+            window.removeItemGlobal = id => {
+              const params = new URLSearchParams({
+                schedId: window.currentSchedId,
+                itemId:  id
+              });
+              fetch('/remove-item', { method:'POST', body: params })
+                .then(async r => {
+                  const payload = await r.json();
+                  if (!r.ok) throw payload;
+                  window.refreshCalendar?.();
+                  updateScheduleTable();
+                })
+                .catch(err => showErrorModal(err.error || 'Error removing item'));
+            };
 
-let url = '/search?q='+encodeURIComponent(query)+
-'&semester='+encodeURIComponent(window.currentSemester)+
-'&schedId='+encodeURIComponent(window.currentSchedId);
+        /* -----  SEMESTER TOGGLE  ----- */
+        // 1) Initialize to Fall by default:
+        window.currentSemester = $('#fall-btn').dataset.semester;
 
-const dept  = $('#deptInput')?.value.trim(); if(dept)  url+='&dept='+encodeURIComponent(dept);
-const days  = $('#daysInput')?.value.trim(); if(days)  url+='&days='+encodeURIComponent(days);
-const start = $('#startInput')?.value.trim();  if(start) url+='&start='+encodeURIComponent(start);
-const end   = $('#endInput') ?.value.trim();  if(end)   url+='&end='+encodeURIComponent(end);
+        // 2) Wire up both buttons in one place:
+        document.querySelectorAll('.semester-btn').forEach(btn => {
+          btn.onclick = () => {
+            // a) Toggle the 'active' class
+            document.querySelectorAll('.semester-btn')
+              .forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // b) Update the global semester
+            window.currentSemester = btn.dataset.semester;
+
+            // c) Refresh everything
+            performSearch();
+            updateScheduleTable();
+            window.refreshCalendar?.();
+          };
+        });
+
+
+
+        /* ------------------  SEARCH  ------------------ */
+        window.performSearch = () => {
+const query = $('.search-input').value.trim();
+if (!query) { $('#sidebar-container').innerHTML = ''; return; }
+
+let url = '/search?q=' + encodeURIComponent(query) +
+'&semester=' + encodeURIComponent(window.currentSemester) +
+'&schedId='  + encodeURIComponent(window.currentSchedId);
+
+const dept  = $('#deptInput') ?.value.trim(); if (dept)  url += '&dept='  + encodeURIComponent(dept);
+const days  = $('#daysInput') ?.value.trim(); if (days)  url += '&days='  + encodeURIComponent(days);
+const start = $('#startInput')?.value.trim(); if (start) url += '&start=' + encodeURIComponent(start);
+const end   = $('#endInput')  ?.value.trim(); if (end)   url += '&end='   + encodeURIComponent(end);
 
 fetch(url)
-
 .then(r => r.json())
 .then(list => {
-let html = list.length
+
+// 1) read filters
+      const daysFilter  = ($('#daysInput').value.trim() || '').toUpperCase().split('');
+      const startFilter = parseInt($('#startInput').value,10) || null;
+      const endFilter   = parseInt($('#endInput').value,10)   || null;
+
+      // 2) filter
+      const filtered = list.filter(c => {
+        const mt = c.meetingTimes || {};
+
+        if (daysFilter.length) {
+          const courseDays = Object.keys(mt);
+          if (!courseDays.every(d => daysFilter.includes(d))) return false;
+        }
+        if (startFilter || endFilter) {
+          for (const [day,[s,e]] of Object.entries(mt)) {
+            if (startFilter && s < startFilter) return false;
+            if (endFilter   && e > endFilter)   return false;
+          }
+        }
+        return true;
+      });
+
+let html = filtered.length
    ? list.map(c => {
        // build a "Day HH:MM–HH:MM" string for each meetingTime entry
        let times = '';
@@ -298,11 +333,8 @@ let html = list.length
                   attachCourseInfoButtons();
               })
 .catch(err => console.error('Search error',err));
-
-.finally(()=>spinner.classList.add('hidden'));
-
         };
-        $('.search-input').addEventListener('keydown',e=>e.key==='Enter'&&performSearch());
+        $('.search-input').addEventListener('keydown', e => e.key==='Enter'&&performSearch());
 
         /* -----  ADD / REMOVE COURSE  ----- */
         function attachCourseActionButtons(){
@@ -312,53 +344,25 @@ btn.onclick=()=> btn.dataset.added==='true'
 : addCourse   (btn.dataset.courseId,btn);
 });
         }
-
-        /* -----  INFO MODAL (with deduped times) ----- */
         function attachCourseInfoButtons(){
-// 1) Utility to format 24h integer (e.g. 1330) → "1:30"
-const fmt = i => {
-  const h24 = Math.floor(i/100);
-  const h12 = (h24 % 12) === 0 ? 12 : (h24 % 12);
-  const m   = i % 100;
-  return `${h12}:${String(m).padStart(2,'0')}`;
-};
+          document.querySelectorAll('.course-info-btn').forEach(btn=>{
+            btn.onclick=()=>{
+              const c = JSON.parse(decodeURIComponent(btn.dataset.courseInfo));
 
-document.querySelectorAll('.course-info-btn').forEach(btn => {
-  btn.onclick = () => {
-    const c = JSON.parse(decodeURIComponent(btn.dataset.courseInfo));
-
-    // ── 2) build a "Days HH:MM–HH:MM" string ──
-    let timesString = '—';
-    if (c.meetingTimes && Object.keys(c.meetingTimes).length) {
-      // group days by identical [start,end]
-      const groups = {};
-      Object.entries(c.meetingTimes).forEach(([day, [start, end]]) => {
-        const key = `${start}-${end}`;
-        (groups[key] = groups[key] || []).push(day);
-      });
-      // format each group: "MTW 9:00–10:15"
-      timesString = Object.entries(groups)
-        .map(([key, days]) => {
-          const [s, e] = key.split('-').map(Number);
-          return `${days.join('')} ${fmt(s)}–${fmt(e)}`;
-        })
-        .join(', ');
-    }
-
-    // ── 3) render the full modal with all fields ──
-    $('#courseInfoModalContent').innerHTML = `
-      <h3>${c.name} (${c.courseNumber})</h3>
-      <p><b>Credits:</b> ${c.credits}</p>
-      <p><b>Location:</b> ${c.location}</p>
-      <p><b>Section:</b> ${c.section}</p>
-      <p><b>Meeting Times:</b> ${timesString}</p>
-      <p><b>Description:</b> ${c.description || 'No description'}</p>
-      <p><b>Professor(s):</b> ${c.professors?.map(p => p.name).join(', ') || 'None'}</p>
-    `;
-    // 4) show the modal
-    $('#courseInfoModal').style.display = 'block';
-  };
-});
+              // ── 1) group days by identical times ──
+              let timesHtml = '';
+              if (c.meetingTimes) {
+                const groups = {};
+                Object.entries(c.meetingTimes).forEach(([day, [start, end]]) => {
+                  const key = `${start}-${end}`;
+                  (groups[key] = groups[key] || []).push(day);
+                });
+                // formatter to 12-hour
+                const fmt = i => {
+                  const h24 = Math.floor(i/100);
+                  const h12 = (h24 % 12) === 0 ? 12 : (h24 % 12);
+                  const m   = i % 100;
+                  return `${h12}:${String(m).padStart(2,'0')}`;
                 };
                 // build final string like "MWF 12:00–12:50, R 2:00–2:50"
                 timesHtml = Object.entries(groups)
@@ -399,148 +403,181 @@ return j;
 .then(() => {
 btn.textContent   = '-';
 btn.dataset.added = 'true';
-
 window.refreshCalendar?.();
 updateScheduleTable();
 })
-.catch(err=>showErrorModal(err.error||'Error adding class'));
-        }
+.catch(err => {
+showErrorModal(err.error || 'Error adding class');
+});
+}
         function removeCourse(courseId,btn){
-const params=new URLSearchParams({scheduleItemId:courseId,schedId:window.currentSchedId});
+const params = new URLSearchParams({scheduleItemId:courseId,schedId:window.currentSchedId});
             fetch('/remove-course',{method:'POST',body:params})
 .then(r=>r.json())
-
 .then(()=>{btn.textContent='+';btn.dataset.added='false';window.refreshCalendar?.();updateScheduleTable();})
-
 .catch(err=>showErrorModal(err.error||'Remove failed'));
         }
-
         window.removeCourseGlobal = id => {
-const sidebarBtn = document.querySelector(`.course-action-btn[data-course-id="${id}"]`);
-if (sidebarBtn) {
-sidebarBtn.textContent = 'Add';
-sidebarBtn.dataset.added = 'false';
-}
-            removeCourse(id, sidebarBtn || { dataset: { added: 'true' }, textContent: '' });
+          // hit your remove-course endpoint
+          const params = new URLSearchParams({
+            schedId: window.currentSchedId,
+            scheduleItemId: id
+          });
+          fetch('/remove-course', { method: 'POST', body: params })
+            .then(r => r.json())
+            .then(() => {
+              // 1) update calendar & table as before
+              window.refreshCalendar?.();
+              updateScheduleTable();
+
+              // 2) find the matching sidebar “+/-” button and reset it
+              const btn = document.querySelector(`.course-action-btn[data-course-id="${id}"]`);
+              if (btn) {
+                btn.textContent = '+';
+                btn.dataset.added = 'false';
+              }
+            })
+            .catch(err => showErrorModal(err.error || 'Remove failed'));
         };
+
 
         /* -----  MODALS ----- */
         window.openModal = ()=> $('#advancedSearchModal').style.display='block';
         window.closeModal= ()=> $('#advancedSearchModal').style.display='none';
         $('#applyFiltersBtn').onclick=()=>{closeModal();performSearch();};
+        function showErrorModal(msg){$('#errorModalMessage').textContent=msg;$('#errorModal').style.display='block';}
+window.closeErrorModal=()=>$('#errorModal').style.display='none';
+window.closeCourseInfoModal=()=>$('#courseInfoModal').style.display='none';
+window.onclick=e=>{
+if(e.target=== $('#advancedSearchModal')) closeModal();
+};
 
-
-        function showErrorModal(msg){
-$('#errorModalMessage').textContent=msg;
-$('#errorModal').style.display='block';
-}
-        window.closeErrorModal = ()=> $('#errorModal').style.display='none';
-        window.closeCourseInfoModal = ()=> $('#courseInfoModal').style.display='none';
-        window.onclick = e => { if(e.target==$('#advancedSearchModal')) closeModal(); };
-
-function fmt(x){
-if(x==null) return '—';
-let h=Math.floor(x/100), m=x%100, ap=h>=12?'PM':'AM';
-h=h%12||12;
-return h+':'+(m<10?'0':'')+m+' '+ap;
-}
-
-        /* ---------- SCHEDULE TABLE ---------- */
-
+        /* -----  SCHEDULE TABLE ----- */
         function updateScheduleTable(){
-fetch(
-  '/api/schedule'
-  + '?schedId='   + encodeURIComponent(window.currentSchedId)
-  + '&semester='  + encodeURIComponent(window.currentSemester)
-)
+          fetch(
+            '/api/schedule'
+            + '?schedId='  + encodeURIComponent(window.currentSchedId)
+            + '&semester=' + encodeURIComponent(window.currentSemester)
+          )
+          .then(r => r.json())
+          .then(data => {
+            // 1) Inject semester on every personal item
+            data.forEach(item => {
+              if (item.type === 'personal') {
+                item.semester = window.currentSemester;
+              }
+            });
 
-.then(r=>r.json())
-.then(d=>{
-$('#scheduleDetailsTable').innerHTML = `
-<thead>
-<tr>
-<th>Course Name</th>
-<th>Professor(s)</th>
-<th>Location</th>
-<th>Credits</th>
-<th>Course Code</th>
-<th>Time</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-` + d.map(c=>{
-const times = Object.values(c.meetingTimes||{})
-.map(([s,e])=>`${fmt(s)} – ${fmt(e)}`);
-                      const unique = [...new Set(times)];
-                      const timeStr = unique.join(', ')||'—';
-                      return `
-                        <tr>
-                          <td>${c.name}</td>
-                          <td>${c.professors?.map(p=>p.name).join(', ')||'None'}</td>
-                          <td>${c.location}</td>
-                          <td>${c.credits}</td>
-                          <td>${c.courseNumber}</td>
-                          <td>${timeStr}</td>
-                          <td>${c.description||''}</td>
-                        </tr>
-                      `;
-                  }).join('')+`
-                    </tbody>
-                  `;
-              });
+            // 2) Only keep items matching the active semester
+            const filtered = data.filter(item =>
+              item.semester.toLowerCase() === window.currentSemester.toLowerCase()
+            );
+
+            // 3) Build your rows
+            const rows = filtered.map(c => {
+              const profs = c.professors?.map(p => p.name).join(', ') || 'None';
+              return `
+                <tr>
+                  <td>${c.name}</td>
+                  <td>${profs}</td>
+                  <td>${c.location}</td>
+                  <td>${c.credits ?? ''}</td>
+                  <td>${c.courseNumber}</td>
+                  <td>${c.section}</td>
+                  <td>${c.description || ''}</td>
+                </tr>`;
+            }).join('');
+
+            const total = filtered
+                    .filter(i => i.type === 'course')
+                    .reduce((sum, c) => sum + (Number(c.credits) || 0), 0);
+                  document.getElementById('totalCredits').textContent = total;
+
+            document.getElementById('scheduleDetailsTable').innerHTML = `
+              <thead><tr>
+                <th>Course Name</th><th>Professor(s)</th><th>Location</th>
+                <th>Credits</th><th>Course Code</th><th>Section</th><th>Description</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>`;
+          });
         }
+        // fetch and show total credits
+        fetch(
+          '/api/credits'
+          + '?schedId='  + encodeURIComponent(window.currentSchedId)
+          + '&semester=' + encodeURIComponent(window.currentSemester)
+        )
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('totalCredits').textContent = data.totalCredits;
+        })
+        .catch(err => console.error('Failed to load total credits', err));
+
+
 
         /* ------------------  INIT  ------------------ */
         performSearch();
         updateScheduleTable();
-
     });
-    </#noparse>
+</#noparse>
     </script>
 
     <!-- ----------  REACT CALENDAR ---------- -->
     <script type="text/babel">
-
         window.refreshCalendar=null;
         const dayLetterToIndex={M:0,T:1,W:2,R:3,F:4};
         const getCurrentMonday=()=>moment().startOf('week').add(1,'days');
 
-        const mapScheduleItemToEvents=item=>{
-const evts=[];
+        function mapScheduleItemToEvents(item){
+const events=[];
 Object.entries(item.meetingTimes||{}).forEach(([d,t])=>{
-const base=getCurrentMonday().add(dayLetterToIndex[d],'days');
+const base=getCurrentMonday().add(dayLetterToIndex[d], 'days');
 const [s,e]=t;
 const start=base.clone().hour(Math.floor(s/100)).minute(s%100);
 const end  =base.clone().hour(Math.floor(e/100)).minute(e%100);
-evts.push({title:item.name,start:start.toDate(),end:end.toDate(),id:item.id});
+events.push({title:item.name,start:start.toDate(),end:end.toDate(),id:item.id,type:item.type});
             });
-            return evts;
-        };
+            return events;
+        }
 
         function Calendar(){
 const [events,setEvents]=React.useState([]);
 const load=()=>{
-fetch('/api/schedule?schedId='+encodeURIComponent(window.currentSchedId))
-.then(r=>r.json())
-.then(data=>{
-const filtered=data.filter(i=>i.semester?.toLowerCase().endsWith(window.currentSemester.toLowerCase()));
-setEvents(filtered.flatMap(mapScheduleItemToEvents));
+fetch(
+  '/api/schedule'
+  + '?schedId='  + encodeURIComponent(window.currentSchedId)
+  + '&semester=' + encodeURIComponent(window.currentSemester)
+)
+.then(r => r.json())
+.then(data => {
+  // 1) Tag each personal item with the current semester
+  data.forEach(i => {
+    if (i.type === 'personal') {
+      i.semester = window.currentSemester;
+    }
+  });
+
+  // 2) Only keep items whose semester exactly matches
+  const filtered = data.filter(i =>
+    i.semester.toLowerCase() === window.currentSemester.toLowerCase()
+  );
+
+  setEvents(filtered.flatMap(mapScheduleItemToEvents));
 });
+
+
             };
             React.useEffect(load,[]);
             React.useEffect(()=>{window.refreshCalendar=load;return()=>window.refreshCalendar=null;},[]);
 
             const monday=getCurrentMonday();
             const days=[0,1,2,3,4].map(i=>monday.clone().add(i,'days').toDate());
-            const step=d=>(['Tue','Thu'].includes(moment(d).format('ddd'))?90:60);
+            const step=(d)=>(['Tue','Thu'].includes(moment(d).format('ddd'))?90:60);
 
-            return(
+            return (
                 <div className="calendar-grid">
-                    {days.map((d,i)=>
-<DayColumn key={i} day={d} startHour={8} endHour={21} stepMinutes={step(d)}
-                                   events={events.filter(e=>moment(e.start).isSame(d,'day'))}/>
-                    )}
+                    {days.map((d,i)=><DayColumn key={i} day={d} startHour={8} endHour={21} stepMinutes={step(d)}
+                                                events={events.filter(e=>moment(e.start).isSame(d,'day'))}/>)}
                 </div>
             );
         }
@@ -549,10 +586,7 @@ setEvents(filtered.flatMap(mapScheduleItemToEvents));
 const slots=[];
 let cur=moment(day).hour(startHour).minute(0);
 const end=moment(day).hour(endHour).minute(0);
-while(cur.isBefore(end)){
-slots.push({t:cur.clone(),step:stepMinutes});
-                cur.add(stepMinutes,'minutes');
-            }
+while(cur.isBefore(end)){slots.push({t:cur.clone(),step:stepMinutes});cur.add(stepMinutes,'minutes');}
             slots.push({t:end.clone(),step:stepMinutes,type:'night'});
 
             const overlaps=(ev,slot)=>{
@@ -561,23 +595,32 @@ const slotEnd=slot.t.clone().add(slot.step,'minutes');
 return moment(ev.start).isBefore(slotEnd)&&moment(ev.end).isAfter(slot.t);
 };
 
-            return(
+            return (
                 <div className="day-column">
-                    <div className="day-header">{moment(day).format('dddd, MMM Do')}</div>
+                    <div className="day-header">{moment(day).format('dddd')}</div>
                     <div className="time-slots">
                         {slots.map((s,i)=>{
 const label=s.t.format('h:mm A');
 const evts=events.filter(ev=>overlaps(ev,s));
-return(
+return (
 <div key={i} className="time-slot">
                                     <div className="slot-label">{label}</div>
                                     {evts.map((ev,j)=>
 <div key={j} className="event-overlay">
                                             {ev.title}
-                                            <button className="remove-button" onClick={e=>{
-e.stopPropagation();
-window.removeCourseGlobal(ev.id);
-}}>x</button>
+                                            <button
+                                                  className="remove-button"
+                                                  onClick={e => {
+                                                    e.stopPropagation();
+                                                    if (ev.type === 'personal') {
+                                                      window.removeItemGlobal(ev.id);
+                                                    } else {
+                                                      window.removeCourseGlobal(ev.id);
+                                                    }
+                                                  }}
+                                                >
+                                                  x
+                                                </button>
                                         </div>
                                     )}
                                 </div>
@@ -586,60 +629,10 @@ window.removeCourseGlobal(ev.id);
                     </div>
                 </div>
             );
-
         }
-        slots.push({ t:end.clone(), step:stepMinutes, type:'night' });
 
-        const overlaps = (ev, slot) => {
-          if(slot.type==='night')
-            return moment(ev.start).isSameOrAfter(slot.t);
-          const slotEnd = slot.t.clone().add(slot.step,'minutes');
-          return moment(ev.start).isBefore(slotEnd)
-              && moment(ev.end).isAfter(slot.t);
-        };
-
-        return (
-          <div className="day-column">
-            <div className="day-header">
-              {moment(day).format('dddd, MMM Do')}
-            </div>
-            <div className="time-slots">
-              {slots.map((s,i) => {
-                const label = s.t.format('h:mm A');
-                const evts  = events.filter(ev => overlaps(ev,s));
-                return (
-                  <div key={i} className="time-slot">
-                    <div className="slot-label">{label}</div>
-                    {evts.map((ev,j) =>
-                      <div key={j} className="event-overlay">
-                        {ev.title}
-                        <button
-                          className="remove-button"
-                          onClick={e => {
-                            e.stopPropagation();
-                            window.removeCourseGlobal(ev.id);
-                            if (ev.type === 'course')
-                                window.removeCourseGlobal(ev.id);
-                            else
-                                window.removeItemGlobal(ev.id);
-                          }}
-                        >×</button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      }
-
-      ReactDOM.render(
-        <Calendar/>,
-        document.getElementById('react-calendar-container')
-      );
+        ReactDOM.render(<Calendar/>,document.getElementById('react-calendar-container'));
 
     </script>
-
 </body>
 </html>

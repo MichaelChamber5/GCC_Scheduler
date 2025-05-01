@@ -12,7 +12,7 @@
 <h1>Register Account</h1>
 <div id="register-form"></div>
 
-<script type="text/babel">
+<script type="text/babel" data-presets="react,env">
     function RegisterForm(){
 const [password, setPassword] = React.useState('');
 const [confirmPassword, setConfirmPassword] = React.useState('');
