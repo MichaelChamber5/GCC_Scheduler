@@ -402,6 +402,21 @@ public class server {
                 Search search = new Search(dbm);
                 List<CourseItem> results = search.search(q, semester);
 
+                // parse and apply filters
+                String deptParam = Optional.ofNullable(rq.queryParams("dept")).orElse("");
+                String daysParam = Optional.ofNullable(rq.queryParams("days")).orElse("");
+                List<Character> daysList = new ArrayList<>();
+                for(char c : daysParam.toCharArray()){
+                    daysList.add(c);
+                }
+                Date startDate = parseTime(rq.queryParams("start"));
+                Date endDate   = parseTime(rq.queryParams("end"));
+
+                // filter the search results
+                results = search.filter(deptParam, daysList, startDate, endDate);
+
+
+
                 Set<Integer> existing = (sid>0)? new HashSet<>(dbm.getScheduleCourseIds(sid)) : Collections.emptySet();
                 results.forEach(c -> c.setOnSchedule(existing.contains(c.getId())));
 
