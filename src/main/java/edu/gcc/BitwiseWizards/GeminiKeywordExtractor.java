@@ -99,6 +99,8 @@ public class GeminiKeywordExtractor {
                 .get()
                 .build();
 
+        String modelName = "models/gemini-1.5-pro"; // Default to the latest stable version
+
         try (Response listModelsResponse = client.newCall(listModelsRequest).execute()) {
             if (!listModelsResponse.isSuccessful()) {
                 String errorBody = listModelsResponse.body().string();
@@ -108,9 +110,6 @@ public class GeminiKeywordExtractor {
 
             String modelsResponse = listModelsResponse.body().string();
             System.out.println("Available models: " + modelsResponse);
-
-            // Use the standard gemini-pro model
-            String modelName = "gemini-pro";
         }
 
         String prompt = """
@@ -133,7 +132,7 @@ public class GeminiKeywordExtractor {
                         .put("maxOutputTokens", 100));
 
         Request request = new Request.Builder()
-                .url("https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=" + apiKey)
+                .url("https://generativelanguage.googleapis.com/v1/" + modelName + ":generateContent?key=" + apiKey)
                 .addHeader("Content-Type", "application/json")
                 .post(RequestBody.create(requestBody.toString(), MediaType.parse("application/json")))
                 .build();
