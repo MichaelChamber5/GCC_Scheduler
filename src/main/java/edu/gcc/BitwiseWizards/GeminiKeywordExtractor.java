@@ -93,6 +93,26 @@ public class GeminiKeywordExtractor {
             catalogText = PDFTextExtractor.extractText("src/main/resources/2024-25-Catalog.pdf");
         }
 
+        // First, get the list of available models
+        Request listModelsRequest = new Request.Builder()
+                .url("https://generativelanguage.googleapis.com/v1/models?key=" + apiKey)
+                .get()
+                .build();
+
+        try (Response listModelsResponse = client.newCall(listModelsRequest).execute()) {
+            if (!listModelsResponse.isSuccessful()) {
+                String errorBody = listModelsResponse.body().string();
+                System.err.println("Error listing models: " + errorBody);
+                throw new IOException("Failed to list models: " + errorBody);
+            }
+
+            String modelsResponse = listModelsResponse.body().string();
+            System.out.println("Available models: " + modelsResponse);
+
+            // Use the standard gemini-pro model
+            String modelName = "gemini-pro";
+        }
+
         String prompt = """
         You are given a college course catalog and a student query.
         Extract a comma-separated list of **relevant keywords** based only on what exists in the catalog.
@@ -113,7 +133,7 @@ public class GeminiKeywordExtractor {
                         .put("maxOutputTokens", 100));
 
         Request request = new Request.Builder()
-                .url("https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=" + apiKey)
+                .url("https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=" + apiKey)
                 .addHeader("Content-Type", "application/json")
                 .post(RequestBody.create(requestBody.toString(), MediaType.parse("application/json")))
                 .build();
