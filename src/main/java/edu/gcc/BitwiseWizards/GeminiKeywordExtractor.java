@@ -43,10 +43,21 @@ public class GeminiKeywordExtractor {
      * @throws RuntimeException if the file cannot be loaded or the key is missing
      */
     private String loadApiKeyFromConfig() {
+        // First try environment variable
+        String envApiKey = System.getenv("GEMINI_API_KEY");
+        if (envApiKey != null && !envApiKey.trim().isEmpty()) {
+            return envApiKey;
+        }
+
+        // Fallback to config file
         try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
             Properties prop = new Properties();
             prop.load(input);
-            return prop.getProperty("GEMINI_API_KEY");
+            String apiKey = prop.getProperty("GEMINI_API_KEY");
+            if (apiKey == null || apiKey.trim().isEmpty()) {
+                throw new RuntimeException("GEMINI_API_KEY not found in config.properties or environment variables");
+            }
+            return apiKey;
         } catch (IOException e) {
             throw new RuntimeException("Failed to load API key from config.properties", e);
         }
@@ -102,7 +113,7 @@ public class GeminiKeywordExtractor {
                         .put("maxOutputTokens", 100));
 
         Request request = new Request.Builder()
-                .url("https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=" + apiKey)
+                .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey)
                 .addHeader("Content-Type", "application/json")
                 .post(RequestBody.create(requestBody.toString(), MediaType.parse("application/json")))
                 .build();
