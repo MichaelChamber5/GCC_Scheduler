@@ -41,11 +41,12 @@ dependencies {
 
     //for password hashing
     implementation 'org.mindrot:jbcrypt:0.4'
-
-
-
 }
 
 test {
     useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
 }

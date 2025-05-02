@@ -127,8 +127,7 @@ public class Search {
         return searchedCourses;
     }
 
-    public ArrayList<CourseItem> searchMultiWord(String[] words, String semester)
-    {
+    public ArrayList<CourseItem> searchMultiWord(String[] words, String semester) {
         if (words == null || words.length == 0) {
             return new ArrayList<>();
         }
@@ -143,6 +142,7 @@ public class Search {
             }
 
             ArrayList<CourseItem> matchingCourses = new ArrayList<>();
+            String keywordLower = keyword.toLowerCase();
 
             // Use similar logic as in searchSingleWord but applied to current result set
             for (CourseItem c : result) {
@@ -150,22 +150,58 @@ public class Search {
                 {
                     continue;
                 }
-                if (keyword.length() == 1) {
-                    // Check for character for section (A, B, C, D...) OR day (M, T, W...)
-                    if (Character.toString(c.getSection()).equalsIgnoreCase(keyword) ||
-                            c.getDays().contains(keyword.charAt(0))) {
-                        matchingCourses.add(c);
+
+                boolean matches = false;
+
+                // Check for time-related keywords
+                if (keywordLower.contains("morning") || keywordLower.contains("afternoon") || 
+                    keywordLower.contains("evening") || keywordLower.contains("night")) {
+                    Integer startTime = c.getStartTime();
+                    if (startTime != null) {
+                        int hour = startTime / 100;
+                        if (keywordLower.contains("morning") && hour >= 6 && hour < 12) {
+                            matches = true;
+                        } else if (keywordLower.contains("afternoon") && hour >= 12 && hour < 17) {
+                            matches = true;
+                        } else if ((keywordLower.contains("evening") || keywordLower.contains("night")) && hour >= 17) {
+                            matches = true;
+                        }
                     }
-                } else {
-                    // Check string
-                    if (c.getName().toLowerCase().contains(keyword.toLowerCase()) ||
-                            c.getLocation().toLowerCase().contains(keyword.toLowerCase()) ||
+                }
+                // Check for day-related keywords
+                else if (keywordLower.contains("monday") || keywordLower.contains("mon")) {
+                    matches = c.getDays().contains('M');
+                } else if (keywordLower.contains("tuesday") || keywordLower.contains("tue")) {
+                    matches = c.getDays().contains('T');
+                } else if (keywordLower.contains("wednesday") || keywordLower.contains("wed")) {
+                    matches = c.getDays().contains('W');
+                } else if (keywordLower.contains("thursday") || keywordLower.contains("thu")) {
+                    matches = c.getDays().contains('R');
+                } else if (keywordLower.contains("friday") || keywordLower.contains("fri")) {
+                    matches = c.getDays().contains('F');
+                }
+                // Check for department-related keywords
+                else if (keywordLower.contains("computer science") || keywordLower.contains("cs")) {
+                    matches = c.getDepCode().equalsIgnoreCase("COMP") || 
+                             c.getName().toLowerCase().contains("computer") ||
+                             c.getName().toLowerCase().contains("computing");
+                }
+                // Check for professor names
+                else if (c.getProfessors().stream().anyMatch(p -> 
+                    p.getName().toLowerCase().contains(keywordLower))) {
+                    matches = true;
+                }
+                // General string matching
+                else {
+                    matches = c.getName().toLowerCase().contains(keywordLower) ||
+                            c.getLocation().toLowerCase().contains(keywordLower) ||
                             Integer.toString(c.getCourseNumber()).equalsIgnoreCase(keyword) ||
                             c.getDepCode().equalsIgnoreCase(keyword) ||
-                            c.getDescription().toLowerCase().contains(keyword.toLowerCase()) ||
-                            c.getProfessors().stream().anyMatch(p -> p.getName().toLowerCase().contains(keyword.toLowerCase()))) {
-                        matchingCourses.add(c);
-                    }
+                            c.getDescription().toLowerCase().contains(keywordLower);
+                }
+
+                if (matches) {
+                    matchingCourses.add(c);
                 }
             }
 

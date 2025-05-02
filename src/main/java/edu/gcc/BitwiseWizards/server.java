@@ -12,12 +12,20 @@ import org.mindrot.jbcrypt.BCrypt;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.io.IOException;
 
 public class server {
 
     private static NewDatabaseManager dbm;
 
     public static void main(String[] args) {
+        try {
+            // Initialize PDF processor
+            PDFProcessor.initialize();
+        } catch (IOException e) {
+            System.err.println("Failed to initialize PDF processor: " + e.getMessage());
+            e.printStackTrace();
+        }
 
         dbm = new NewDatabaseManager();       // ctor prints its own messages
         port(4567);
@@ -249,7 +257,7 @@ public class server {
             for (ScheduleItem si : existing) {
                 if (si.conflicts(candidate)) {
                     rs.status(409);
-                    return new Gson().toJson(Map.of("error", "Conflicts with “" + si.getName() + "”"));
+                    return new Gson().toJson(Map.of("error", "Conflicts with " + si.getName()));
                 }
             }
 
@@ -350,7 +358,7 @@ public class server {
             if (user == null) { rs.redirect("/login"); return null; }
 
             int sid = Integer.parseInt(rq.params(":schedId"));
-            // decide which semester you’re printing for
+            // decide which semester you're printing for
             String semester = Optional.ofNullable(rq.queryParams("semester"))
                     .orElse("2023_Fall");
 

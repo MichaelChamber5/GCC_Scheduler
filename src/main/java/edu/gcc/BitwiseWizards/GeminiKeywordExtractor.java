@@ -24,7 +24,11 @@ import java.util.Properties;
 public class GeminiKeywordExtractor {
 
     /** HTTP client for making API requests */
-    private final OkHttpClient client = new OkHttpClient();
+    private final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .build();
 
     /** API key loaded from config.properties */
     private final String apiKey;
@@ -43,10 +47,21 @@ public class GeminiKeywordExtractor {
      * @throws RuntimeException if the file cannot be loaded or the key is missing
      */
     private String loadApiKeyFromConfig() {
+        // First try environment variable
+        String envApiKey = System.getenv("GEMINI_API_KEY");
+        if (envApiKey != null && !envApiKey.trim().isEmpty()) {
+            return envApiKey;
+        }
+
+        // Fallback to config file
         try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
             Properties prop = new Properties();
             prop.load(input);
-            return prop.getProperty("GEMINI_API_KEY");
+            String apiKey = prop.getProperty("GEMINI_API_KEY");
+            if (apiKey == null || apiKey.trim().isEmpty()) {
+                throw new RuntimeException("GEMINI_API_KEY not found in config.properties or environment variables");
+            }
+            return apiKey;
         } catch (IOException e) {
             throw new RuntimeException("Failed to load API key from config.properties", e);
         }
@@ -82,13 +97,37 @@ public class GeminiKeywordExtractor {
             catalogText = PDFTextExtractor.extractText("src/main/resources/2024-25-Catalog.pdf");
         }
 
+        // First, get the list of available models
+        Request listModelsRequest = new Request.Builder()
+                .url("https://generativelanguage.googleapis.com/v1/models?key=" + apiKey)
+                .get()
+                .build();
+
+        String modelName = "models/gemini-1.5-pro"; // Default to the latest stable version
+
+        try (Response listModelsResponse = client.newCall(listModelsRequest).execute()) {
+            if (!listModelsResponse.isSuccessful()) {
+                String errorBody = listModelsResponse.body().string();
+                System.err.println("Error listing models: " + errorBody);
+                throw new IOException("Failed to list models: " + errorBody);
+            }
+
+            String modelsResponse = listModelsResponse.body().string();
+            System.out.println("Available models: " + modelsResponse);
+        }
+
+        // Truncate catalog text to a reasonable size (first 10000 characters)
+        String truncatedCatalog = catalogText.length() > 10000 ? 
+            catalogText.substring(0, 10000) + "... (truncated)" : 
+            catalogText;
+
         String prompt = """
         You are given a college course catalog and a student query.
         Extract a comma-separated list of **relevant keywords** based only on what exists in the catalog.
         Examples: course titles, professor names, department names, class days/times, semester terms.
         
-        Catalog:
-        """ + catalogText + """
+        Catalog (truncated):
+        """ + truncatedCatalog + """
         
         Query:
         """ + inputText + """
@@ -102,7 +141,7 @@ public class GeminiKeywordExtractor {
                         .put("maxOutputTokens", 100));
 
         Request request = new Request.Builder()
-                .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey)
+                .url("https://generativelanguage.googleapis.com/v1/" + modelName + ":generateContent?key=" + apiKey)
                 .addHeader("Content-Type", "application/json")
                 .post(RequestBody.create(requestBody.toString(), MediaType.parse("application/json")))
                 .build();
