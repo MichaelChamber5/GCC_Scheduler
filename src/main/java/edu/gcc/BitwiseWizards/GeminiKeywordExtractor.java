@@ -24,7 +24,11 @@ import java.util.Properties;
 public class GeminiKeywordExtractor {
 
     /** HTTP client for making API requests */
-    private final OkHttpClient client = new OkHttpClient();
+    private final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .build();
 
     /** API key loaded from config.properties */
     private final String apiKey;
@@ -112,13 +116,18 @@ public class GeminiKeywordExtractor {
             System.out.println("Available models: " + modelsResponse);
         }
 
+        // Truncate catalog text to a reasonable size (first 10000 characters)
+        String truncatedCatalog = catalogText.length() > 10000 ? 
+            catalogText.substring(0, 10000) + "... (truncated)" : 
+            catalogText;
+
         String prompt = """
         You are given a college course catalog and a student query.
         Extract a comma-separated list of **relevant keywords** based only on what exists in the catalog.
         Examples: course titles, professor names, department names, class days/times, semester terms.
         
-        Catalog:
-        """ + catalogText + """
+        Catalog (truncated):
+        """ + truncatedCatalog + """
         
         Query:
         """ + inputText + """
